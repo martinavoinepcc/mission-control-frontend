@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getMe, clearToken, type User, type App } from '@/lib/api';
+import { UI, iconForApp } from '@/lib/icons';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -54,10 +56,7 @@ export default function DashboardPage() {
         <header className="flex items-center justify-between mb-12 animate-fade-up">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-violet to-neon-cyan flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
-              </svg>
+              <FontAwesomeIcon icon={UI.compass} className="text-white text-lg" />
             </div>
             <span className="font-display font-semibold text-lg">Mission Control</span>
           </div>
@@ -65,15 +64,17 @@ export default function DashboardPage() {
             {user.role === 'ADMIN' && (
               <button
                 onClick={() => router.push('/admin')}
-                className="text-sm px-4 py-2 rounded-xl border border-neon-violet/30 text-neon-violet/90 hover:bg-neon-violet/10 transition"
+                className="text-sm px-4 py-2 rounded-xl border border-neon-violet/30 text-neon-violet/90 hover:bg-neon-violet/10 transition flex items-center gap-2"
               >
+                <FontAwesomeIcon icon={UI.admin} className="text-xs" />
                 Administration
               </button>
             )}
             <button
               onClick={handleLogout}
-              className="text-sm px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition"
+              className="text-sm px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
             >
+              <FontAwesomeIcon icon={UI.logout} className="text-xs" />
               Déconnexion
             </button>
           </div>
@@ -123,19 +124,16 @@ function AppCard({ app, delay }: { app: App; delay: number }) {
       />
       <div className="relative">
         <div
-          className="inline-flex items-center justify-center w-14 h-14 rounded-2xl text-3xl mb-5 transition-transform group-hover:scale-110"
+          className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5 transition-transform group-hover:scale-110"
           style={{ background: `${app.color}20`, border: `1px solid ${app.color}40` }}
         >
-          {app.icon}
+          <FontAwesomeIcon
+            icon={iconForApp(app.icon)}
+            className="text-2xl"
+            style={{ color: app.color }}
+          />
         </div>
         <h3 className="font-display text-xl font-semibold mb-1">{app.name}</h3>
         {app.description && <p className="text-white/50 text-sm mb-4">{app.description}</p>}
         {app.isMockup && (
-          <span className="inline-block text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50">
-            Bientôt disponible
-          </span>
-        )}
-      </div>
-    </button>
-  );
-}
+          <span className="inline-b

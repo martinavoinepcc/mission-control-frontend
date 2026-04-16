@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getStoredUser, clearToken } from '@/lib/api';
 import { AdminAPI, type AdminUser, type AdminApp } from '@/lib/admin-api';
+import { UI, iconForApp } from '@/lib/icons';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -109,12 +111,16 @@ export default function AdminPage() {
               onClick={() => setShowCreate(true)}
               className="btn-primary text-sm"
             >
-              <span>+ Nouveau membre</span>
+              <span className="flex items-center gap-2">
+                <FontAwesomeIcon icon={UI.plus} className="text-xs" />
+                Nouveau membre
+              </span>
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="text-sm px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition"
+              className="text-sm px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
             >
+              <FontAwesomeIcon icon={UI.back} className="text-xs" />
               Retour
             </button>
           </div>
@@ -141,13 +147,20 @@ export default function AdminPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neon-violet to-neon-cyan flex items-center justify-center text-lg font-bold">
-                    {u.firstName[0]}
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neon-violet to-neon-cyan flex items-center justify-center">
+                    <FontAwesomeIcon
+                      icon={u.role === 'ADMIN' ? UI.admin : u.profile === 'CHILD' ? UI.child : UI.user}
+                      className="text-white text-lg"
+                    />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-display text-lg font-semibold">{u.firstName}</h3>
-                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${u.role === 'ADMIN' ? 'bg-neon-violet/20 text-neon-violet border border-neon-violet/40' : 'bg-white/5 text-white/60 border border-white/10'}`}>
+                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1 ${u.role === 'ADMIN' ? 'bg-neon-violet/20 text-neon-violet border border-neon-violet/40' : 'bg-white/5 text-white/60 border border-white/10'}`}>
+                        <FontAwesomeIcon
+                          icon={u.role === 'ADMIN' ? UI.admin : u.profile === 'CHILD' ? UI.child : UI.user}
+                          className="text-[9px]"
+                        />
                         {u.role === 'ADMIN' ? 'Admin' : u.profile === 'CHILD' ? 'Enfant' : 'Adulte'}
                       </span>
                     </div>
@@ -157,15 +170,17 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => resetPassword(u)}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-white/15 text-white/70 hover:bg-white/5 transition"
+                    className="text-xs px-3 py-1.5 rounded-lg border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-1.5"
                   >
+                    <FontAwesomeIcon icon={UI.key} className="text-[10px]" />
                     Nouveau mdp
                   </button>
                   {u.role !== 'ADMIN' && (
                     <button
                       onClick={() => deleteUser(u)}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-300 hover:bg-red-500/10 transition"
+                      className="text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-300 hover:bg-red-500/10 transition flex items-center gap-1.5"
                     >
+                      <FontAwesomeIcon icon={UI.trash} className="text-[10px]" />
                       Supprimer
                     </button>
                   )}
@@ -183,11 +198,23 @@ export default function AdminPage() {
                       onClick={() => toggleAccess(u.id, app.id, hasAccess)}
                       className={`flex items-center gap-3 rounded-xl p-3 border transition text-left ${hasAccess ? 'border-neon-violet/40 bg-neon-violet/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/5'}`}
                     >
-                      <span className="text-2xl">{app.icon}</span>
+                      <span className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${app.color}20`, border: `1px solid ${app.color}40` }}>
+                        <FontAwesomeIcon icon={iconForApp(app.icon)} style={{ color: app.color }} className="text-base" />
+                      </span>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">{app.name}</div>
-                        <div className={`text-[10px] uppercase tracking-wider ${hasAccess ? 'text-neon-violet' : 'text-white/40'}`}>
-                          {hasAccess ? '✓ Autorisé' : 'Non autorisé'}
+                        <div className={`text-[10px] uppercase tracking-wider flex items-center gap-1 ${hasAccess ? 'text-neon-violet' : 'text-white/40'}`}>
+                          {hasAccess ? (
+                            <>
+                              <FontAwesomeIcon icon={UI.check} className="text-[9px]" />
+                              Autorisé
+                            </>
+                          ) : (
+                            <>
+                              <FontAwesomeIcon icon={UI.close} className="text-[9px]" />
+                              Non autorisé
+                            </>
+                          )}
                         </div>
                       </div>
                     </button>
@@ -232,7 +259,9 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
       <form onSubmit={submit} className="glass rounded-3xl p-8 w-full max-w-md space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold">Nouveau membre</h2>
-          <button type="button" onClick={onClose} className="text-white/40 hover:text-white">✕</button>
+          <button type="button" onClick={onClose} className="text-white/40 hover:text-white p-1" aria-label="Fermer">
+            <FontAwesomeIcon icon={UI.close} />
+          </button>
         </div>
 
         <div>
@@ -241,37 +270,4 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
         </div>
         <div>
           <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Courriel</label>
-          <input type="email" className="input" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Mot de passe temporaire</label>
-          <input type="text" className="input" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
-          <p className="text-xs text-white/40 mt-1.5">Min 8 caractères. Le membre devra le changer à sa première connexion.</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Rôle</label>
-            <select className="input" value={role} onChange={(e) => setRole(e.target.value as any)} disabled={loading}>
-              <option value="MEMBER">Membre</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Profil</label>
-            <select className="input" value={profile} onChange={(e) => setProfile(e.target.value as any)} disabled={loading}>
-              <option value="ADULT">Adulte</option>
-              <option value="CHILD">Enfant</option>
-            </select>
-          </div>
-        </div>
-
-        {err && <div className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{err}</div>}
-
-        <button type="submit" className="btn-primary w-full" disabled={loading}>
-          <span>{loading ? <span className="spinner" /> : 'Créer le membre'}</span>
-        </button>
-      </form>
-    </div>
-  );
-}
+          <input type="email" className="input" required valu
