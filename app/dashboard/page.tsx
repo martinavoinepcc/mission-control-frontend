@@ -119,6 +119,8 @@ function AppCard({ app, delay }: { app: App; delay: number }) {
         }
         // Apps réelles : routage par slug
         if (app.slug === 'educatif') window.location.href = '/apps/educatif/';
+        else if (app.slug === 'maison') window.location.href = '/apps/maison/';
+        else if (app.slug === 'chalet') window.location.href = '/apps/chalet/';
       }}
       className="group relative text-left rounded-2xl overflow-hidden glass p-6 transition-all hover:scale-[1.02] hover:shadow-2xl animate-fade-up"
       style={{ animationDelay: `${delay}ms` }}
@@ -141,11 +143,4 @@ function AppCard({ app, delay }: { app: App; delay: number }) {
         <h3 className="font-display text-xl font-semibold mb-1">{app.name}</h3>
         {app.description && <p className="text-white/50 text-sm mb-4">{app.description}</p>}
         {app.isMockup && (
-          <span className="inline-block text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50">
-            Bientôt disponible
-          </span>
-        )}
-      </div>
-    </button>
-  );
-}
+          <span className="inline-block text-[10px] uppercase tracking-wider px-2.5 py-
