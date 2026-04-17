@@ -424,7 +424,7 @@ function MissionInner() {
         />
       )}
       {status === 'fail' && resultMsg && (
-        <div className="fixed bottom-6 right-6 max-w-sm glass rounded-xl p-4 border border-amber-500/40 bg-amber-500/10 shadow-2xl z-50 animate-fade-up">
+        <div className="fixed bottom-6 right-6 max-w-sm glass rounded-xl p-4 border border-amber-500/40 bg-amber-500/10 shadow-2xl z-[200] animate-fade-up">
           <div className="flex items-start gap-3">
             <FontAwesomeIcon icon={UI.heart} className="text-amber-400 mt-0.5" />
             <div className="flex-1">
@@ -515,7 +515,7 @@ function BriefingModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-up">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-up">
       <div className="glass rounded-2xl max-w-lg w-full p-6 border border-emerald-500/30">
         <div className="flex items-start gap-4 mb-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center flex-shrink-0">
@@ -551,7 +551,7 @@ function HintModal({
 }) {
   const labels = ['', 'Petit indice', 'Indice +', 'Aide guidée', 'Solution'];
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-up">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-up">
       <div className="glass rounded-2xl max-w-md w-full p-6 border border-amber-400/40">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -603,7 +603,7 @@ function SuccessModal({
   onRetry: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-up">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-up">
       <div className="glass rounded-2xl max-w-md w-full p-8 border border-emerald-500/40 text-center relative overflow-hidden">
         {/* Confettis simples */}
         <div className="absolute inset-0 pointer-events-none opacity-30">
