@@ -111,9 +111,8 @@ public class ${cls} extends Block {
 
   return (
     <main className="relative min-h-screen text-white">
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        .pixel-font { font-family: 'Press Start 2P', monospace; letter-spacing: 0.05em; }
+      <style dangerouslySetInnerHTML={{ __html: `
+        .pixel-font { font-family: 'Courier New', 'Lucida Console', monospace; letter-spacing: 0.05em; }
         .scene { perspective: 800px; perspective-origin: 50% 50%; }
         .cube { width: 140px; height: 140px; position: relative; transform-style: preserve-3d; transform: rotateX(-25deg) rotateY(35deg); transition: transform .8s cubic-bezier(.2,.8,.3,1.2); }
         .cube.spin { animation: cubespin 6s linear infinite; }
@@ -140,7 +139,7 @@ public class ${cls} extends Block {
         input[type=range].mc-slider { -webkit-appearance: none; appearance: none; height: 10px; background: #1f2937; border-radius: 6px; outline: none; }
         input[type=range].mc-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; background: #4ADE80; border-radius: 50%; cursor: pointer; border: 3px solid #064e3b; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
         input[type=range].mc-slider::-moz-range-thumb { width: 28px; height: 28px; background: #4ADE80; border-radius: 50%; cursor: pointer; border: 3px solid #064e3b; }
-      `}</style>
+      ` }} />
 
       <div className="absolute inset-0 cosmic-grid" />
 
@@ -342,13 +341,13 @@ public class ${cls} extends Block {
                 </div>
               </div>
             </div>
-            <style jsx>{`
+            <style dangerouslySetInnerHTML={{ __html: `
               @keyframes fxRise {
                 0%   { opacity: 0; transform: translateY(20px) scale(0.6); }
                 30%  { opacity: 1; transform: translateY(0) scale(1.1); }
                 100% { opacity: 0; transform: translateY(-80px) scale(1); }
               }
-            `}</style>
+            ` }} />
 
             <div className="mt-3 p-2 bg-slate-950 rounded-lg">
               <div className="text-[11px] text-white/50">Nom :</div>
