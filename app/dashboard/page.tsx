@@ -143,4 +143,11 @@ function AppCard({ app, delay }: { app: App; delay: number }) {
         <h3 className="font-display text-xl font-semibold mb-1">{app.name}</h3>
         {app.description && <p className="text-white/50 text-sm mb-4">{app.description}</p>}
         {app.isMockup && (
-          <span className="inline-block text-[10px] uppercase tracking-wider px-2.5 py-
+          <span className="inline-block text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50">
+            Bientôt disponible
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
