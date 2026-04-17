@@ -176,3 +176,5 @@ function ModuleCard({ mod, delay, onClick }: { mod: EduModuleSummary; delay: num
         </div>
       </div>
     </button>
+  );
+}
