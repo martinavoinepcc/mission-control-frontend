@@ -19,6 +19,52 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ============ ÉDUCATIF : Blockly dark theme overrides ============ */
+.blocklyMainBackground {
+  fill: #151528 !important;
+  stroke: transparent !important;
+}
+.blocklyToolboxDiv {
+  background: #0f0f22 !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 8px 4px !important;
+}
+.blocklyTreeRow {
+  border-radius: 10px !important;
+  margin: 2px 0 !important;
+  padding: 6px 10px !important;
+  transition: background 0.15s ease;
+}
+.blocklyTreeRow:hover {
+  background: rgba(255,255,255,0.06) !important;
+}
+.blocklyTreeSelected {
+  background: rgba(74, 222, 128, 0.15) !important;
+}
+.blocklyTreeLabel {
+  color: #E5E7EB !important;
+  font-family: Inter, system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+}
+.blocklyFlyoutBackground {
+  fill: #1a1a32 !important;
+  fill-opacity: 0.95 !important;
+}
+.blocklyScrollbarHandle {
+  fill: rgba(255,255,255,0.15) !important;
+}
+.blocklyText {
+  font-family: Inter, system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  fill: #fff !important;
+}
+.blocklyTrash { opacity: 0.6 !important; }
+.blocklyTrash:hover { opacity: 1 !important; }
+.blocklyZoom > image { opacity: 0.5 !important; }
+.blocklyZoom > image:hover { opacity: 1 !important; }
+
+
 /* Grille animée en fond */
 .cosmic-grid {
   background-image:
@@ -117,3 +163,143 @@ html, body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(155, 109, 255, 0.25); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(155, 109, 255, 0.45); }
+
+/* =================================================================
+   Login — séquence d'animation futuriste tech
+   ================================================================= */
+
+/* Orbital rings autour du logo */
+.orbital-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(155, 109, 255, 0.35);
+  animation: orbit-spin 18s linear infinite;
+}
+.orbital-ring::before {
+  content: '';
+  position: absolute;
+  top: -3px; left: 50%;
+  width: 6px; height: 6px;
+  margin-left: -3px;
+  background: #5EEAFF;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #5EEAFF, 0 0 24px rgba(94, 234, 255, 0.6);
+}
+.orbital-ring.reverse { animation-direction: reverse; animation-duration: 26s; border-color: rgba(94, 234, 255, 0.3); }
+.orbital-ring.reverse::before { background: #9B6DFF; box-shadow: 0 0 12px #9B6DFF, 0 0 24px rgba(155, 109, 255, 0.6); }
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+
+/* Scan line qui traverse la card */
+.scanline {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.scanline::before {
+  content: '';
+  position: absolute;
+  left: -50%;
+  top: -2px;
+  width: 200%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(94, 234, 255, 0.85), rgba(155, 109, 255, 0.85), transparent);
+  box-shadow: 0 0 20px rgba(94, 234, 255, 0.5);
+  animation: scan-move 3.2s ease-in-out infinite;
+}
+@keyframes scan-move {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(560px); opacity: 0; }
+}
+
+/* Grid qui pulse derrière la card */
+.tech-grid-bg {
+  position: absolute;
+  inset: -40px;
+  background-image:
+    linear-gradient(rgba(94, 234, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 234, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(circle at center, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at center, black 20%, transparent 70%);
+  animation: grid-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+}
+
+/* HUD corners — coins techniques */
+.hud-corner {
+  position: absolute;
+  width: 18px; height: 18px;
+  border: 2px solid rgba(94, 234, 255, 0.75);
+}
+.hud-corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+.hud-corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+.hud-corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+.hud-corner.br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+/* Glitch sur le titre */
+.glitch {
+  position: relative;
+  animation: glitch-flicker 6s infinite;
+}
+@keyframes glitch-flicker {
+  0%, 94%, 100% { opacity: 1; transform: translate(0); }
+  95% { opacity: 0.85; transform: translate(-1px, 0.5px); }
+  96% { opacity: 1; transform: translate(1px, -0.5px); }
+  97% { opacity: 0.9; transform: translate(0, 1px); }
+}
+
+/* Typewriter on status line */
+.typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid rgba(94, 234, 255, 0.8);
+  animation: type 2.2s steps(26, end), caret 0.9s step-end infinite;
+}
+@keyframes type {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@keyframes caret {
+  50% { border-color: transparent; }
+}
+
+/* Auth progress bar (quand loading) */
+.auth-bar {
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(155, 109, 255, 0.15);
+}
+.auth-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #5EEAFF, #9B6DFF, transparent);
+  animation: auth-sweep 1.1s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(94, 234, 255, 0.6);
+}
+@keyframes auth-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Power-on — fade séquentiel des éléments au montage */
+.po-1 { animation: power-on 0.7s ease-out 0.05s backwards; }
+.po-2 { animation: power-on 0.7s ease-out 0.25s backwards; }
+.po-3 { animation: power-on 0.7s ease-out 0.45s backwards; }
+.po-4 { animation: power-on 0.7s ease-out 0.65s backwards; }
+@keyframes power-on {
+  0% { opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(6px); }
+  60% { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}

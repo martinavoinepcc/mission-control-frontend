@@ -108,6 +108,13 @@ export default function AdminPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
+              onClick={() => router.push('/admin/educatif/')}
+              className="text-sm px-4 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20 transition flex items-center gap-2"
+            >
+              <FontAwesomeIcon icon={UI.graduationCap} className="text-xs" />
+              Éducatif
+            </button>
+            <button
               onClick={() => setShowCreate(true)}
               className="btn-primary text-sm"
             >
@@ -270,4 +277,37 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
         </div>
         <div>
           <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Courriel</label>
-          <input type="email" className="input" required valu
+          <input type="email" className="input" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Mot de passe temporaire</label>
+          <input type="text" className="input" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
+          <p className="text-xs text-white/40 mt-1.5">Min 8 caractères. Le membre devra le changer à sa première connexion.</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Rôle</label>
+            <select className="input" value={role} onChange={(e) => setRole(e.target.value as any)} disabled={loading}>
+              <option value="MEMBER">Membre</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Profil</label>
+            <select className="input" value={profile} onChange={(e) => setProfile(e.target.value as any)} disabled={loading}>
+              <option value="ADULT">Adulte</option>
+              <option value="CHILD">Enfant</option>
+            </select>
+          </div>
+        </div>
+
+        {err && <div className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{err}</div>}
+
+        <button type="submit" className="btn-primary w-full" disabled={loading}>
+          <span>{loading ? <span className="spinner" /> : 'Créer le membre'}</span>
+        </button>
+      </form>
+    </div>
+  );
+}
