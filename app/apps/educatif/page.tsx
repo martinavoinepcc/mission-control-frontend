@@ -108,17 +108,12 @@ export default function EducatifHubPage() {
           </h1>
           <p className="text-white/50 mb-8">Chaque module est une aventure complète. Clique pour entrer.</p>
 
-          {modules.length === 0 ? (
-            <div className="glass rounded-2xl p-10 text-center text-white/50">
-              Aucun module assigné pour le moment. Demande à un parent admin de t'en débloquer un.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {modules.map((m, idx) => (
-                <ModuleCard key={m.id} mod={m} delay={idx * 100} onClick={() => router.push(`/apps/educatif/module/?slug=${m.slug}`)} />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <MCreatorAcademyCard onClick={() => router.push('/apps/educatif/mcreator/mission-1-bloc-cookie/')} />
+            {modules.map((m, idx) => (
+              <ModuleCard key={m.id} mod={m} delay={(idx + 1) * 100} onClick={() => router.push(`/apps/educatif/module/?slug=${m.slug}`)} />
+            ))}
+          </div>
         </section>
       </div>
     </main>
@@ -173,6 +168,44 @@ function ModuleCard({ mod, delay, onClick }: { mod: EduModuleSummary; delay: num
         </div>
         <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
           <div className="h-full transition-all" style={{ width: `${progressPct}%`, background: color }} />
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function MCreatorAcademyCard({ onClick }: { onClick: () => void }) {
+  const color = '#F59E0B';
+  return (
+    <button
+      onClick={onClick}
+      className="group relative text-left rounded-2xl overflow-hidden glass p-6 transition-all hover:scale-[1.015] hover:shadow-2xl animate-fade-up border border-amber-500/30"
+      style={{ animationDelay: '0ms' }}
+    >
+      <div
+        className="absolute inset-0 opacity-25 group-hover:opacity-40 transition"
+        style={{ background: `radial-gradient(circle at 25% 20%, ${color}, transparent 70%)` }}
+      />
+      <div className="relative">
+        <div className="flex items-start justify-between mb-4">
+          <div
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl text-3xl transition-transform group-hover:scale-110"
+            style={{ background: `${color}25`, border: `1px solid ${color}55` }}
+          >
+            <span>🎮</span>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-display font-bold">NOUVEAU</span>
+        </div>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Module · v0.1 · Préparation camp</p>
+        <h3 className="font-display text-xl font-bold mb-1">MCreator Academy</h3>
+        <p className="text-white/70 text-sm mb-3">Apprends MCreator + Java avant le camp Studio XP</p>
+        <p className="text-white/50 text-xs mb-4 line-clamp-2">Construis ton premier bloc Minecraft custom : nom, texture, dureté, lumière, et une procédure magique. Comme au camp.</p>
+        <div className="flex items-center justify-between text-xs text-white/60 mb-1">
+          <span>Mission 1 / 1 disponible</span>
+          <span className="font-display font-semibold" style={{ color }}>Démarrer →</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+          <div className="h-full transition-all" style={{ width: '0%', background: color }} />
         </div>
       </div>
     </button>
