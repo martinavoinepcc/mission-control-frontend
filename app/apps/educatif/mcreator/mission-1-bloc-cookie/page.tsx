@@ -1,11 +1,10 @@
 'use client';
 
-// MCreator Academy — Mission #1 : Le Bloc Cookie
-// Première mission du parcours qui prépare Jackson au camp Studio XP (été 2026).
-// Outil cible : MCreator (visual mod creation) + Java basics.
-// Cette mission lui apprend l'interface MCreator + le concept "Bloc + propriétés + procédure" en lui faisant créer un custom block.
+// MCreator Academy — Mission #1 : Block Cookie
+// Parcours Jackson → camp Studio XP été 2026. Outil cible : MCreator + Java.
+// v2 — Coach K (Gym bro), ado-cool, emphasis PUR Java.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const TEXTURES = ['🍪','💎','🔥','🌋','⚡','🌳','🪨','🌟','🍉','🐠','🍫','🌈','💧','🪐','🪙','🛡️'];
@@ -13,26 +12,30 @@ const COLORS: Record<string, string> = {
   '🍪':'#d4a056','💎':'#5dd1ff','🔥':'#ff6a3d','🌋':'#7c3a23','⚡':'#fde047','🌳':'#3f7d20','🪨':'#7c7c7c',
   '🌟':'#fbbf24','🍉':'#ec4899','🐠':'#06b6d4','🍫':'#5d3a1a','🌈':'#a855f7','💧':'#3b82f6','🪐':'#9333ea','🪙':'#facc15','🛡️':'#9ca3af',
 };
-const RX_LINES: Record<string, string> = {
-  intro: "Salut cadet Jackson ! Bienvenue à MCreator Academy. On va construire ton tout premier bloc Minecraft ensemble. Choisis-lui un nom fun, une texture, ses propriétés, puis pèse sur ▶ Tester pour le voir en jeu !",
-  name: "Bon nom ! Astuce de pro : ton bloc va apparaître dans ton inventaire avec ce nom exact.",
-  texture: "Excellent ! Au camp tu vas dessiner ta texture en pixel art toi-même (16×16). Ici on va vite avec une palette d'emojis.",
-  hardness: "La dureté décide combien de coups il faut pour casser ton bloc. La pierre = 1.5, le diamant = 3, l'obsidienne = 50 !",
-  light: "Si tu mets la lumière à 15, ton bloc illumine la pièce comme une torche. Top dans une grotte sombre.",
-  power: "BOOM. Ça c'est une PROCÉDURE — exactement ce que tu vas câbler au camp. 'QUAND X arrive, ALORS fais Y.' De la programmation pour vrai.",
-  test: "Allez, pèse sur le gros bouton vert et regarde ton bloc prendre vie dans le monde Minecraft !",
-  win: "MAGISTRAL. Tu viens de créer ton premier bloc Minecraft custom. Au camp Studio XP, tu vas en faire 50 et les assembler dans un mod complet.",
+
+// Coach K — Gym bro influenceur, sensei Java, vibe Quebec-franglais
+const COACH_LINES: Record<string, string> = {
+  intro: "Yo Jackson. On va ship ton premier mod legit. Choisis un nom, une texture, tweak les stats, pèse sur ▶ Play. Let's go bro.",
+  name:  "Clean. Ce nom-là devient le getName() de ta classe Java — littéralement.",
+  texture: "Vibes solides. Au camp tu vas draw ta texture 16×16 en pixel art — ici on fast-track avec un emoji.",
+  hardness: "Hardness = nb de hits pour break le bloc. Stone=1.5f · Diamond=3f · Obsidian=50f. Ça devient getDestroySpeed() en Java.",
+  light: "Light 15 = glow comme un torch. Essential dans les caves. Ça map sur setLightEmission() dans Properties.",
+  power: "Bro. CA c'est une procedure Java. Pattern WHEN X THEN Y = method @Override avec un if. Exactement ce que tu vas coder au camp.",
+  test: "Pèse. Regarde ça popper.",
+  win: "LET'S GOOO. Premier mod in the bag. Propre. Au camp Studio XP tu vas en ship 50+ et build un mod complet.",
 };
+
 const TRIGGERS = [
-  { value: 'rightclick', label: 'on clique droit dessus' },
-  { value: 'break',      label: 'on le casse' },
-  { value: 'walk',       label: 'on marche dessus' },
+  { value: 'rightclick', label: 'on right-click le bloc',      method: 'useItemOn' },
+  { value: 'break',      label: 'on break le bloc',             method: 'onDestroyedByPlayer' },
+  { value: 'walk',       label: 'on step sur le bloc',          method: 'stepOn' },
 ];
+
 const ACTIONS = [
-  { value: 'speed',   label: 'le joueur devient super rapide ⚡' },
-  { value: 'cookies', label: 'il pleut des cookies du ciel 🍪' },
-  { value: 'diamond', label: '3 diamants apparaissent 💎' },
-  { value: 'fire',    label: 'le bloc s\u2019enflamme 🔥' },
+  { value: 'speed',   label: 'player → SPEED x3 ⚡',        code: 'player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 200, 2));' },
+  { value: 'cookies', label: 'rain de cookies 🍪',          code: 'level.addFreshEntity(new ItemEntity(level, x, y+5, z, new ItemStack(Items.COOKIE, 8)));' },
+  { value: 'diamond', label: 'drop 3 diamonds 💎',          code: 'level.addFreshEntity(new ItemEntity(level, x, y+1, z, new ItemStack(Items.DIAMOND, 3)));' },
+  { value: 'fire',    label: 'le bloc s\u2019enflamme 🔥',  code: 'level.setBlock(pos.above(), Blocks.FIRE.defaultBlockState(), 3);' },
 ];
 
 export default function MCreatorMission1Page() {
@@ -43,7 +46,7 @@ export default function MCreatorMission1Page() {
   const [light, setLight] = useState(0);
   const [trigger, setTrigger] = useState('rightclick');
   const [action, setAction] = useState('speed');
-  const [rexKey, setRexKey] = useState<string>('intro');
+  const [coachKey, setCoachKey] = useState<string>('intro');
   const [xp, setXp] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [effects, setEffects] = useState<{ id: number; emoji: string; left: string; top: string }[]>([]);
@@ -51,40 +54,59 @@ export default function MCreatorMission1Page() {
   const [hintIdx, setHintIdx] = useState(0);
   const hintKeys = useMemo(() => ['intro','name','texture','hardness','light','power','test'], []);
 
-  function bumpRex(key: string) {
-    setRexKey(key);
-  }
-
-  function addXp(n: number) {
-    setXp((v) => v + n);
-  }
+  const bumpCoach = (k: string) => setCoachKey(k);
+  const addXp = (n: number) => setXp((v) => v + n);
 
   function handleTexturePick(emoji: string) {
     setTexture(emoji);
-    bumpRex('texture');
+    bumpCoach('texture');
     addXp(10);
   }
 
-  const javaCode = useMemo(() => {
-    const cls = (blockName || 'MonBloc').replace(/[^a-zA-Z0-9]/g, '') + 'Block';
-    const trigJ = ({ rightclick: 'onRightClick', break: 'onBlockBroken', walk: 'onWalkOn' } as Record<string, string>)[trigger];
-    const actJ = ({
-      speed:   'player.addEffect(SPEED, 200, 2);',
-      cookies: 'world.dropItem(COOKIE, x, y+5, z, 8);',
-      diamond: 'world.dropItem(DIAMOND, x, y+1, z, 3);',
-      fire:    'world.setBlock(x, y+1, z, FIRE);',
-    } as Record<string, string>)[action];
-    return `// MCreator écrit ce code Java pour toi !
-public class ${cls} extends Block {
-  hardness   = ${hardness.toFixed(1)}f;
-  lightLevel = ${light};
+  const clsName = useMemo(
+    () => (blockName || 'MonBloc').replace(/[^a-zA-Z0-9]/g, '') || 'MonBloc',
+    [blockName]
+  );
 
-  @Override
-  public void ${trigJ}(World w, Player p) {
-    ${actJ}
-  }
-}`;
-  }, [blockName, hardness, light, trigger, action]);
+  const javaCode = useMemo(() => {
+    const cls = clsName;
+    const trigMeta = TRIGGERS.find((t) => t.value === trigger)!;
+    const actMeta  = ACTIONS.find((a) => a.value === action)!;
+
+    return [
+      "package com.jackson.mod.block;",
+      "",
+      "import net.minecraft.world.level.block.Block;",
+      "import net.minecraft.world.level.block.state.BlockState;",
+      "import net.minecraft.world.level.material.Material;",
+      "import net.minecraft.world.entity.player.Player;",
+      "import net.minecraft.world.effect.MobEffectInstance;",
+      "import net.minecraft.world.effect.MobEffects;",
+      "import net.minecraft.world.InteractionResult;",
+      "",
+      `public class ${cls}Block extends Block {`,
+      "",
+      `    public ${cls}Block() {`,
+      "        super(Properties.of(Material.STONE)",
+      `            .strength(${hardness.toFixed(1)}f)`,
+      `            .lightLevel(state -> ${light})`,
+      "            .requiresCorrectToolForDrops()",
+      "        );",
+      "    }",
+      "",
+      "    @Override",
+      `    public InteractionResult ${trigMeta.method}(`,
+      "            BlockState state, Level level, BlockPos pos, Player player) {",
+      "",
+      "        if (!level.isClientSide) {",
+      "            double x = pos.getX(), y = pos.getY(), z = pos.getZ();",
+      `            ${actMeta.code}`,
+      "        }",
+      "        return InteractionResult.SUCCESS;",
+      "    }",
+      "}",
+    ].join('\n');
+  }, [clsName, hardness, light, trigger, action]);
 
   function fireTest() {
     setSpinning(true);
@@ -97,11 +119,11 @@ public class ${cls} extends Block {
       top:  `${Math.random() * 60 + 10}%`,
     }));
     setEffects(newEffects);
-    bumpRex('test');
+    bumpCoach('test');
     setTimeout(() => {
       setSpinning(false);
       setEffects([]);
-      bumpRex('win');
+      bumpCoach('win');
       addXp(60);
       setShowWin(true);
     }, 2200);
@@ -110,9 +132,9 @@ public class ${cls} extends Block {
   const cubeColor = COLORS[texture] || '#facc15';
 
   return (
-    <main className="relative min-h-screen text-white">
+    <main className="relative min-h-screen bg-slate-950 text-slate-100">
       <style dangerouslySetInnerHTML={{ __html: `
-        .pixel-font { font-family: 'Courier New', 'Lucida Console', monospace; letter-spacing: 0.05em; }
+        .mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
         .scene { perspective: 800px; perspective-origin: 50% 50%; }
         .cube { width: 140px; height: 140px; position: relative; transform-style: preserve-3d; transform: rotateX(-25deg) rotateY(35deg); transition: transform .8s cubic-bezier(.2,.8,.3,1.2); }
         .cube.spin { animation: cubespin 6s linear infinite; }
@@ -124,175 +146,175 @@ public class ${cls} extends Block {
         .cube .back   { transform: rotateY(180deg) translateZ(70px); filter: brightness(0.7); }
         .cube .left   { transform: rotateY(-90deg) translateZ(70px); filter: brightness(0.85); }
         .cube .right  { transform: rotateY(90deg)  translateZ(70px); filter: brightness(0.95); }
-        .ground {
-          background:
-            repeating-linear-gradient(0deg, #6b3f1f 0, #6b3f1f 32px, #5a3517 32px, #5a3517 33px),
-            repeating-linear-gradient(90deg, transparent 0, transparent 32px, rgba(0,0,0,.18) 32px, rgba(0,0,0,.18) 33px);
+        .ground { background: repeating-linear-gradient(0deg, #433225 0, #433225 32px, #352618 32px, #352618 33px), repeating-linear-gradient(90deg, transparent 0, transparent 32px, rgba(0,0,0,.18) 32px, rgba(0,0,0,.18) 33px); }
+        .sky { background: linear-gradient(180deg, #0f1b2d 0%, #1e2d44 60%, #2a3d5a 100%); }
+        .grid-bg { background-image: radial-gradient(circle at 1px 1px, rgba(148,163,184,0.08) 1px, transparent 0); background-size: 22px 22px; }
+        .neon { text-shadow: 0 0 8px currentColor; }
+        input[type=range].slider { -webkit-appearance: none; appearance: none; height: 6px; background: #1e293b; border-radius: 999px; outline: none; }
+        input[type=range].slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #A3E635; border-radius: 50%; cursor: pointer; border: 2px solid #0f172a; box-shadow: 0 0 10px rgba(163,230,53,.6); }
+        input[type=range].slider::-moz-range-thumb { width: 20px; height: 20px; background: #A3E635; border-radius: 50%; cursor: pointer; border: 2px solid #0f172a; }
+        .code-line { display: block; padding-left: 2.5rem; position: relative; min-height: 1.1em; }
+        .code-line::before { content: attr(data-n); position: absolute; left: 0; width: 2rem; text-align: right; color: #475569; padding-right: .5rem; }
+        .kw { color: #c084fc; }
+        .ty { color: #38bdf8; }
+        .st { color: #fde047; }
+        .nb { color: #f97316; }
+        .an { color: #f472b6; }
+        .cm { color: #64748b; font-style: italic; }
+        @keyframes fxRise {
+          0%   { opacity: 0; transform: translateY(20px) scale(0.6); }
+          30%  { opacity: 1; transform: translateY(0) scale(1.1); }
+          100% { opacity: 0; transform: translateY(-80px) scale(1); }
         }
-        .sky { background: linear-gradient(180deg, #6ec3ff 0%, #b6e2ff 60%, #d6efff 100%); }
-        .pulse-glow { box-shadow: 0 0 0 0 rgba(74,222,128,.65); animation: pulseGlow 1.6s infinite; }
-        @keyframes pulseGlow {
-          0%   { box-shadow: 0 0 0 0 rgba(74,222,128,.65); }
-          70%  { box-shadow: 0 0 0 14px rgba(74,222,128,0); }
-          100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-        }
-        input[type=range].mc-slider { -webkit-appearance: none; appearance: none; height: 10px; background: #1f2937; border-radius: 6px; outline: none; }
-        input[type=range].mc-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; background: #4ADE80; border-radius: 50%; cursor: pointer; border: 3px solid #064e3b; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
-        input[type=range].mc-slider::-moz-range-thumb { width: 28px; height: 28px; background: #4ADE80; border-radius: 50%; cursor: pointer; border: 3px solid #064e3b; }
       ` }} />
 
-      <div className="absolute inset-0 cosmic-grid" />
+      <div className="absolute inset-0 grid-bg pointer-events-none" />
 
       {/* TOP BAR */}
-      <header className="relative z-10 bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border-b border-emerald-600/30 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4 shadow-lg">
-        <button
-          onClick={() => router.push('/apps/educatif/')}
-          className="text-white/70 hover:text-white text-sm flex items-center gap-1"
-        >
+      <header className="relative z-10 bg-slate-900/80 backdrop-blur border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+        <button onClick={() => router.push('/apps/educatif/')} className="text-slate-400 hover:text-lime-300 text-sm flex items-center gap-1 transition">
           ← Hub
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-400 to-emerald-700 rounded-lg flex items-center justify-center text-2xl sm:text-3xl shadow-md">🟩</div>
+          <div className="w-10 h-10 bg-lime-400/10 border border-lime-400/40 rounded-md flex items-center justify-center text-lg text-lime-300 mono font-black">01</div>
           <div>
-            <div className="pixel-font text-emerald-300 text-[10px]">MCREATOR ACADEMY</div>
-            <div className="text-base sm:text-xl font-black">Mission #1 — Crée ton Bloc Cookie 🍪</div>
+            <div className="mono text-[9px] text-lime-300/80 tracking-widest">MCREATOR ACADEMY · MISSION 01</div>
+            <div className="text-base sm:text-lg font-bold text-slate-100">Block · <span className="text-lime-300">Cookie de Diamant</span></div>
           </div>
         </div>
         <div className="flex-1" />
-        <div className="flex items-center gap-3 sm:gap-6">
-          <div className="flex items-center gap-2 bg-amber-500/20 border border-amber-400/40 rounded-lg px-3 py-1.5">
-            <span className="text-2xl">⭐</span>
-            <span className="font-black text-amber-300">{xp} XP</span>
+        <div className="flex items-center gap-3">
+          <div className="mono text-xs px-3 py-1.5 rounded-md bg-lime-400/10 border border-lime-400/40 text-lime-300">
+            <span className="opacity-60">XP</span> <span className="font-black">{xp}</span>
           </div>
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-2xl border-2 border-orange-300">🦖</div>
-            <div className="text-sm">
-              <div className="font-black text-orange-300">Cmdt Rex</div>
-              <div className="text-xs text-white/60">Coach Studio XP</div>
+          <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-800">
+            <div className="w-9 h-9 rounded-md bg-gradient-to-br from-fuchsia-500 to-rose-500 flex items-center justify-center text-xl shadow-lg shadow-fuchsia-500/20">💪</div>
+            <div className="text-xs leading-tight">
+              <div className="font-bold text-fuchsia-300">Coach K</div>
+              <div className="text-[10px] text-slate-400 mono">Sensei Java</div>
             </div>
           </div>
         </div>
       </header>
 
       {/* MAIN GRID */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 pb-36">
         {/* PALETTE */}
-        <aside className="lg:col-span-2 bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700">
-          <div className="pixel-font text-[10px] text-white/50 mb-3">ÉLÉMENTS DU MOD</div>
+        <aside className="lg:col-span-2 bg-slate-900/60 backdrop-blur rounded-lg p-4 border border-slate-800">
+          <div className="mono text-[9px] text-slate-500 mb-3 tracking-widest">MOD ELEMENTS</div>
           <div className="space-y-2">
-            <button className="w-full text-left p-3 bg-emerald-500/20 border-2 border-emerald-400 rounded-lg flex items-center gap-2 pulse-glow">
-              <span className="text-2xl">🟩</span>
+            <button className="w-full text-left p-3 bg-lime-400/10 border border-lime-400/50 rounded-md flex items-center gap-2">
+              <span className="text-lg">🟩</span>
               <div>
-                <div className="font-black text-sm">Bloc</div>
-                <div className="text-[10px] text-emerald-300">en cours →</div>
+                <div className="font-bold text-sm text-lime-300">Block</div>
+                <div className="mono text-[9px] text-lime-400/60">ACTIVE</div>
               </div>
             </button>
-            {[['⚔️','Item'], ['🐔','Mob'], ['⚙️','Procédure']].map(([emo, lbl]) => (
-              <button key={lbl} disabled className="w-full text-left p-3 bg-slate-800/60 border-2 border-slate-700 rounded-lg flex items-center gap-2 opacity-60">
-                <span className="text-2xl">{emo}</span>
+            {[['⚔️','Item','M02'], ['🐺','Mob','M03'], ['⚙️','Procedure','M04'], ['🔨','Recipe','M05']].map(([emo, lbl, tag]) => (
+              <button key={lbl} disabled className="w-full text-left p-3 bg-slate-800/40 border border-slate-800 rounded-md flex items-center gap-2 opacity-50">
+                <span className="text-lg">{emo}</span>
                 <div>
-                  <div className="font-black text-sm">{lbl}</div>
-                  <div className="text-[10px] text-white/40">débloque-moi</div>
+                  <div className="font-bold text-sm text-slate-300">{lbl}</div>
+                  <div className="mono text-[9px] text-slate-500">🔒 {tag}</div>
                 </div>
               </button>
             ))}
           </div>
-          <div className="mt-6 p-3 bg-amber-500/10 border border-amber-400/30 rounded-lg">
-            <div className="pixel-font text-[9px] text-amber-300 mb-1">DANS LE VRAI MCREATOR</div>
-            <div className="text-xs text-amber-100/80 leading-relaxed">Ces 4 catégories existent pour de vrai. Tu vas créer chacune au camp.</div>
+          <div className="mt-5 p-3 bg-slate-800/40 border border-slate-800 rounded-md">
+            <div className="mono text-[9px] text-slate-500 mb-1 tracking-widest">REAL MCREATOR</div>
+            <div className="text-xs text-slate-400 leading-relaxed">Ces 5 catégories existent dans l'outil. Tu vas toutes les ship au camp.</div>
           </div>
         </aside>
 
         {/* WORKSPACE */}
-        <section className="lg:col-span-7 bg-slate-900/80 backdrop-blur rounded-xl p-4 sm:p-6 border border-slate-700 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="pixel-font text-[10px] text-emerald-300 mb-1">PROPRIÉTÉS DU BLOC</div>
-              <div className="text-xl sm:text-2xl font-black">Construis ton premier bloc 👇</div>
-            </div>
+        <section className="lg:col-span-6 bg-slate-900/60 backdrop-blur rounded-lg p-4 sm:p-6 border border-slate-800 flex flex-col gap-4">
+          <div>
+            <div className="mono text-[9px] text-lime-400/80 tracking-widest mb-1">BLOCK PROPERTIES</div>
+            <div className="text-xl sm:text-2xl font-bold">Configure ton block</div>
           </div>
 
-          <div className="bg-slate-800/60 rounded-lg p-4 border-2 border-emerald-400">
+          <div className="bg-slate-950/60 rounded-md p-4 border border-slate-800">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-7 h-7 bg-emerald-500 text-slate-900 rounded-full flex items-center justify-center font-black">1</span>
-              <span className="font-black text-lg">Nom de ton bloc</span>
+              <span className="mono text-[10px] text-lime-300 bg-lime-400/10 border border-lime-400/40 rounded px-2 py-0.5">01</span>
+              <span className="font-bold text-sm text-slate-200">Registry name</span>
+              <span className="mono text-[10px] text-slate-500">→ String</span>
             </div>
             <input
               value={blockName}
               maxLength={24}
-              onChange={(e) => { setBlockName(e.target.value); bumpRex('name'); }}
-              className="w-full bg-slate-950 border-2 border-emerald-500/50 rounded-lg px-4 py-3 text-lg font-black focus:border-emerald-400 focus:outline-none"
+              onChange={(e) => { setBlockName(e.target.value); bumpCoach('name'); }}
+              className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2.5 mono text-sm text-lime-300 focus:border-lime-400 focus:outline-none"
             />
-            <div className="text-xs text-white/50 mt-1">Astuce : un nom fun = un bloc fun. « Cookie de Diamant », « Bloc Volcan », ce que tu veux.</div>
+            <div className="mono text-[10px] text-slate-500 mt-1.5">→ classe Java : <span className="text-lime-400">{clsName}Block</span></div>
           </div>
 
-          <div className="bg-slate-800/60 rounded-lg p-4 border-2 border-slate-700">
+          <div className="bg-slate-950/60 rounded-md p-4 border border-slate-800">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-7 h-7 bg-slate-600 text-slate-200 rounded-full flex items-center justify-center font-black">2</span>
-              <span className="font-black text-lg">Choisis sa texture</span>
+              <span className="mono text-[10px] text-slate-400 bg-slate-800 border border-slate-700 rounded px-2 py-0.5">02</span>
+              <span className="font-bold text-sm text-slate-200">Texture</span>
+              <span className="mono text-[10px] text-slate-500">→ assets/textures/</span>
             </div>
             <div className="grid grid-cols-8 gap-2">
               {TEXTURES.map((t) => (
                 <button
                   key={t}
                   onClick={() => handleTexturePick(t)}
-                  className={`aspect-square bg-slate-950 border-2 rounded-lg text-2xl sm:text-3xl hover:scale-110 transition ${
-                    texture === t ? 'border-emerald-400 bg-emerald-500/20' : 'border-slate-700 hover:border-emerald-400'
+                  className={`aspect-square bg-slate-950 border rounded-md text-xl sm:text-2xl hover:scale-110 transition ${
+                    texture === t ? 'border-lime-400 bg-lime-400/10' : 'border-slate-800 hover:border-lime-400/60'
                   }`}
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <div className="text-xs text-white/50 mt-2">Au camp tu vas dessiner ta texture en pixel art (16×16). Ici on choisit vite avec un emoji.</div>
           </div>
 
-          <div className="bg-slate-800/60 rounded-lg p-4 border-2 border-slate-700">
+          <div className="bg-slate-950/60 rounded-md p-4 border border-slate-800">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-7 h-7 bg-slate-600 text-slate-200 rounded-full flex items-center justify-center font-black">3</span>
-              <span className="font-black text-lg">Règle ses propriétés</span>
+              <span className="mono text-[10px] text-slate-400 bg-slate-800 border border-slate-700 rounded px-2 py-0.5">03</span>
+              <span className="font-bold text-sm text-slate-200">Properties</span>
+              <span className="mono text-[10px] text-slate-500">→ Block.Properties.of()</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="text-sm font-bold text-white/80 flex justify-between">
-                  <span>💪 Dureté</span><span className="text-emerald-400">{hardness.toFixed(1)}</span>
+                <label className="flex justify-between items-center mono text-xs">
+                  <span className="text-slate-400">.strength()</span>
+                  <span className="text-lime-300 font-bold">{hardness.toFixed(1)}f</span>
                 </label>
-                <input
-                  type="range" min={0} max={10} step={0.5}
-                  value={hardness}
-                  onChange={(e) => { setHardness(parseFloat(e.target.value)); bumpRex('hardness'); }}
-                  className="mc-slider w-full mt-2"
+                <input type="range" min={0} max={10} step={0.5} value={hardness}
+                  onChange={(e) => { setHardness(parseFloat(e.target.value)); bumpCoach('hardness'); }}
+                  className="slider w-full mt-2"
                 />
-                <div className="text-[11px] text-white/40 mt-1">0 = se casse à mains nues · 10 = il faut du diamant</div>
+                <div className="mono text-[10px] text-slate-500 mt-1">hands=0 · stone=1.5 · diamond=3 · obsidian=50</div>
               </div>
               <div>
-                <label className="text-sm font-bold text-white/80 flex justify-between">
-                  <span>💡 Lumière</span><span className="text-amber-300">{light}</span>
+                <label className="flex justify-between items-center mono text-xs">
+                  <span className="text-slate-400">.lightLevel()</span>
+                  <span className="text-amber-300 font-bold">{light}</span>
                 </label>
-                <input
-                  type="range" min={0} max={15} step={1}
-                  value={light}
-                  onChange={(e) => { setLight(parseInt(e.target.value)); bumpRex('light'); }}
-                  className="mc-slider w-full mt-2"
+                <input type="range" min={0} max={15} step={1} value={light}
+                  onChange={(e) => { setLight(parseInt(e.target.value)); bumpCoach('light'); }}
+                  className="slider w-full mt-2"
                 />
-                <div className="text-[11px] text-white/40 mt-1">0 = noir · 15 = brille comme du verre lumineux</div>
+                <div className="mono text-[10px] text-slate-500 mt-1">0=dark · 15=glowstone</div>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/60 rounded-lg p-4 border-2 border-slate-700">
+          <div className="bg-slate-950/60 rounded-md p-4 border border-slate-800">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-7 h-7 bg-slate-600 text-slate-200 rounded-full flex items-center justify-center font-black">4</span>
-              <span className="font-black text-lg">Donne-lui un super-pouvoir</span>
+              <span className="mono text-[10px] text-slate-400 bg-slate-800 border border-slate-700 rounded px-2 py-0.5">04</span>
+              <span className="font-bold text-sm text-slate-200">Procedure</span>
+              <span className="mono text-[10px] text-slate-500">→ @Override method</span>
             </div>
-            <div className="text-xs text-white/50 mb-2">C'est ça une <b className="text-emerald-400">procédure</b> dans MCreator : « Quand X arrive, fais Y ». Au camp tu vas en câbler des dizaines.</div>
-            <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto_1fr] gap-2 items-center">
-              <div className="text-sm font-bold text-amber-300">QUAND</div>
-              <select value={trigger} onChange={(e) => { setTrigger(e.target.value); bumpRex('power'); }} className="bg-slate-950 border-2 border-slate-700 rounded-lg px-3 py-2 font-bold">
+            <div className="mono text-[10px] text-slate-500 mb-3">Pattern <span className="text-fuchsia-300">WHEN</span> → <span className="text-lime-300">THEN</span>. C'est littéralement une méthode Java avec un <span className="text-fuchsia-300">if</span>.</div>
+            <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-2 items-center">
+              <div className="mono text-xs text-fuchsia-300 font-bold">WHEN</div>
+              <select value={trigger} onChange={(e) => { setTrigger(e.target.value); bumpCoach('power'); }} className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 mono text-xs text-slate-200 focus:border-fuchsia-400 focus:outline-none">
                 {TRIGGERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-              <div className="text-sm font-bold text-emerald-400">ALORS</div>
-              <select value={action} onChange={(e) => { setAction(e.target.value); bumpRex('power'); }} className="bg-slate-950 border-2 border-slate-700 rounded-lg px-3 py-2 font-bold">
+              <div className="mono text-xs text-lime-300 font-bold">THEN</div>
+              <select value={action} onChange={(e) => { setAction(e.target.value); bumpCoach('power'); }} className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 mono text-xs text-slate-200 focus:border-lime-400 focus:outline-none">
                 {ACTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
               </select>
             </div>
@@ -301,20 +323,20 @@ public class ${cls} extends Block {
           <button
             onClick={fireTest}
             disabled={spinning}
-            className="mt-2 w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-900 font-black text-lg sm:text-xl py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-transform active:scale-95 disabled:opacity-60"
+            className="mt-1 w-full bg-lime-400 hover:bg-lime-300 text-slate-950 mono font-black text-sm py-3.5 rounded-md transition-transform active:scale-[.98] disabled:opacity-60 tracking-widest"
           >
-            ▶  TESTER MON BLOC DANS MINECRAFT
+            ▶  RUN  ·  BUILD  ·  TEST
           </button>
         </section>
 
         {/* PREVIEW + JAVA */}
-        <aside className="lg:col-span-3 flex flex-col gap-4">
-          <div className="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700 flex-1">
-            <div className="pixel-font text-[10px] text-white/50 mb-2">APERÇU EN JEU</div>
-            <div className="rounded-lg overflow-hidden border-2 border-slate-700">
-              <div className="sky h-20 sm:h-24 flex items-end justify-center relative">
-                <div className="absolute top-2 right-2 text-2xl">☁️</div>
-                <div className="absolute top-3 left-3 text-2xl">🌞</div>
+        <aside className="lg:col-span-4 flex flex-col gap-4">
+          <div className="bg-slate-900/60 backdrop-blur rounded-lg p-4 border border-slate-800">
+            <div className="mono text-[9px] text-slate-500 mb-2 tracking-widest">LIVE PREVIEW</div>
+            <div className="rounded-md overflow-hidden border border-slate-800">
+              <div className="sky h-16 flex items-end justify-center relative">
+                <div className="absolute top-2 right-2 text-xl opacity-60">☁️</div>
+                <div className="absolute top-2 left-2 text-xl opacity-60">🌙</div>
               </div>
               <div className="ground h-32 flex items-start justify-center pt-3 relative scene">
                 <div className={`cube ${spinning ? 'spin' : ''}`} style={{ filter: light > 0 ? `drop-shadow(0 0 ${light * 1.5}px rgba(253,224,71,${light/15}))` : 'none' }}>
@@ -327,81 +349,83 @@ public class ${cls} extends Block {
                 </div>
                 <div className="absolute inset-0 pointer-events-none">
                   {effects.map((e) => (
-                    <span
-                      key={e.id}
-                      className="absolute text-3xl sm:text-4xl"
-                      style={{
-                        left: e.left, top: e.top,
-                        animation: 'fxRise 1.4s ease-out forwards',
-                      }}
-                    >
+                    <span key={e.id} className="absolute text-3xl" style={{ left: e.left, top: e.top, animation: 'fxRise 1.4s ease-out forwards' }}>
                       {e.emoji}
                     </span>
                   ))}
                 </div>
               </div>
             </div>
-            <style dangerouslySetInnerHTML={{ __html: `
-              @keyframes fxRise {
-                0%   { opacity: 0; transform: translateY(20px) scale(0.6); }
-                30%  { opacity: 1; transform: translateY(0) scale(1.1); }
-                100% { opacity: 0; transform: translateY(-80px) scale(1); }
-              }
-            ` }} />
-
-            <div className="mt-3 p-2 bg-slate-950 rounded-lg">
-              <div className="text-[11px] text-white/50">Nom :</div>
-              <div className="font-black text-emerald-300 truncate">{blockName || '...'}</div>
-              <div className="grid grid-cols-2 gap-1 mt-2 text-[11px]">
-                <div><span className="text-white/50">Dureté</span> <span className="text-amber-300 font-bold">{hardness.toFixed(1)}</span></div>
-                <div><span className="text-white/50">Lumière</span> <span className="text-amber-300 font-bold">{light}</span></div>
-              </div>
-            </div>
           </div>
 
-          <div className="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700">
-            <div className="pixel-font text-[10px] text-white/50 mb-2">CODE JAVA GÉNÉRÉ</div>
-            <pre className="bg-slate-950 rounded-lg p-3 text-[11px] text-emerald-300 overflow-x-auto"><code>{javaCode}</code></pre>
-            <div className="text-[10px] text-white/40 mt-2">👆 Au camp tu vas comprendre chaque ligne. Promis, c'est moins pire que ça en a l'air.</div>
+          <div className="bg-slate-900/60 backdrop-blur rounded-lg p-3 border border-slate-800 flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <div className="mono text-[9px] text-lime-300 tracking-widest">{clsName}Block.java</div>
+              <div className="mono text-[9px] text-slate-500">JAVA · GENERATED</div>
+            </div>
+            <pre className="bg-slate-950 rounded-md p-3 text-[11px] mono leading-[1.55] overflow-x-auto max-h-[440px] border border-slate-800">
+              <code>
+                {javaCode.split('\n').map((line, i) => {
+                  const colored = line
+                    .replace(/(\/\/.*)/g, '<span class="cm">$1</span>')
+                    .replace(/\b(package|import|public|private|protected|class|extends|return|if|new|this)\b/g, '<span class="kw">$1</span>')
+                    .replace(/\b(Block|BlockState|Level|Player|Material|MobEffectInstance|MobEffects|InteractionResult|Properties|Items|Blocks|ItemEntity|ItemStack|BlockPos|String|int|double|boolean|float|void)\b/g, '<span class="ty">$1</span>')
+                    .replace(/\b(\d+(?:\.\d+f?)?)\b/g, '<span class="nb">$1</span>')
+                    .replace(/(@Override)/g, '<span class="an">$1</span>');
+                  return (
+                    <span key={i} className="code-line" data-n={String(i + 1).padStart(2, ' ')} dangerouslySetInnerHTML={{ __html: colored || '&nbsp;' }} />
+                  );
+                })}
+              </code>
+            </pre>
+            <div className="mono text-[10px] text-slate-500 mt-2">Chaque slider/dropdown dans le panel = une ligne de Java réelle. Same thing que MCreator ship au camp.</div>
           </div>
         </aside>
       </div>
 
-      {/* BOTTOM REX BAR */}
-      <footer className="sticky bottom-0 z-20 bg-gradient-to-r from-orange-900/60 to-amber-900/60 backdrop-blur border-t-2 border-orange-500/40 px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4">
-        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-2xl sm:text-3xl border-2 border-orange-300 flex-shrink-0">🦖</div>
+      {/* COACH K BAR */}
+      <footer className="fixed bottom-0 inset-x-0 z-20 bg-slate-900/95 backdrop-blur border-t border-fuchsia-500/30 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+        <div className="w-11 h-11 rounded-md bg-gradient-to-br from-fuchsia-500 to-rose-500 flex items-center justify-center text-2xl shadow-lg shadow-fuchsia-500/20 flex-shrink-0">💪</div>
         <div className="flex-1 min-w-0">
-          <div className="text-orange-300 font-black text-xs sm:text-sm">Cmdt Rex te dit :</div>
-          <div className="text-sm sm:text-lg font-bold text-amber-100 leading-snug">{RX_LINES[rexKey]}</div>
+          <div className="mono text-[10px] text-fuchsia-400 tracking-widest">COACH K</div>
+          <div className="text-sm text-slate-100 leading-snug">{COACH_LINES[coachKey]}</div>
         </div>
         <button
-          onClick={() => { const next = (hintIdx + 1) % hintKeys.length; setHintIdx(next); bumpRex(hintKeys[next]); }}
-          className="bg-orange-500 hover:bg-orange-400 text-slate-900 font-black px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap text-xs sm:text-base"
+          onClick={() => { const next = (hintIdx + 1) % hintKeys.length; setHintIdx(next); bumpCoach(hintKeys[next]); }}
+          className="bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 mono font-bold px-3 py-2 rounded-md whitespace-nowrap text-xs"
         >
-          💡 Aide-moi
+          HINT →
         </button>
       </footer>
 
       {/* WIN MODAL */}
       {showWin && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-emerald-900 to-emerald-950 border-4 border-emerald-400 rounded-2xl p-8 max-w-md text-center shadow-2xl">
-            <div className="text-7xl mb-2 animate-bounce">🏆</div>
-            <div className="pixel-font text-emerald-300 text-xs mb-2">MISSION #1 RÉUSSIE</div>
-            <div className="text-3xl font-black text-white mb-2">Tu es Apprenti Modder !</div>
-            <div className="text-amber-300 text-lg mb-4">+ 60 XP · Badge 🍪 débloqué</div>
-            <div className="bg-slate-950/60 rounded-lg p-3 mb-4 text-sm text-white/80">
-              Ton bloc <b className="text-emerald-300">{blockName || 'Mon Bloc'}</b> existe pour de vrai dans ton mod. Au camp Studio XP cet été, tu vas en construire des dizaines comme ça — puis des items, des mobs, des dimensions complètes.
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-lime-400/60 rounded-lg p-7 max-w-md shadow-2xl shadow-lime-500/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-md bg-lime-400/10 border border-lime-400/60 flex items-center justify-center text-2xl text-lime-300">✓</div>
+              <div>
+                <div className="mono text-[10px] text-lime-300 tracking-widest">MISSION 01 · SHIPPED</div>
+                <div className="text-xl font-bold text-slate-100">Apprenti Modder unlocked</div>
+              </div>
+            </div>
+            <div className="bg-slate-950 border border-slate-800 rounded-md p-3 mb-4 text-sm text-slate-300">
+              Ton block <span className="mono text-lime-300">{blockName}</span> compile pour de vrai. Au camp Studio XP cet été : 50+ blocks + items + mobs + procedures → mod complet.
+            </div>
+            <div className="flex items-center gap-3 mono text-xs mb-5">
+              <span className="text-lime-300">+60 XP</span>
+              <span className="text-slate-600">·</span>
+              <span className="text-amber-300">🏆 Badge Block Master</span>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => router.push('/apps/educatif/')}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black py-3 rounded-lg"
-              >
-                Retour au hub
+              <button onClick={() => router.push('/apps/educatif/')} className="flex-1 bg-lime-400 hover:bg-lime-300 text-slate-950 mono font-black py-2.5 rounded-md tracking-widest text-sm">
+                → HUB
               </button>
-              <button onClick={() => setShowWin(false)} className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 rounded-lg">
-                Refaire
+              <button onClick={() => router.push('/apps/educatif/mcreator/mission-2-epee-custom/')} className="flex-1 bg-fuchsia-500 hover:bg-fuchsia-400 text-slate-950 mono font-black py-2.5 rounded-md tracking-widest text-sm">
+                M02 →
+              </button>
+              <button onClick={() => setShowWin(false)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 mono text-xs px-3 rounded-md">
+                REDO
               </button>
             </div>
           </div>
