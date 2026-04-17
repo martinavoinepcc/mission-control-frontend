@@ -122,4 +122,9 @@ export const UI = {
   trophy: faTrophy,
   upload: faUpload,
   download: faDownload,
-  checkMark: f
+  checkMark: faCheck,
+  warning: faTriangleExclamation,
+  circle: faCircle,
+  heart: faHeart,
+  wand: faMagicWandSparkles,
+};
