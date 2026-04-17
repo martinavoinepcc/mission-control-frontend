@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { login, setToken, setStoredUser } from '@/lib/api';
-import { UI } from '@/lib/icons';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,99 +12,31 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [statusText, setStatusText] = useState('SYSTEM READY');
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
-
-  // Particle canvas — fond technique
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let raf = 0;
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resize();
-    window.addEventListener('resize', resize);
-
-    type P = { x: number; y: number; vx: number; vy: number; r: number; a: number };
-    const particles: P[] = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
-      r: Math.random() * 1.8 + 0.3,
-      a: Math.random() * 0.6 + 0.2,
-    }));
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Lignes entre particules proches
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const d = Math.hypot(dx, dy);
-          if (d < 140) {
-            ctx.strokeStyle = `rgba(155, 109, 255, ${0.15 * (1 - d / 140)})`;
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
-      }
-      // Points
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-        ctx.fillStyle = `rgba(94, 234, 255, ${p.a})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    setStatusText('AUTHENTIFICATION...');
     try {
       const { token, user } = await login(email, password);
       setToken(token);
       setStoredUser(user);
-      setStatusText('ACCÈS ACCORDÉ');
-      await new Promise((r) => setTimeout(r, 500));
       if (user.mustChangePassword) {
         router.push('/change-password');
       } else {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      setStatusText('ACCÈS REFUSÉ');
       setError(err.message || 'Impossible de se connecter.');
+    } finally {
       setLoading(false);
     }
   }
 
   return (
     <main className="relative min-h-screen overflow-hidden flex items-center justify-center px-6 py-12">
-      {/* Canvas particules */}
-      <canvas ref={canvasRef} className="absolute inset-0" style={{ opacity: 0.6 }} />
-
       {/* Fond cosmique */}
       <div className="absolute inset-0 cosmic-grid" />
       <div className="blob bg-neon-violet w-[520px] h-[520px] -top-40 -left-32 animate-pulse-slow" />
@@ -114,24 +44,90 @@ export default function LoginPage() {
       <div className="blob bg-neon-pink w-[320px] h-[320px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30" />
 
       {/* Bloc logo + card */}
-      <div className={`relative w-full max-w-md ${mounted ? '' : 'opacity-0'}`}>
-        {/* Logo + orbital rings */}
-        <div className="flex flex-col items-center mb-8 select-none po-1">
-          <div className="relative mb-6 w-32 h-32 flex items-center justify-center">
-            {/* Grille tech derrière */}
-            <div className="tech-grid-bg" />
-            {/* Orbital rings */}
-            <div className="orbital-ring w-32 h-32" />
-            <div className="orbital-ring reverse w-24 h-24" />
-            {/* Halo */}
-            <div className="absolute w-16 h-16 bg-gradient-to-br from-neon-violet to-neon-cyan rounded-2xl blur-2xl opacity-70" />
-            {/* Logo */}
+      <div className={`relative w-full max-w-md ${mounted ? 'animate-fade-up' : 'opacity-0'}`}>
+        {/* Logo flottant */}
+        <div className="flex flex-col items-center mb-8 select-none">
+          <div className="relative mb-5 animate-float">
+            <div className="absolute inset-0 bg-gradient-to-br from-neon-violet to-neon-cyan rounded-2xl blur-2xl opacity-60" />
             <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-violet to-neon-cyan flex items-center justify-center animate-glow">
-              <FontAwesomeIcon icon={UI.compass} className="text-white text-2xl" />
+              <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" />
+              </svg>
             </div>
           </div>
-          <h1 className="text-3xl font-bold font-display tracking-tight glitch">
+          <h1 className="text-3xl font-bold font-display tracking-tight">
             <span className="grad-text">My Mission Control</span>
           </h1>
-          <p className="text-sm text-white/50 mt-2 tracking-[0.25em] uppercase">Portail privé</p>
-          {/* Status lin
+          <p className="text-sm text-white/50 mt-2 tracking-wide">Portail privé · Accès membres seulement</p>
+        </div>
+
+        {/* Card login */}
+        <form onSubmit={handleSubmit} className="glass rounded-3xl p-8 space-y-5">
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider" htmlFor="email">
+              Courriel
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="input"
+              placeholder="vous@exemple.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider" htmlFor="password">
+              Mot de passe
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPwd ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                className="input pr-12"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 text-xs px-2 py-1 rounded transition"
+                aria-label="Afficher/masquer le mot de passe"
+              >
+                {showPwd ? 'Masquer' : 'Afficher'}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2" disabled={loading}>
+            <span>{loading ? <span className="spinner" /> : 'Se connecter'}</span>
+          </button>
+
+          <p className="text-center text-xs text-white/30 pt-2">
+            Accès restreint · Si tu as oublié ton mot de passe, demande à Martin.
+          </p>
+        </form>
+
+        {/* Footer */}
+        <p className="text-center text-[11px] text-white/25 mt-8 tracking-wide">
+          © {new Date().getFullYear()} Famille Avoine-Blanchette · my-mission-control.com
+        </p>
+      </div>
+    </main>
+  );
+}
