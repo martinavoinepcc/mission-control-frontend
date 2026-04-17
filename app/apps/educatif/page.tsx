@@ -51,8 +51,8 @@ export default function EducatifHubPage() {
   return (
     <main className="relative min-h-screen">
       <div className="absolute inset-0 cosmic-grid" />
-      <div className="blob bg-emerald-500 w-[500px] h-[500px] -top-40 -right-32 animate-pulse-slow opacity-20" />
-      <div className="blob bg-neon-cyan w-[400px] h-[400px] -bottom-24 -left-24 animate-pulse-slow opacity-15" style={{ animationDelay: '2.5s' }} />
+      <div className="blob bg-emerald-500 w-[420px] h-[420px] -top-48 -right-40 animate-pulse-slow opacity-[0.10]" />
+      <div className="blob bg-neon-cyan w-[340px] h-[340px] -bottom-32 -left-32 animate-pulse-slow opacity-[0.08]" style={{ animationDelay: '2.5s' }} />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Header */}
@@ -176,5 +176,3 @@ function ModuleCard({ mod, delay, onClick }: { mod: EduModuleSummary; delay: num
         </div>
       </div>
     </button>
-  );
-}
