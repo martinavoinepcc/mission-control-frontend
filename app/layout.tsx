@@ -11,9 +11,20 @@ export const metadata: Metadata = {
   },
 };
 
-// Adaptation mobile : viewport responsive avec scale user-scalable pour lisibilité
+// Adaptation mobile : viewport responsive avec scale user-scalable pour lisibilite
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  user
+  userScalable: true,
+  viewportFit: 'cover',
+  themeColor: '#050814',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="fr">
+      <body className="min-h-screen antialiased">{children}</body>
+    </html>
+  );
+}
