@@ -359,19 +359,21 @@ function MissionInner() {
               </div>
               <span className="text-xs font-semibold text-white/80">Ton programme</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
               <button
                 onClick={handleHint}
                 disabled={running || hintLevel >= 4}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 text-xs transition disabled:opacity-40"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 active:bg-amber-400/35 border border-amber-400/40 text-amber-300 text-xs transition disabled:opacity-40 touch-manipulation"
               >
                 <FontAwesomeIcon icon={UI.hint} />
-                Indice {hintLevel > 0 ? `(${hintLevel}/4)` : ''}
+                <span className="hidden sm:inline">Indice {hintLevel > 0 ? `(${hintLevel}/4)` : ''}</span>
+                <span className="sm:hidden">{hintLevel > 0 ? `${hintLevel}/4` : 'Aide'}</span>
               </button>
               <button
                 onClick={handleReset}
                 disabled={running}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/15 text-white/80 text-xs transition disabled:opacity-40"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/15 text-white/80 text-xs transition disabled:opacity-40 touch-manipulation"
+                aria-label="Reset"
               >
                 <FontAwesomeIcon icon={UI.reset} />
                 <span className="hidden sm:inline">Reset</span>
@@ -379,10 +381,10 @@ function MissionInner() {
               <button
                 onClick={handlePlay}
                 disabled={running}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold transition disabled:opacity-40 shadow-lg shadow-emerald-500/30"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white text-xs font-semibold transition disabled:opacity-40 shadow-lg shadow-emerald-500/30 touch-manipulation"
               >
                 <FontAwesomeIcon icon={running ? UI.spinner : UI.play} className={running ? 'animate-spin' : ''} />
-                {running ? 'Exécution...' : 'Jouer'}
+                {running ? 'Exéc...' : 'Jouer'}
               </button>
             </div>
           </div>
@@ -652,14 +654,4 @@ function SuccessModal({
               Rejouer
             </button>
             <button
-              onClick={onContinue}
-              className="flex-1 px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-sm transition shadow-lg shadow-emerald-500/40"
-            >
-              Continuer <FontAwesomeIcon icon={UI.arrowRight} className="ml-2" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+              onClick={onContinue
