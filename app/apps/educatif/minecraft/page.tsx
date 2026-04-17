@@ -1,10 +1,16 @@
 'use client';
 
 /**
- * /apps/educatif/minecraft/ — Index des modules Codeur Minecraft pour Jackson.
+ * /apps/educatif/minecraft/ — Index du parcours Codeur Minecraft de Jackson.
  *
- * Affiche les 8 leçons du parcours Master Codeur. Seul P01 est actif au pilote ;
- * les autres sont verrouillés (ouvrent un message "Bientôt disponible").
+ * Aligné EXACTEMENT sur le curriculum Silica Studio :
+ *   - Préparation (logistique, à faire avec papa)
+ *   - Cours 0 : bases in-game (bouger, poser, interagir)
+ *   - Fondations Redstone : 5 modules miroir du camp
+ *   - Défi Master Codeur (custom, après le camp)
+ *
+ * Seul le pilote Fondations M1 — Découverte de la Redstone est actif.
+ * Les autres modules sont verrouillés jusqu'à validation du pilote avec Jackson.
  */
 
 import { useEffect, useState } from 'react';
@@ -15,25 +21,125 @@ import {
 import XPCounter from '@/components/educatif/XPCounter';
 import ProgressMap from '@/components/educatif/ProgressMap';
 
+type Section = 'prep' | 'cours0' | 'redstone' | 'defi';
+
 type Module = {
   id: string;
   slug: string;
   title: string;
   subtitle: string;
   emoji: string;
+  section: Section;
   active: boolean;
 };
 
 const MODULES: Module[] = [
-  { id: 'p01', slug: 'p01-telechargement', title: 'P01 — Téléchargement',     subtitle: 'Installer Minecraft Java Edition',       emoji: '📥', active: true  },
-  { id: 'p02', slug: 'p02-multijoueur',    title: 'P02 — Multijoueur',        subtitle: 'Configurer le jeu et le mode online',    emoji: '🌐', active: false },
-  { id: 'm01', slug: 'm01-redstone',       title: 'Module 1 — Redstone',      subtitle: 'Découvre la redstone, le circuit magique', emoji: '🔴', active: false },
-  { id: 'm02', slug: 'm02-courant',        title: 'Module 2 — Courant',       subtitle: 'Puissance et propagation',               emoji: '⚡', active: false },
-  { id: 'm03', slug: 'm03-logique',        title: 'Module 3 — Logique',       subtitle: 'Vrai / faux, ET, OU, NON',               emoji: '🧠', active: false },
-  { id: 'm04', slug: 'm04-pistons',        title: 'Module 4 — Pistons',       subtitle: 'Timing et mouvement',                    emoji: '🕹️', active: false },
-  { id: 'm05', slug: 'm05-mise-en-commun', title: 'Module 5 — Mise en commun', subtitle: 'Fusionne tout dans un projet',          emoji: '🏗️', active: false },
-  { id: 'final', slug: 'final',            title: 'Défi final',               subtitle: 'Prouve que t\'es Master Codeur',         emoji: '🏆', active: false },
+  // ── Cours 0 : bases in-game ──
+  {
+    id: 'c0m1',
+    slug: 'cours0-bouger',
+    title: 'Cours 0 · M1 — Bouge dans le monde',
+    subtitle: 'Déplacement, caméra, sauter, courir',
+    emoji: '🚶',
+    section: 'cours0',
+    active: false,
+  },
+  {
+    id: 'c0m2',
+    slug: 'cours0-poser-casser',
+    title: 'Cours 0 · M2 — Pose et casse',
+    subtitle: 'Blocs, clic gauche/droit, inventaire',
+    emoji: '🧱',
+    section: 'cours0',
+    active: false,
+  },
+  {
+    id: 'c0m3',
+    slug: 'cours0-interagir',
+    title: 'Cours 0 · M3 — Interagis',
+    subtitle: 'Panneaux, coffres, objets, crafting simple',
+    emoji: '🤝',
+    section: 'cours0',
+    active: false,
+  },
+
+  // ── Fondations Redstone ──
+  {
+    id: 'rsm1',
+    slug: 'redstone-m1-decouverte',
+    title: 'Fondations M1 — Découverte',
+    subtitle: 'Source, fil, cible — le cœur de la Redstone',
+    emoji: '⚡',
+    section: 'redstone',
+    active: true, // ← PILOTE
+  },
+  {
+    id: 'rsm2',
+    slug: 'redstone-m2-puissance',
+    title: 'Fondations M2 — Puissance',
+    subtitle: "Jusqu'où le signal peut voyager",
+    emoji: '🔋',
+    section: 'redstone',
+    active: false,
+  },
+  {
+    id: 'rsm3',
+    slug: 'redstone-m3-logique',
+    title: 'Fondations M3 — Logique booléenne',
+    subtitle: 'Portes ET, OU, NON',
+    emoji: '🧠',
+    section: 'redstone',
+    active: false,
+  },
+  {
+    id: 'rsm4',
+    slug: 'redstone-m4-timing',
+    title: 'Fondations M4 — Pistons & timing',
+    subtitle: 'Délais, répéteurs, mouvement',
+    emoji: '⏱️',
+    section: 'redstone',
+    active: false,
+  },
+  {
+    id: 'rsm5',
+    slug: 'redstone-m5-mise-en-commun',
+    title: 'Fondations M5 — Mise en commun',
+    subtitle: 'Construis ta première vraie machine',
+    emoji: '🎯',
+    section: 'redstone',
+    active: false,
+  },
+
+  // ── Défi final (custom) ──
+  {
+    id: 'defi',
+    slug: 'defi-master-codeur',
+    title: 'Défi Master Codeur',
+    subtitle: "Prouve que t'es prêt pour Silica",
+    emoji: '🏆',
+    section: 'defi',
+    active: false,
+  },
 ];
+
+const SECTION_META: Record<Section, { title: string; caption: string }> = {
+  prep: {
+    title: 'Préparation',
+    caption: "Logistique à faire une fois avec papa, avant de commencer",
+  },
+  cours0: {
+    title: 'Cours 0 — Bases in-game',
+    caption: 'Bouger, poser, casser, interagir. Sans ça, pas de code.',
+  },
+  redstone: {
+    title: 'Fondations Redstone',
+    caption: 'Les 5 modules de programmation du camp Silica, préparés pour toi',
+  },
+  defi: {
+    title: 'Défi final',
+    caption: "Quand t'es prêt, tu montres ce que tu sais faire",
+  },
+};
 
 export default function MinecraftIndexPage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -57,6 +163,9 @@ export default function MinecraftIndexPage() {
   }, []);
 
   if (!username) return null;
+
+  const sections: Section[] = ['prep', 'cours0', 'redstone', 'defi'];
+  const doneCount = Object.values(moduleStatus).filter(Boolean).length;
 
   return (
     <div
@@ -82,7 +191,7 @@ export default function MinecraftIndexPage() {
             <span>Codeur Minecraft</span>
           </h1>
           <span className="text-xs text-white/60 min-w-[44px] text-right">
-            {Object.values(moduleStatus).filter(Boolean).length}/{MODULES.length}
+            {doneCount}/{MODULES.length}
           </span>
         </div>
       </header>
@@ -98,74 +207,20 @@ export default function MinecraftIndexPage() {
           <ProgressMap refreshKey={refreshKey} />
         </section>
 
-        {/* Liste des modules */}
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide">
-            Les leçons
-          </h2>
+        {/* Sections */}
+        {sections.map(sec => {
+          const items = MODULES.filter(m => m.section === sec);
+          const meta = SECTION_META[sec];
 
-          {MODULES.map(m => {
-            const done = moduleStatus[m.id];
-            const locked = !m.active;
-            const content = (
-              <div
-                className={`rounded-2xl p-4 sm:p-5 flex items-center gap-4 border-2 ${
-                  done
-                    ? 'bg-emerald-500/10 border-emerald-500'
-                    : m.active
-                    ? 'bg-slate-800/60 border-emerald-500/40'
-                    : 'bg-slate-900/40 border-white/5 opacity-60'
-                }`}
-              >
-                <div className="text-3xl sm:text-4xl w-14 h-14 flex items-center justify-center rounded-xl bg-white/5">
-                  {m.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base sm:text-lg font-bold text-white truncate">
-                      {m.title}
-                    </h3>
-                    {done && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-slate-900">
-                        ✓ FAIT
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-white/70 truncate">{m.subtitle}</p>
-                </div>
-                <div className="text-white/60 text-lg">
-                  {locked ? '🔒' : '→'}
-                </div>
+          return (
+            <section key={sec} className="flex flex-col gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide">
+                  {meta.title}
+                </h2>
+                <p className="text-xs text-white/50 mt-0.5">{meta.caption}</p>
               </div>
-            );
 
-            return m.active ? (
-              <a
-                key={m.id}
-                href={`/apps/educatif/minecraft/${m.slug}/`}
-                className="touch-manipulation"
-              >
-                {content}
-              </a>
-            ) : (
-              <button
-                key={m.id}
-                type="button"
-                disabled
-                className="text-left cursor-not-allowed"
-                aria-disabled
-                title="Bientôt disponible — termine d'abord les leçons précédentes"
-              >
-                {content}
-              </button>
-            );
-          })}
-        </section>
-
-        <p className="text-center text-xs text-white/40 mt-4">
-          Parcours préparé pour le camp Silica Studio — été 2026
-        </p>
-      </main>
-    </div>
-  );
-}
+              {/* Préparation : carte statique, pas un module */}
+              {sec === 'prep' && (
+                <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-4 border-2 bg-slate-800/40 border-whi
