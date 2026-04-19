@@ -57,6 +57,12 @@ import {
   faTemperatureHalf,
   faBriefcase,
   faChartLine,
+  faMasksTheater,
+  faDice,
+  faClock,
+  faBell,
+  faStop,
+  faPlus as faPlusIcon,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Map slug → icon. Pour ajouter une app : ajoute le slug ici et dans le seed.
@@ -71,6 +77,7 @@ export const APP_ICONS: Record<string, IconDefinition> = {
   'temperature-half': faTemperatureHalf,
   'briefcase': faBriefcase,
   'chart-line': faChartLine,
+  'masks-theater': faMasksTheater,
 };
 
 // Fallback si le slug n'est pas mappé
@@ -134,4 +141,9 @@ export const UI = {
   briefcase: faBriefcase,
   chartLine: faChartLine,
   heartSolid: faHeart,
+  masks: faMasksTheater,
+  dice: faDice,
+  clock: faClock,
+  bell: faBell,
+  stopSq: faStop,
 };

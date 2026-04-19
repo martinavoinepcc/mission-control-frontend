@@ -245,3 +245,78 @@ export async function adminImportPack(pack: { module: any; lessons: any[] }) {
 export async function adminGetEduProgress() {
   return request<{ children: any[] }>('/admin/educatif/progress', { method: 'GET' });
 }
+
+
+// ============ IMPRO ENGINE ============
+
+export type ImprovDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
+export type ImprovNature = 'MIXTE' | 'COMPAREE';
+export type ImprovMode = 'PRACTICE' | 'GAME';
+export type ImprovGeneration = 'AUTO' | 'STEP' | 'CUSTOM';
+
+export type ImprovCategory = {
+  id: number;
+  slug: string;
+  name: string;
+  shortDescription: string | null;
+  rulesDescription: string | null;
+  allowedNatures: ImprovNature[];
+  minPlayers: number;
+  maxPlayers: number;
+  defaultDurationSec: number;
+  defaultCaucusSec: number;
+  difficulty: ImprovDifficulty;
+  tags: string[];
+};
+
+export type ImprovTheme = {
+  id: number;
+  slug: string;
+  name: string;
+  difficulty: ImprovDifficulty;
+  tags: string[];
+};
+
+export type ImprovConstraint = {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  difficulty: ImprovDifficulty;
+};
+
+export type ImprovCard = {
+  nature: ImprovNature;
+  category: { slug: string; name: string; shortDescription: string | null; difficulty: ImprovDifficulty };
+  theme: { slug: string; name: string } | null;
+  constraints: Array<{ slug: string; name: string; description: string | null; difficulty: ImprovDifficulty }>;
+  players: { teams: number; playersPerTeam: number; total: number };
+  durationSec: number;
+  caucusSec: number;
+};
+
+export type GenerateInput = {
+  mode: ImprovMode;
+  generation?: ImprovGeneration;
+  teams: number;
+  playersPerTeam: number;
+  difficulty: ImprovDifficulty;
+  nature?: ImprovNature;
+  categorySlug?: string;
+  themeSlug?: string;
+  durationSec?: number;
+  caucusSec?: number;
+  constraintsSlugs?: string[];
+};
+
+export const ImprovAPI = {
+  listCategories: () => request<{ categories: ImprovCategory[] }>('/improv/categories'),
+  listThemes:     () => request<{ themes: ImprovTheme[] }>('/improv/themes'),
+  listConstraints:() => request<{ constraints: ImprovConstraint[] }>('/improv/constraints'),
+  generate: (input: GenerateInput) =>
+    request<{ card: ImprovCard }>('/improv/generate', { method: 'POST', body: JSON.stringify(input) }),
+  createSession: (mode: ImprovMode) =>
+    request<{ session: { id: number; mode: string; createdAt: string } }>('/improv/sessions', { method: 'POST', body: JSON.stringify({ mode }) }),
+  logRound: (sessionId: number, body: { orderIndex: number; cardData: any; voteResult?: string; startedAt?: string; endedAt?: string }) =>
+    request<{ round: any }>(`/improv/sessions/${sessionId}/rounds`, { method: 'POST', body: JSON.stringify(body) }),
+};
