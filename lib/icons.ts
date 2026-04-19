@@ -55,6 +55,8 @@ import {
   faMagicWandSparkles,
   faMountainSun,
   faTemperatureHalf,
+  faBriefcase,
+  faChartLine,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Map slug → icon. Pour ajouter une app : ajoute le slug ici et dans le seed.
@@ -67,6 +69,8 @@ export const APP_ICONS: Record<string, IconDefinition> = {
   'compass': faCompass,
   'mountain-sun': faMountainSun,
   'temperature-half': faTemperatureHalf,
+  'briefcase': faBriefcase,
+  'chart-line': faChartLine,
 };
 
 // Fallback si le slug n'est pas mappé
@@ -127,4 +131,7 @@ export const UI = {
   circle: faCircle,
   heart: faHeart,
   wand: faMagicWandSparkles,
+  briefcase: faBriefcase,
+  chartLine: faChartLine,
+  heartSolid: faHeart,
 };

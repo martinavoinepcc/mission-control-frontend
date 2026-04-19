@@ -92,6 +92,8 @@ export default function LoginPage() {
       await new Promise((r) => setTimeout(r, 500));
       if (user.mustChangePassword) {
         router.push('/change-password');
+      } else if (user.role === 'ADMIN') {
+        router.push('/realms');
       } else {
         router.push('/dashboard');
       }

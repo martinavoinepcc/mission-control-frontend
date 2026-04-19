@@ -63,6 +63,7 @@ export type App = {
   color: string;
   isMockup: boolean;
   isActive: boolean;
+  realm: 'FAMILY' | 'WORK';
 };
 
 // Endpoints
