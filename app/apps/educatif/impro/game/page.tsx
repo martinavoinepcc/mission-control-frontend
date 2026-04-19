@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { ImprovAPI, type ImprovCard, type ImprovDifficulty } from '@/lib/api';
+import { ImprovAPI, type ImprovCard, type ImprovDifficulty, type GenerateInput } from '@/lib/api';
 import { UI } from '@/lib/icons';
 import { playBell, playBuzzer, playTick, playCheer } from '@/lib/sounds';
 
@@ -29,6 +29,17 @@ export default function ImproGamePage() {
   const [includeConstraints, setIncludeConstraints] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
 
+  // CUSTOM mode state (for the entire match — each round uses same settings)
+  const [genMode, setGenMode] = useState<'AUTO' | 'CUSTOM'>('AUTO');
+  const [customNature, setCustomNature] = useState<'AUTO' | 'MIXTE' | 'COMPAREE'>('AUTO');
+  const [customCategorySlug, setCustomCategorySlug] = useState<string>('');
+  const [customThemeSlug, setCustomThemeSlug] = useState<string>('');
+  const [customDurationSec, setCustomDurationSec] = useState<number | null>(null);
+  const [customConstraintMode, setCustomConstraintMode] = useState<'NONE' | 'RANDOM' | 'CUSTOM'>('NONE');
+  const [customConstraints, setCustomConstraints] = useState<string[]>([]);
+  const [catalog, setCatalog] = useState<{ categories: any[]; themes: any[]; constraints: any[] } | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+
   const [roundIndex, setRoundIndex] = useState(0); // 0-based
   const [history, setHistory] = useState<RoundEntry[]>([]);
   const [scoreA, setScoreA] = useState(0);
@@ -42,13 +53,48 @@ export default function ImproGamePage() {
   const [err, setErr] = useState<string | null>(null);
   const tickRef = useRef<number | null>(null);
 
-  async function startMatch() {
+  useEffect(() => {
+    if (genMode === 'CUSTOM' && !catalog && !catalogLoading) {
+      setCatalogLoading(true);
+      Promise.all([ImprovAPI.listCategories(), ImprovAPI.listThemes(), ImprovAPI.listConstraints()])
+        .then(([c, t, k]) => setCatalog({ categories: c.categories, themes: t.themes, constraints: k.constraints }))
+        .catch(() => setErr('Erreur chargement catalog.'))
+        .finally(() => setCatalogLoading(false));
+    }
+  }, [genMode, catalog, catalogLoading]);
+
+  function buildCustomPayload(extra: Partial<GenerateInput>): GenerateInput {
+    const p: GenerateInput = {
+      mode: 'GAME',
+      generation: genMode === 'CUSTOM' ? 'CUSTOM' : 'AUTO',
+      teams: 2, playersPerTeam, difficulty,
+      ...extra,
+    };
+    if (genMode === 'AUTO') {
+      p.forceNoConstraints = !includeConstraints;
+    } else {
+      if (customNature !== 'AUTO') p.nature = customNature;
+      if (customCategorySlug) p.categorySlug = customCategorySlug;
+      if (customThemeSlug) p.themeSlug = customThemeSlug;
+      if (customDurationSec) p.durationSec = customDurationSec;
+      if (customConstraintMode === 'NONE') p.forceNoConstraints = true;
+      else if (customConstraintMode === 'CUSTOM' && customConstraints.length > 0) p.constraintsSlugs = customConstraints;
+    }
+    return p;
+  }
+
+  function toggleCustomConstraint(slug: string) {
+    setCustomConstraints((prev) => {
+      if (prev.includes(slug)) return prev.filter((s) => s !== slug);
+      if (prev.length >= 2) return prev;
+      return [...prev, slug];
+    });
+  }
+
+    async function startMatch() {
     setLoading(true); setErr(null);
     try {
-      const { card } = await ImprovAPI.generate({
-        mode: 'GAME', generation: 'AUTO', teams: 2, playersPerTeam, difficulty,
-        forceNoConstraints: !includeConstraints,
-      });
+      const { card } = await ImprovAPI.generate(buildCustomPayload({}));
       setCard(card);
       setCaucusLeft(card.caucusSec);
       setPlayLeft(card.durationSec);
@@ -75,10 +121,7 @@ export default function ImproGamePage() {
     }
     setLoading(true); setErr(null);
     try {
-      const { card } = await ImprovAPI.generate({
-        mode: 'GAME', generation: 'AUTO', teams: 2, playersPerTeam, difficulty,
-        forceNoConstraints: !includeConstraints,
-      });
+      const { card } = await ImprovAPI.generate(buildCustomPayload({}));
       setCard(card);
       setCaucusLeft(card.caucusSec);
       setPlayLeft(card.durationSec);
@@ -199,16 +242,110 @@ export default function ImproGamePage() {
                 </div>
               </div>
 
-              <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 cursor-pointer hover:bg-white/[0.07] transition">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-white/90">Inclure des contraintes</div>
-                  <div className="text-xs text-white/50 mt-0.5">Ex. sans se toucher, en chantant, yeux fermés…</div>
+              {/* Mode toggle */}
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Mode de génération (par round)</label>
+                <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-white/5 border border-white/10 rounded-2xl">
+                  <button onClick={() => setGenMode('AUTO')} className={`px-4 py-2.5 rounded-xl text-sm font-medium transition ${genMode === 'AUTO' ? 'bg-blue-500/25 text-blue-100' : 'text-white/60 hover:bg-white/5'}`}>⚡ Rapide</button>
+                  <button onClick={() => setGenMode('CUSTOM')} className={`px-4 py-2.5 rounded-xl text-sm font-medium transition ${genMode === 'CUSTOM' ? 'bg-blue-500/25 text-blue-100' : 'text-white/60 hover:bg-white/5'}`}>🎨 Sur mesure</button>
                 </div>
-                <span className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${includeConstraints ? 'bg-blue-500' : 'bg-white/20'}`}>
-                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${includeConstraints ? 'translate-x-6' : 'translate-x-1'}`} />
-                </span>
-                <input type="checkbox" className="sr-only" checked={includeConstraints} onChange={(e) => setIncludeConstraints(e.target.checked)} />
-              </label>
+              </div>
+
+              {genMode === 'AUTO' && (
+                <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 cursor-pointer hover:bg-white/[0.07] transition">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-white/90">Inclure des contraintes</div>
+                    <div className="text-xs text-white/50 mt-0.5">Ex. sans se toucher, en chantant, yeux fermés…</div>
+                  </div>
+                  <span className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${includeConstraints ? 'bg-blue-500' : 'bg-white/20'}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${includeConstraints ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </span>
+                  <input type="checkbox" className="sr-only" checked={includeConstraints} onChange={(e) => setIncludeConstraints(e.target.checked)} />
+                </label>
+              )}
+
+              {genMode === 'CUSTOM' && (
+                <>
+                  {catalogLoading && <div className="text-sm text-white/50 flex items-center gap-2">⏳ Chargement…</div>}
+                  {catalog && (
+                    <div className="space-y-4 rounded-xl border border-blue-400/20 bg-blue-400/5 p-4">
+                      <p className="text-[10px] uppercase tracking-wider text-blue-200/70">Chaque round utilisera ces choix (reste aléatoire)</p>
+
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Nature</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(['AUTO', 'MIXTE', 'COMPAREE'] as const).map((n) => (
+                            <button key={n} onClick={() => setCustomNature(n)} className={`px-3 py-2 rounded-lg border text-xs transition ${customNature === n ? 'border-blue-400 bg-blue-400/25 text-blue-100' : 'border-white/15 text-white/70 hover:bg-white/5'}`}>
+                              {n === 'AUTO' ? 'Aléatoire' : n === 'MIXTE' ? 'Mixte' : 'Comparée'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Catégorie</label>
+                        <select value={customCategorySlug} onChange={(e) => setCustomCategorySlug(e.target.value)}
+                          className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400 focus:outline-none appearance-none"
+                          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27%3E%3Cpath stroke=%27%2360a5fa%27 stroke-width=%272%27 fill=%27none%27 d=%27M5 7l5 5 5-5%27/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', backgroundSize: '16px', paddingRight: '2.5rem' }}>
+                          <option value="">🎲 Aléatoire</option>
+                          {[...catalog.categories].sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((c) => (
+                            <option key={c.slug} value={c.slug}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Thème</label>
+                        <select value={customThemeSlug} onChange={(e) => setCustomThemeSlug(e.target.value)}
+                          className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400 focus:outline-none appearance-none"
+                          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27%3E%3Cpath stroke=%27%2360a5fa%27 stroke-width=%272%27 fill=%27none%27 d=%27M5 7l5 5 5-5%27/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', backgroundSize: '16px', paddingRight: '2.5rem' }}>
+                          <option value="">🎲 Aléatoire</option>
+                          {[...catalog.themes].sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((t) => (
+                            <option key={t.slug} value={t.slug}>{t.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Durée par round</label>
+                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                          <button onClick={() => setCustomDurationSec(null)} className={`px-2 py-2 rounded-lg border text-xs transition ${customDurationSec === null ? 'border-blue-400 bg-blue-400/25 text-blue-100' : 'border-white/15 text-white/70 hover:bg-white/5'}`}>Auto</button>
+                          {[45, 60, 90, 120, 150, 180, 240].map((s) => (
+                            <button key={s} onClick={() => setCustomDurationSec(s)} className={`px-2 py-2 rounded-lg border text-xs transition ${customDurationSec === s ? 'border-blue-400 bg-blue-400/25 text-blue-100' : 'border-white/15 text-white/70 hover:bg-white/5'}`}>{s < 60 ? `${s}s` : `${s / 60}m`}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Contraintes</label>
+                        <div className="grid grid-cols-3 gap-1.5 mb-2">
+                          {([
+                            { v: 'NONE' as const, label: 'Aucune' },
+                            { v: 'RANDOM' as const, label: 'Aléatoires' },
+                            { v: 'CUSTOM' as const, label: 'Je choisis' },
+                          ]).map((o) => (
+                            <button key={o.v} onClick={() => setCustomConstraintMode(o.v)} className={`px-2 py-2 rounded-lg border text-xs transition ${customConstraintMode === o.v ? 'border-blue-400 bg-blue-400/25 text-blue-100' : 'border-white/15 text-white/70 hover:bg-white/5'}`}>{o.label}</button>
+                          ))}
+                        </div>
+                        {customConstraintMode === 'CUSTOM' && (
+                          <div className="rounded-lg border border-blue-400/20 bg-white/5 p-2.5">
+                            <p className="text-[10px] uppercase tracking-wider text-blue-200/70 mb-1.5">Max 2 ({customConstraints.length}/2)</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[...catalog.constraints].sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((k: any) => {
+                                const active = customConstraints.includes(k.slug);
+                                const disabled = !active && customConstraints.length >= 2;
+                                return (
+                                  <button key={k.slug} onClick={() => toggleCustomConstraint(k.slug)} disabled={disabled} className={`px-2.5 py-1.5 rounded-lg text-xs border transition ${active ? 'border-blue-400 bg-blue-400/25 text-blue-50' : disabled ? 'border-white/10 text-white/30 cursor-not-allowed' : 'border-white/15 text-white/70 hover:bg-white/5'}`}>{k.name}</button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
 
               {err && <div className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{err}</div>}
               <button onClick={startMatch} disabled={loading} className="btn-primary w-full">
