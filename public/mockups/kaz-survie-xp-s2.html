@@ -378,6 +378,97 @@
   }
   .start-btn:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(168,85,247,0.6); }
 
+
+  /* ===== CODE BLOCKS + QUIZ ===== */
+  .code-block {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1rem;
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    animation: slideUp 0.3s ease-out;
+  }
+  .code-block .kw { color: #c084fc; font-weight: 600; }
+  .code-block .var { color: #06b6d4; }
+  .code-block .nb { color: #fbbf24; }
+  .code-block .fn { color: #f0abfc; }
+  .code-block .op { color: #f43f5e; }
+  .code-block .punct { color: #a0a0c0; }
+  .code-block .cm { color: #6b7280; font-style: italic; }
+  .code-block code { font: inherit; color: #fbbf24; background: rgba(251,191,36,0.08); padding: 0 4px; border-radius: 3px; }
+
+  .quiz-block {
+    background: rgba(168,85,247,0.06);
+    border: 1px solid rgba(168,85,247,0.25);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    margin-top: 0.8rem;
+    animation: slideUp 0.35s ease-out;
+  }
+  .quiz-question {
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.8rem;
+    line-height: 1.4;
+  }
+  .quiz-question em { color: var(--amber); font-style: normal; font-weight: 700; }
+  .quiz-question code {
+    font-family: 'JetBrains Mono', monospace;
+    color: #fbbf24; background: rgba(251,191,36,0.1);
+    padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.88em;
+  }
+  .quiz-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  @media (min-width: 600px) { .quiz-options { grid-template-columns: repeat(3, 1fr); } }
+  .quiz-btn {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95rem; font-weight: 600;
+    padding: 0.8rem 1rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .quiz-btn:hover:not(.disabled) {
+    background: rgba(168,85,247,0.12);
+    border-color: rgba(168,85,247,0.5);
+    transform: translateY(-1px);
+  }
+  .quiz-btn.correct {
+    background: rgba(16,185,129,0.2);
+    border-color: rgba(16,185,129,0.7);
+    color: #6ee7b7;
+    animation: correctPulse 0.6s;
+  }
+  .quiz-btn.wrong {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.5);
+    color: #fca5a5;
+    animation: wrongShake 0.4s;
+  }
+  .quiz-btn.disabled { opacity: 0.45; cursor: not-allowed; }
+  .quiz-btn.disabled:hover { transform: none; }
+  @keyframes correctPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); box-shadow: 0 0 25px rgba(16,185,129,0.5); }
+  }
+  @keyframes wrongShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
   /* Mobile */
   @media (max-width: 768px) {
     .app { grid-template-columns: 1fr; grid-template-rows: 1fr 40vh; }
@@ -858,6 +949,28 @@ async function runBeat(beat) {
       return;
     case 'gameEvent':
       return runGameEvent(beat);
+    case 'codePanel':
+      {
+        const panel = document.getElementById('codePanel');
+        if (beat.action === 'open') { panel.classList.add('expanded'); sfx('click'); }
+        else panel.classList.remove('expanded');
+      }
+      return new Promise(r => setTimeout(r, 400));
+    case 'codeInject':
+      {
+        const body = document.getElementById('codeBody');
+        body.innerHTML = beat.html;
+        sfx('tick');
+      }
+      return new Promise(r => setTimeout(r, 400));
+    case 'codeAppend':
+      {
+        const body = document.getElementById('codeBody');
+        body.insertAdjacentHTML('beforeend', beat.html);
+      }
+      return new Promise(r => setTimeout(r, 300));
+    case 'quiz':
+      return runQuiz(beat);
     case 'waitKey':
       return new Promise(r => { state.awaitingInput = 'key:' + beat.key; state.awaitingInput_resolve = r; });
   }
@@ -901,6 +1014,51 @@ async function runGameEvent(beat) {
       break;
   }
 }
+async function runQuiz(beat) {
+  const body = document.getElementById('codeBody');
+  const panel = document.getElementById('codePanel');
+  panel.classList.add('expanded');
+  const wrap = document.createElement('div');
+  wrap.className = 'quiz-block';
+  wrap.innerHTML = '<div class="quiz-question">' + beat.question + '</div><div class="quiz-options">' +
+    beat.options.map((opt) => '<button class="quiz-btn" data-correct="' + opt.correct + '">' + opt.label + '</button>').join('') +
+    '</div>';
+  body.appendChild(wrap);
+  body.scrollTop = body.scrollHeight;
+  setMood('thinking');
+  const hints = [
+    "Regarde bien le signe. life=30, est-ce qu'elle est plus petite que 50 ?",
+    "Allez reviens essayer. Pense à 30 vs 50 — qui est le plus petit ?",
+    "Check — le symbole `<` ça pointe dans quel sens déjà ?"
+  ];
+  let hintIdx = 0;
+  return new Promise(resolve => {
+    const buttons = wrap.querySelectorAll('.quiz-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (btn.classList.contains('disabled')) return;
+        const correct = btn.dataset.correct === 'true';
+        if (correct) {
+          btn.classList.add('correct');
+          buttons.forEach(b => b.classList.add('disabled'));
+          sfx('if_taken');
+          setMood('hype');
+          bumpViewers(4);
+          await new Promise(r => setTimeout(r, 900));
+          resolve();
+        } else {
+          btn.classList.add('wrong', 'disabled');
+          sfx('wasted');
+          setMood('teasing');
+          const h = hints[Math.min(hintIdx++, hints.length - 1)];
+          await showBubble(h, { hold: 2400 });
+          setMood('thinking');
+        }
+      });
+    });
+  });
+}
+
 async function runAct(beats) {
   for (const beat of beats) {
     await runBeat(beat);
@@ -953,6 +1111,42 @@ const ACT_1 = [
     hold: 1500 },
 ];
 
+const ACT_2 = [
+  { type: 'mood', mood: 'focused' },
+  { type: 'delay', ms: 400 },
+  { type: 'codePanel', action: 'open' },
+  { type: 'codeInject', html: '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Condition en Java</p><pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op">&lt;</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n}</pre>' },
+  { type: 'bubble', mood: 'focused',
+    text: "En code, une condition ça ressemble à ça. Lis avec moi : if life plus petit que 50, then eat cookie. En Java, on écrit ça comme du français mais plus compact.",
+    hold: 2800 },
+  { type: 'bubble', mood: 'focused',
+    text: "if, ça veut dire « si ». Entre parenthèses tu mets ta question. Ici : est-ce que ma vie est en dessous de 50 ? Si oui, Java exécute ce qui est entre les accolades. Si non, y saute par-dessus.",
+    hold: 3600 },
+  { type: 'bubble', mood: 'happy',
+    text: "Le < c'est « plus petit que ». > c'est « plus grand que ». == c'est « égal à » — deux signes égaux, pas un. Pas pareil qu'en maths. Fais gaffe.",
+    hold: 3400 },
+  { type: 'chat', lines: ['javafan: double egal = compare, un egal = assign', 'marie_code: GG le rappel'] },
+  { type: 'delay', ms: 500 },
+  { type: 'bubble', mood: 'focused',
+    text: "Mini-test flash. Laquelle est vraie quand life vaut 30 ? Check les options sous le code.",
+    hold: 1800 },
+  { type: 'quiz',
+    question: 'Laquelle est <em>vraie</em> quand <code>life = 30</code> ?',
+    options: [
+      { label: 'life < 50', correct: true },
+      { label: 'life > 50', correct: false },
+      { label: 'life == 100', correct: false },
+    ]},
+  { type: 'bubble', mood: 'hype',
+    text: "Exactement. 30 c'est plus petit que 50, donc la condition est vraie. Let's go.",
+    hold: 2200 },
+  { type: 'chat', lines: ['javafan: nice nice', 'pixel_queen: clean', 'cookieandy_90: PogChamp'] },
+  { type: 'delay', ms: 500 },
+  { type: 'bubble', mood: 'focused',
+    text: "OK. Maintenant à toi. Prochaine étape : tu vas écrire ta première condition toi-même.",
+    hold: 2200 },
+];
+
 // ============ KEYBOARD ============
 document.addEventListener('keydown', (e) => {
   if (!state.running) return;
@@ -994,8 +1188,9 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   // Run the scenario
   await runAct(ACT_0);
   await runAct(ACT_1);
-  // End of prototype v1 — ACT 2-9 à venir
-  await showBubble("(Prototype v1 — suite en construction. ACT 2 : le panneau code s'ouvre, on écrit un if ensemble.)", { hold: 8000 });
+  await runAct(ACT_2);
+  // End of prototype v2 — ACT 3-9 à venir
+  await showBubble("(Prototype v2 — suite en construction. ACT 3 : à toi d'écrire ta première condition en direct.)", { hold: 8000 });
   setMood('thinking');
 });
 </script>
