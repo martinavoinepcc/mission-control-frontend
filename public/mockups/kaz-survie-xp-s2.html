@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Kaz S2 — Le cookie qui soigne</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg0: #0a0a14;
+    --bg1: #13131f;
+    --bg2: #1a1a2e;
+    --cyan: #06b6d4;
+    --violet: #a855f7;
+    --pink: #ec4899;
+    --rose: #f43f5e;
+    --amber: #f59e0b;
+    --emerald: #10b981;
+    --gold: #fbbf24;
+    --text: #e8e8ff;
+    --text-dim: #a0a0c0;
+    --text-faint: #60607a;
+  }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, 'Segoe UI', 'Inter', sans-serif;
+    background: radial-gradient(ellipse at top left, #1a0a2e 0%, var(--bg0) 50%), var(--bg0);
+    color: var(--text);
+    min-height: 100vh;
+    user-select: none;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 440px;
+    grid-template-rows: 1fr;
+    height: 100vh;
+    max-height: 100vh;
+    position: relative;
+  }
+
+  /* ===== LEFT: Game ===== */
+  .stream-left {
+    position: relative;
+    background: radial-gradient(ellipse at center, #15152b 0%, #0a0a14 100%);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .top-bar {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.7rem 1rem;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.75rem;
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--rose);
+    box-shadow: 0 0 10px var(--rose);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .stream-title { flex: 1; color: var(--text-dim); }
+  .stream-title strong { color: var(--text); }
+  .viewers { color: var(--cyan); font-family: monospace; }
+  .viewers::before { content: '👁 '; }
+
+  /* Game canvas wrapper */
+  .game-wrap {
+    flex: 1; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #game {
+    width: 100%; height: 100%;
+    image-rendering: pixelated;
+    display: block;
+  }
+  .hud {
+    position: absolute; top: 1rem; left: 1rem; right: 1rem;
+    display: flex; justify-content: space-between; align-items: start;
+    pointer-events: none;
+  }
+  .hud-bar {
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 0.5rem 0.8rem;
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 0.85rem;
+  }
+  .hp-label { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; }
+  .hp-bar-bg { width: 160px; height: 10px; background: rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden; }
+  .hp-bar-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #10b981); transition: width 0.3s; }
+  .hp-bar-fill.mid { background: linear-gradient(90deg, #f59e0b, #eab308); }
+  .hp-bar-fill.low { background: linear-gradient(90deg, #ef4444, #dc2626); }
+  .hp-value { font-family: monospace; font-weight: 700; min-width: 60px; text-align: right; color: var(--text); }
+
+  .inventory {
+    display: flex; gap: 0.4rem;
+  }
+  .inv-slot {
+    width: 52px; height: 52px;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .inv-slot.empty { opacity: 0.25; }
+  .inv-slot.active { border-color: var(--amber); box-shadow: 0 0 15px rgba(245,158,11,0.4); }
+  .inv-slot .qty {
+    position: absolute; bottom: 2px; right: 4px;
+    font-size: 0.65rem; font-family: monospace; font-weight: 700;
+    color: var(--text); background: rgba(0,0,0,0.6); padding: 0 3px; border-radius: 4px;
+  }
+  .inv-slot .key-hint {
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 0.6rem; font-family: monospace; font-weight: 700;
+    color: var(--amber); text-shadow: 0 0 5px rgba(245,158,11,0.8);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .inv-slot.hint-visible .key-hint { opacity: 1; animation: bounce 0.8s infinite; }
+  @keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
+
+  .bottom-inv {
+    position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 0.5rem;
+  }
+
+  /* Game overlays */
+  .flash-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0; transition: opacity 0.1s;
+  }
+  .flash-overlay.red { background: rgba(239,68,68,0.4); }
+  .flash-overlay.gold { background: rgba(251,191,36,0.4); }
+  .flash-overlay.green { background: rgba(16,185,129,0.4); }
+  .flash-overlay.active { opacity: 1; }
+
+  .wasted-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Impact', sans-serif;
+    font-size: clamp(3rem, 10vw, 7rem);
+    font-weight: 900;
+    color: #dc2626;
+    text-shadow: 4px 4px 0 #000, -2px -2px 0 #000;
+    letter-spacing: 0.1em;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .wasted-text.show { opacity: 1; transform: scale(1); }
+
+  /* Code panel (collapsible) */
+  .code-panel {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: rgba(8,8,16,0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(168,85,247,0.4);
+    transition: height 0.3s cubic-bezier(0.65, 0, 0.35, 1);
+    height: 40px;
+    overflow: hidden;
+    z-index: 10;
+  }
+  .code-panel.expanded { height: 45vh; }
+  .code-strip {
+    height: 40px; display: flex; align-items: center; gap: 0.8rem;
+    padding: 0 1rem; cursor: pointer;
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em;
+    color: var(--violet);
+    border-bottom: 1px solid rgba(168,85,247,0.2);
+  }
+  .code-strip .chevron { transition: transform 0.3s; }
+  .code-panel.expanded .code-strip .chevron { transform: rotate(180deg); }
+  .code-body {
+    padding: 1.2rem; height: calc(45vh - 40px); overflow-y: auto;
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.9rem; line-height: 1.6;
+    color: #d0d0e8;
+  }
+  .code-body .cm { color: #6b7280; font-style: italic; }
+  .code-body .kw { color: #c084fc; }
+  .code-body .ty { color: #06b6d4; }
+  .code-body .nb { color: #fbbf24; }
+  .code-body .str { color: #34d399; }
+  .code-body .fn { color: #f0abfc; }
+  .code-body .editable {
+    display: inline-block; min-width: 80px;
+    background: rgba(168,85,247,0.15);
+    border: 1px dashed rgba(168,85,247,0.5);
+    border-radius: 4px;
+    padding: 0 6px;
+    outline: none;
+    color: var(--text);
+  }
+  .code-body .editable:focus { border-color: var(--amber); background: rgba(245,158,11,0.12); }
+  .code-actions {
+    display: flex; gap: 0.6rem; margin-top: 1rem;
+  }
+  .btn-code {
+    padding: 0.55rem 1.1rem; border-radius: 8px; cursor: pointer;
+    font-family: inherit; font-size: 0.85rem; font-weight: 600;
+    background: linear-gradient(135deg, var(--violet), var(--cyan));
+    border: none; color: white; transition: all 0.2s;
+  }
+  .btn-code:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-code.secondary {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text-dim);
+  }
+
+  /* ===== RIGHT: Chat + Kaz ===== */
+  .stream-right {
+    display: grid;
+    grid-template-rows: 1fr 280px;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    background: rgba(10,10,20,0.6);
+    position: relative;
+  }
+
+  /* Chat */
+  .chat {
+    overflow-y: auto;
+    padding: 0.7rem 1rem 0.5rem;
+    display: flex; flex-direction: column; gap: 0.3rem;
+    font-size: 0.82rem;
+    mask-image: linear-gradient(180deg, transparent 0%, black 8%);
+  }
+  .chat-header {
+    position: sticky; top: 0;
+    background: rgba(10,10,20,0.85); backdrop-filter: blur(8px);
+    padding: 0.4rem 0 0.6rem;
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.2em;
+    color: var(--text-faint);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 0.4rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .chat-header .live { color: var(--rose); }
+  .chat-msg {
+    padding: 0.15rem 0;
+    line-height: 1.35;
+    word-wrap: break-word;
+    animation: slideUp 0.25s ease-out;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .chat-msg .usr { font-weight: 700; }
+  .chat-msg .usr.mod { color: var(--emerald); }
+  .chat-msg .usr.vip { color: var(--amber); }
+  .chat-msg .usr.u1 { color: #f472b6; }
+  .chat-msg .usr.u2 { color: #60a5fa; }
+  .chat-msg .usr.u3 { color: #34d399; }
+  .chat-msg .usr.u4 { color: #fbbf24; }
+  .chat-msg .usr.u5 { color: #c084fc; }
+  .chat-msg .txt { color: var(--text-dim); }
+
+  /* Kaz cam + bubble */
+  .kaz-cam-wrap {
+    position: relative;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    overflow: visible;
+  }
+  .kaz-cam {
+    position: relative;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center, #2a1a3e 0%, #0a0a1a 100%);
+    overflow: hidden;
+  }
+  .kaz-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    transition: opacity 0.25s;
+  }
+  .kaz-cam-overlay {
+    position: absolute; top: 0.6rem; left: 0.6rem; right: 0.6rem;
+    display: flex; justify-content: space-between; gap: 0.5rem;
+    pointer-events: none;
+  }
+  .kaz-tag {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.2em;
+    color: white; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+    padding: 0.25rem 0.5rem; border-radius: 5px;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .kaz-tag .dot { color: var(--rose); }
+  .viewer-badge {
+    font-family: monospace; font-weight: 700;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+    border: 1px solid rgba(236,72,153,0.4);
+    padding: 0.25rem 0.5rem; border-radius: 5px;
+    color: var(--pink); font-size: 0.72rem;
+  }
+
+  /* Bubble — floats above cam, points to cam */
+  .bubble {
+    position: absolute; right: 290px; bottom: 40px;
+    width: 320px; max-width: 60vw;
+    background: rgba(26, 16, 40, 0.82);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    border-radius: 16px;
+    padding: 1rem 1.15rem;
+    font-size: 0.95rem; line-height: 1.45;
+    color: var(--text);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(236,72,153,0.15);
+    z-index: 20;
+    opacity: 0; transform: translateY(10px) scale(0.96);
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+  }
+  .bubble.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .bubble::after {
+    content: ''; position: absolute; right: -10px; bottom: 30px;
+    width: 0; height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 12px solid rgba(26, 16, 40, 0.82);
+    filter: drop-shadow(1px 0 0 rgba(236,72,153,0.35));
+  }
+  .bubble-speaker {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.25em;
+    color: var(--pink); margin-bottom: 0.4rem;
+    font-weight: 700;
+  }
+  .bubble-text { display: inline; }
+  .bubble-text::after {
+    content: '▋'; color: var(--pink); opacity: 0;
+    animation: blink 0.8s infinite;
+  }
+  .bubble.typing .bubble-text::after { opacity: 1; }
+  @keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
+
+  /* Chat widget (hidden by default; revealed on struggle) */
+  .chat-widget {
+    position: absolute; bottom: 24px; right: 24px;
+    z-index: 30;
+    opacity: 0; transform: scale(0.8) translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .chat-widget.visible { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+  .chat-widget-btn {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink), var(--violet));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1.3rem;
+    box-shadow: 0 5px 20px rgba(236,72,153,0.5);
+  }
+  .chat-widget-btn:hover { transform: scale(1.08); }
+
+  /* Start gate — Jackson clicks to begin (for audio autoplay permission) */
+  .start-gate {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(10, 10, 20, 0.95); backdrop-filter: blur(12px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 2rem; text-align: center;
+  }
+  .start-gate .title {
+    font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 900; margin-bottom: 0.3rem;
+    background: linear-gradient(90deg, var(--violet), var(--pink), var(--cyan));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .start-gate .sub { color: var(--text-dim); max-width: 400px; margin-bottom: 2rem; font-size: 1rem; }
+  .start-gate .meta { color: var(--text-faint); font-size: 0.8rem; margin-top: 2rem; font-family: monospace; }
+  .start-btn {
+    padding: 1rem 2.5rem; border-radius: 50px;
+    background: linear-gradient(135deg, var(--violet), var(--pink));
+    border: none; color: white; cursor: pointer;
+    font-family: inherit; font-size: 1.1rem; font-weight: 700;
+    box-shadow: 0 10px 30px rgba(168,85,247,0.4);
+    transition: all 0.2s;
+  }
+  .start-btn:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(168,85,247,0.6); }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 1fr 40vh; }
+    .stream-right { grid-template-rows: 110px 1fr; border-left: none; border-top: 1px solid rgba(255,255,255,0.08); }
+    .bubble { right: 14px; bottom: auto; top: 120px; width: auto; left: 14px; max-width: none; }
+    .bubble::after { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Start gate (audio autoplay permission) -->
+<div class="start-gate" id="startGate">
+  <p style="color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.3em; font-size: 0.75rem; margin-bottom: 0.3rem; font-family: monospace;">KAZ & MOI · S2</p>
+  <h1 class="title">Le cookie qui soigne</h1>
+  <p class="sub">Kaz streame, tu codes. Aujourd'hui on apprend à faire des <strong style="color: var(--pink);">conditions</strong> en Java.</p>
+  <button class="start-btn" id="startBtn">▶ JOIN THE STREAM</button>
+  <p class="meta">Concept : if / else — durée ≈ 10 min</p>
+</div>
+
+<div class="app" id="app" style="visibility:hidden;">
+  <!-- LEFT: Game -->
+  <div class="stream-left">
+    <div class="top-bar">
+      <span class="live-dot"></span>
+      <div class="stream-title"><strong>kaz_streams</strong> — On code live en Java · !commands</div>
+      <span class="viewers" id="viewersCount">42</span>
+    </div>
+    <div class="game-wrap">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div class="hud">
+        <div class="hud-bar">
+          <span class="hp-label">HP</span>
+          <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill" style="width:100%;"></div></div>
+          <span class="hp-value" id="hpValue">100/100</span>
+        </div>
+      </div>
+      <div class="bottom-inv">
+        <div class="inv-slot empty" id="slotCookie">🍪<span class="qty" id="qtyCookie">0</span><span class="key-hint">E</span></div>
+        <div class="inv-slot empty" id="slotPotion">🧪<span class="qty" id="qtyPotion">0</span><span class="key-hint">R</span></div>
+        <div class="inv-slot empty" id="slotBandage">🩹<span class="qty" id="qtyBandage">0</span><span class="key-hint">F</span></div>
+      </div>
+      <div class="flash-overlay" id="flashOverlay"></div>
+      <div class="wasted-text" id="wastedText">WASTED</div>
+    </div>
+    <div class="code-panel" id="codePanel">
+      <div class="code-strip" id="codeStrip">
+        <span>⚙</span><span>CODE</span>
+        <span style="margin-left:auto; color: var(--text-faint);">Java · JaX.java</span>
+        <span class="chevron">▲</span>
+      </div>
+      <div class="code-body" id="codeBody">
+        <em style="color: var(--text-faint);">Le code apparaîtra ici quand ce sera ton tour.</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Chat + Kaz -->
+  <div class="stream-right">
+    <div class="chat" id="chatContainer">
+      <div class="chat-header">
+        <span>STREAM CHAT</span>
+        <span class="live">● LIVE</span>
+      </div>
+      <div id="chatMessages"></div>
+    </div>
+    <div class="kaz-cam-wrap">
+      <div class="kaz-cam">
+        <img class="kaz-img" id="kazImg" src="/mockups/kaz-emotions/kaz-neutral.png" alt="Kaz cam">
+        <div class="kaz-cam-overlay">
+          <span class="kaz-tag"><span class="dot">●</span> KAZ LIVE</span>
+          <span class="viewer-badge" id="viewerBadge">42</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bubble (appears floating) -->
+  <div class="bubble" id="bubble">
+    <div class="bubble-speaker">Kaz</div>
+    <span class="bubble-text" id="bubbleText"></span>
+  </div>
+
+  <!-- Chat widget (hidden until struggle) -->
+  <div class="chat-widget" id="chatWidget">
+    <button class="chat-widget-btn" id="chatWidgetBtn" title="Pose une question à Kaz">💬</button>
+  </div>
+</div>
+
+<script>
+// ============ AUDIO (inline Web Audio, zero asset) ============
+let _ctx = null;
+function ctx() { if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)(); return _ctx; }
+function tone(freq, durMs, type='sine', gain=0.3, delay=0) {
+  const c = ctx(); const osc = c.createOscillator(); const g = c.createGain();
+  osc.type = type; osc.frequency.value = freq;
+  const t0 = c.currentTime + delay;
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
+  osc.connect(g); g.connect(c.destination);
+  osc.start(t0); osc.stop(t0 + durMs/1000);
+}
+function sweep(f0, f1, durMs, type='sine', gain=0.25) {
+  const c = ctx(); const osc = c.createOscillator(); const g = c.createGain();
+  osc.type = type; const t0 = c.currentTime;
+  osc.frequency.setValueAtTime(f0, t0);
+  osc.frequency.exponentialRampToValueAtTime(f1, t0 + durMs/1000);
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
+  osc.connect(g); g.connect(c.destination);
+  osc.start(t0); osc.stop(t0 + durMs/1000);
+}
+function noiseBurst(durMs, filterFreq, gain=0.3, q=2) {
+  const c = ctx(); const sz = c.sampleRate * (durMs/1000);
+  const buf = c.createBuffer(1, sz, c.sampleRate); const d = buf.getChannelData(0);
+  let l=0; for (let i=0;i<sz;i++){const w=Math.random()*2-1; d[i]=(l+0.02*w)/1.02; l=d[i]; d[i]*=3.5;}
+  const src = c.createBufferSource(); src.buffer = buf;
+  const flt = c.createBiquadFilter(); flt.type='bandpass';
+  flt.frequency.setValueAtTime(filterFreq, c.currentTime);
+  flt.frequency.exponentialRampToValueAtTime(filterFreq*0.75, c.currentTime + durMs/1000);
+  flt.Q.value = q;
+  const g = c.createGain();
+  g.gain.setValueAtTime(gain, c.currentTime);
+  g.gain.setValueAtTime(gain, c.currentTime + (durMs/1000)*0.8);
+  g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + durMs/1000);
+  src.connect(flt); flt.connect(g); g.connect(c.destination); src.start();
+}
+const SFX = {
+  click:       () => tone(800, 30, 'sine', 0.22),
+  tick:        () => tone(1200, 40, 'sine', 0.18),
+  if_taken:    () => { tone(880, 80, 'sine', 0.22); tone(1320, 100, 'sine', 0.22, 0.07); },
+  else_taken:  () => { tone(440, 80, 'sine', 0.22); tone(660, 100, 'sine', 0.22, 0.07); },
+  wasted:      () => sweep(200, 80, 500, 'square', 0.25),
+  cookie_eaten:() => { tone(523, 400, 'triangle', 0.15); tone(659, 400, 'triangle', 0.15, 0.08); tone(784, 500, 'triangle', 0.18, 0.16); },
+  potion_drink:() => { sweep(2000, 400, 800, 'sine', 0.22); setTimeout(()=>{tone(1760, 100, 'sine', 0.14); tone(2217, 100, 'sine', 0.12, 0.05); tone(2637, 100, 'sine', 0.1, 0.1);}, 600); },
+  boss_spawn:  () => { tone(55, 1200, 'sine', 0.35); tone(220, 800, 'sawtooth', 0.13, 0.3); tone(233, 800, 'sawtooth', 0.11, 0.3); tone(311, 800, 'sawtooth', 0.09, 0.3); },
+  boss_die:    () => { noiseBurst(300, 800, 0.35, 0.5); sweep(200, 50, 500, 'square', 0.35); tone(880, 400, 'triangle', 0.2, 0.3); },
+  boss_drop:   () => { [1200,900,700,550].forEach((f,i)=>tone(f, 400, 'sine', 0.18, i*0.1)); setTimeout(()=>tone(2000, 200, 'triangle', 0.15), 400); },
+  wave_spawn:  () => noiseBurst(900, 200, 0.35, 2),
+  badge_reveal:() => { [523,659,784].forEach(f=>tone(f, 500, 'triangle', 0.14)); setTimeout(()=>[784,988,1175].forEach(f=>tone(f, 500, 'triangle', 0.14)), 400); setTimeout(()=>[1047,1319,1568].forEach(f=>tone(f, 800, 'triangle', 0.16)), 800); setTimeout(()=>{tone(2093, 200, 'sine', 0.1); tone(2349, 200, 'sine', 0.08, 0.05);}, 1000); },
+};
+function sfx(name) { (SFX[name] || (()=>{}))(); }
+
+// ============ STATE ============
+const state = {
+  act: 0,
+  beatIndex: 0,
+  hp: 100, hpMax: 100,
+  inv: { cookie: 0, potion: 0, bandage: 0 },
+  viewers: 42,
+  kazMood: 'neutral',
+  typewriterTimer: null,
+  beatTimer: null,
+  awaitingInput: null, // 'key:E' | 'click:start' | null
+  running: false,
+  flash: null,
+};
+
+// ============ KAZ MOOD ============
+const EMOTIONS = {
+  neutral: '/mockups/kaz-emotions/kaz-neutral.png',
+  focused: '/mockups/kaz-emotions/kaz-focused.png',
+  happy: '/mockups/kaz-emotions/kaz-happy.png',
+  hype: '/mockups/kaz-emotions/kaz-hype.png',
+  surprised: '/mockups/kaz-emotions/kaz-surprised.png',
+  stressed: '/mockups/kaz-emotions/kaz-stressed.png',
+  thinking: '/mockups/kaz-emotions/kaz-thinking.png',
+  laughing: '/mockups/kaz-emotions/kaz-laughing.png',
+  teasing: '/mockups/kaz-emotions/kaz-teasing.png',
+  proud: '/mockups/kaz-emotions/kaz-proud.png',
+};
+function setMood(mood) {
+  if (state.kazMood === mood) return;
+  const img = document.getElementById('kazImg');
+  img.style.opacity = '0';
+  setTimeout(() => {
+    img.src = EMOTIONS[mood] || EMOTIONS.neutral;
+    img.style.opacity = '1';
+  }, 150);
+  state.kazMood = mood;
+}
+
+// Preload emotions
+Object.values(EMOTIONS).forEach(src => { const i = new Image(); i.src = src; });
+
+// ============ BUBBLE + TYPEWRITER ============
+function showBubble(text, options = {}) {
+  return new Promise((resolve) => {
+    const bubble = document.getElementById('bubble');
+    const textEl = document.getElementById('bubbleText');
+    bubble.classList.remove('visible');
+    setTimeout(() => {
+      textEl.textContent = '';
+      bubble.classList.add('visible', 'typing');
+      const chars = text.split('');
+      let i = 0;
+      const speed = options.speed || 25;
+      if (state.typewriterTimer) clearInterval(state.typewriterTimer);
+      state.typewriterTimer = setInterval(() => {
+        if (i >= chars.length) {
+          clearInterval(state.typewriterTimer);
+          state.typewriterTimer = null;
+          bubble.classList.remove('typing');
+          const hold = options.hold || Math.max(1500, text.length * 55);
+          setTimeout(resolve, hold);
+          return;
+        }
+        textEl.textContent += chars[i++];
+        if (i % 3 === 0 && options.tick !== false) sfx('tick');
+      }, speed);
+    }, 100);
+  });
+}
+function hideBubble() {
+  document.getElementById('bubble').classList.remove('visible');
+}
+
+// ============ CHAT ============
+const CHAT_COLORS = ['u1','u2','u3','u4','u5'];
+let chatIdx = 0;
+function addChat(user, text, flavor='normal') {
+  const el = document.createElement('div');
+  el.className = 'chat-msg';
+  const cls = flavor === 'mod' ? 'mod' : (flavor === 'vip' ? 'vip' : CHAT_COLORS[chatIdx++ % 5]);
+  el.innerHTML = `<span class="usr ${cls}">${user}:</span> <span class="txt">${text}</span>`;
+  const container = document.getElementById('chatMessages');
+  container.appendChild(el);
+  container.parentElement.scrollTop = container.parentElement.scrollHeight;
+}
+
+// Ambient chat tick (idle messages that appear throughout stream)
+const AMBIENT_CHAT = [
+  { u: 'pixel_queen', t: 'premier stream de Kaz aujourd\\'hui let\\'s goo' },
+  { u: 'qc_dev', t: 'yo' },
+  { u: 'manon_t', t: 'jax tu vas cartonner' },
+  { u: 'bitchecker', t: 'le code java c\\'est solide' },
+  { u: 'laval_gang', t: 'hello everyone' },
+  { u: 'cookieandy_90', t: 'cookie op' },
+  { u: 'marie_code', t: 'enfin on mange' },
+];
+let ambientTimer = null;
+function startAmbientChat() {
+  if (ambientTimer) return;
+  function tick() {
+    if (AMBIENT_CHAT.length && state.running) {
+      const line = AMBIENT_CHAT[Math.floor(Math.random() * AMBIENT_CHAT.length)];
+      addChat(line.u, line.t);
+    }
+    ambientTimer = setTimeout(tick, 4000 + Math.random() * 4000);
+  }
+  tick();
+}
+
+// ============ VIEWERS COUNT ============
+function bumpViewers(delta, reason=null) {
+  state.viewers = Math.max(1, state.viewers + delta);
+  document.getElementById('viewersCount').textContent = state.viewers;
+  document.getElementById('viewerBadge').textContent = state.viewers;
+  if (reason && delta > 5) {
+    addChat('🎉 stream alert', `+${delta} viewers — ${reason}`, 'mod');
+  }
+}
+
+// ============ HP + INVENTORY ============
+function setHP(val) {
+  state.hp = Math.max(0, Math.min(state.hpMax, val));
+  const pct = (state.hp / state.hpMax) * 100;
+  const fill = document.getElementById('hpFill');
+  fill.style.width = pct + '%';
+  fill.classList.remove('mid', 'low');
+  if (pct < 25) fill.classList.add('low');
+  else if (pct < 55) fill.classList.add('mid');
+  document.getElementById('hpValue').textContent = state.hp + '/' + state.hpMax;
+}
+function setInv(item, qty) {
+  state.inv[item] = Math.max(0, qty);
+  const slot = document.getElementById('slot' + item.charAt(0).toUpperCase() + item.slice(1));
+  const qtyEl = document.getElementById('qty' + item.charAt(0).toUpperCase() + item.slice(1));
+  qtyEl.textContent = state.inv[item];
+  if (state.inv[item] > 0) slot.classList.remove('empty');
+  else slot.classList.add('empty');
+}
+function hintKey(item, on=true) {
+  const slot = document.getElementById('slot' + item.charAt(0).toUpperCase() + item.slice(1));
+  if (on) slot.classList.add('hint-visible', 'active');
+  else slot.classList.remove('hint-visible', 'active');
+}
+
+// ============ VISUAL EFFECTS ============
+function flash(color, durMs=200) {
+  const el = document.getElementById('flashOverlay');
+  el.className = 'flash-overlay ' + color + ' active';
+  setTimeout(() => { el.classList.remove('active'); }, durMs);
+}
+function showWasted() {
+  const el = document.getElementById('wastedText');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ============ GAME CANVAS (simple scene) ============
+const canvas = document.getElementById('game');
+const gctx = canvas.getContext('2d');
+const scene = {
+  jax: { x: 200, y: 350, vx: 0, hp: 100, facing: 1 },
+  enemies: [],   // { type, x, y, hp, alive }
+  items: [],     // { kind, x, y, taken }
+  particles: [],
+  bgStars: [],
+  tick: 0,
+};
+// Background stars
+for (let i = 0; i < 80; i++) scene.bgStars.push({ x: Math.random()*960, y: Math.random()*400, s: Math.random()*1.5+0.3, p: Math.random()*Math.PI*2 });
+
+function drawBG() {
+  gctx.fillStyle = '#0a0a1a';
+  gctx.fillRect(0, 0, 960, 540);
+  // Gradient sky
+  const sky = gctx.createLinearGradient(0, 0, 0, 400);
+  sky.addColorStop(0, '#1a0a2e');
+  sky.addColorStop(1, '#4a1a4a');
+  gctx.fillStyle = sky;
+  gctx.fillRect(0, 0, 960, 400);
+  // Stars
+  scene.bgStars.forEach(s => {
+    const o = 0.3 + 0.7 * Math.abs(Math.sin(scene.tick * 0.02 + s.p));
+    gctx.fillStyle = `rgba(255,255,255,${o})`;
+    gctx.fillRect(s.x, s.y, s.s, s.s);
+  });
+  // Ground gradient
+  const gnd = gctx.createLinearGradient(0, 400, 0, 540);
+  gnd.addColorStop(0, '#2a1a2a');
+  gnd.addColorStop(1, '#0a0a0f');
+  gctx.fillStyle = gnd;
+  gctx.fillRect(0, 400, 960, 140);
+  // Ground line
+  gctx.strokeStyle = 'rgba(168,85,247,0.3)';
+  gctx.lineWidth = 1;
+  gctx.beginPath(); gctx.moveTo(0, 400); gctx.lineTo(960, 400); gctx.stroke();
+  // Grid perspective
+  for (let i = 1; i < 8; i++) {
+    const y = 400 + i * 18;
+    gctx.strokeStyle = `rgba(168,85,247,${0.15 - i*0.015})`;
+    gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(960, y); gctx.stroke();
+  }
+}
+function drawJax() {
+  const j = scene.jax;
+  // Shadow
+  gctx.fillStyle = 'rgba(0,0,0,0.4)';
+  gctx.beginPath(); gctx.ellipse(j.x, j.y+50, 24, 5, 0, 0, Math.PI*2); gctx.fill();
+  // Body (simple samurai-ish silhouette)
+  gctx.fillStyle = '#e8e8ff';
+  gctx.fillRect(j.x - 12, j.y - 40, 24, 48);  // body
+  // Head
+  gctx.fillStyle = '#f5e6cc';
+  gctx.beginPath(); gctx.arc(j.x, j.y - 50, 11, 0, Math.PI*2); gctx.fill();
+  // Eye
+  gctx.fillStyle = '#000';
+  gctx.fillRect(j.x - 3, j.y - 52, 2, 2);
+  gctx.fillRect(j.x + 2, j.y - 52, 2, 2);
+  // Sword (basic)
+  gctx.strokeStyle = '#c084fc'; gctx.lineWidth = 3;
+  gctx.beginPath(); gctx.moveTo(j.x + 14*j.facing, j.y - 20); gctx.lineTo(j.x + 34*j.facing, j.y - 35); gctx.stroke();
+  // HP label above
+  gctx.fillStyle = j.hp < 35 ? '#ef4444' : (j.hp < 60 ? '#f59e0b' : '#22c55e');
+  gctx.font = 'bold 10px monospace';
+  gctx.textAlign = 'center';
+  gctx.fillText('JaX', j.x, j.y - 68);
+}
+function drawCookie(x, y) {
+  gctx.save();
+  gctx.translate(x, y);
+  // Cookie
+  gctx.fillStyle = '#a0522d';
+  gctx.beginPath(); gctx.arc(0, 0, 14, 0, Math.PI*2); gctx.fill();
+  gctx.fillStyle = '#3a1f10';
+  [-5, 4, 0, -2, 6].forEach((dx, i) => {
+    const dy = [3, -4, 6, -3, 0][i];
+    gctx.beginPath(); gctx.arc(dx, dy, 2, 0, Math.PI*2); gctx.fill();
+  });
+  // Glow
+  const pulse = 1 + Math.sin(scene.tick * 0.1) * 0.1;
+  gctx.strokeStyle = `rgba(251,191,36,${0.4 + Math.sin(scene.tick*0.1)*0.3})`;
+  gctx.lineWidth = 2;
+  gctx.beginPath(); gctx.arc(0, 0, 18 * pulse, 0, Math.PI*2); gctx.stroke();
+  gctx.restore();
+}
+function drawZombie(z) {
+  // Body
+  gctx.fillStyle = '#4a5a3a';
+  gctx.fillRect(z.x - 12, z.y - 38, 24, 46);
+  // Head
+  gctx.fillStyle = '#6a7a5a';
+  gctx.beginPath(); gctx.arc(z.x, z.y - 48, 10, 0, Math.PI*2); gctx.fill();
+  // Eyes
+  gctx.fillStyle = '#ff3a3a';
+  gctx.fillRect(z.x - 4, z.y - 50, 2, 2);
+  gctx.fillRect(z.x + 2, z.y - 50, 2, 2);
+  // Arms outstretched
+  gctx.strokeStyle = '#4a5a3a'; gctx.lineWidth = 4;
+  gctx.beginPath(); gctx.moveTo(z.x - 12, z.y - 30); gctx.lineTo(z.x - 24, z.y - 28); gctx.stroke();
+  gctx.beginPath(); gctx.moveTo(z.x + 12, z.y - 30); gctx.lineTo(z.x + 24, z.y - 28); gctx.stroke();
+}
+function drawParticles() {
+  scene.particles.forEach(p => {
+    p.life -= 1;
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15;
+    const alpha = Math.max(0, p.life / p.maxLife);
+    gctx.fillStyle = p.color.replace('ALPHA', alpha);
+    gctx.fillRect(p.x, p.y, p.size, p.size);
+  });
+  scene.particles = scene.particles.filter(p => p.life > 0);
+}
+function spawnParticles(x, y, color, count=20, spread=3) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * spread + 0.5;
+    scene.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1,
+      size: Math.random() * 3 + 1,
+      color,
+      life: 40 + Math.random()*20,
+      maxLife: 60,
+    });
+  }
+}
+function renderGame() {
+  scene.tick++;
+  drawBG();
+  // Items
+  scene.items.forEach(it => { if (!it.taken) drawCookie(it.x, it.y); });
+  // Enemies
+  scene.enemies.forEach(z => { if (z.alive) drawZombie(z); });
+  drawJax();
+  drawParticles();
+  requestAnimationFrame(renderGame);
+}
+
+// ============ BEAT SYSTEM ============
+// Each beat = { type: 'bubble'|'mood'|'sound'|'delay'|'chat'|'hp'|'inv'|'flash'|'wasted'|'viewers'|'gameEvent'|'wait' }
+async function runBeat(beat) {
+  switch (beat.type) {
+    case 'bubble':
+      if (beat.mood) setMood(beat.mood);
+      return await showBubble(beat.text, beat);
+    case 'mood':
+      setMood(beat.mood);
+      return;
+    case 'sound':
+      sfx(beat.name);
+      return;
+    case 'delay':
+      return new Promise(r => setTimeout(r, beat.ms));
+    case 'chat':
+      (Array.isArray(beat.lines) ? beat.lines : [beat.line]).forEach((l, i) => {
+        setTimeout(() => { const [u, t] = l.split(/:\s/); addChat(u, t || ''); }, i * 450);
+      });
+      return new Promise(r => setTimeout(r, (beat.lines?.length || 1) * 500));
+    case 'hp':
+      if (beat.relative) setHP(state.hp + beat.amount); else setHP(beat.amount);
+      return;
+    case 'inv':
+      setInv(beat.item, state.inv[beat.item] + (beat.delta || 0));
+      if (beat.hint) hintKey(beat.item, true);
+      return;
+    case 'flash':
+      flash(beat.color, beat.ms || 200);
+      return;
+    case 'wasted':
+      showWasted();
+      sfx('wasted');
+      return new Promise(r => setTimeout(r, 1800));
+    case 'viewers':
+      bumpViewers(beat.delta, beat.reason);
+      return;
+    case 'gameEvent':
+      return runGameEvent(beat);
+    case 'waitKey':
+      return new Promise(r => { state.awaitingInput = 'key:' + beat.key; state.awaitingInput_resolve = r; });
+  }
+}
+async function runGameEvent(beat) {
+  switch (beat.name) {
+    case 'cookie_spawn':
+      scene.items.push({ kind: 'cookie', x: 780, y: 370, taken: false });
+      sfx('click');
+      break;
+    case 'zombie_spawn':
+      scene.enemies.push({ type: 'zombie', x: 880, y: 400, hp: 30, alive: true });
+      sfx('wave_spawn');
+      break;
+    case 'zombie_attack':
+      // Simple animation: zombie moves toward JaX, JaX HP drops
+      {
+        const z = scene.enemies.find(e => e.alive);
+        if (z) {
+          const startX = z.x;
+          const moveDur = 900;
+          const t0 = performance.now();
+          await new Promise(res => {
+            function step() {
+              const p = Math.min(1, (performance.now() - t0) / moveDur);
+              z.x = startX + (scene.jax.x + 30 - startX) * p;
+              if (p < 1) requestAnimationFrame(step); else res();
+            }
+            step();
+          });
+          setHP(state.hp - 65);
+          spawnParticles(scene.jax.x, scene.jax.y - 30, 'rgba(239,68,68,ALPHA)', 15);
+          flash('red', 200);
+        }
+      }
+      break;
+    case 'eat_cookie':
+      sfx('cookie_eaten');
+      spawnParticles(scene.jax.x, scene.jax.y - 30, 'rgba(34,197,94,ALPHA)', 20);
+      flash('green', 200);
+      break;
+  }
+}
+async function runAct(beats) {
+  for (const beat of beats) {
+    await runBeat(beat);
+    if (!state.running) return;
+  }
+}
+
+// ============ ACT DEFINITIONS ============
+const ACT_0 = [
+  { type: 'mood', mood: 'neutral' },
+  { type: 'delay', ms: 600 },
+  { type: 'bubble', mood: 'happy',
+    text: "Yo JaX ! T'es revenu. Heille, t'sais le cookie que tu voyais traîner dans l'arène la dernière fois ? Bah on va s'en servir aujourd'hui.",
+    hold: 2500 },
+  { type: 'chat', lines: ['cookieandy_90: cookie op', 'marie_code: enfin on mange'] },
+  { type: 'viewers', delta: 12, reason: 'raid ami' },
+  { type: 'bubble', mood: 'focused',
+    text: "Sauf que… je te préviens : si tu le manges n'importe quand, tu vas te faire planter. Viens voir.",
+    hold: 1800 },
+  { type: 'delay', ms: 600 },
+];
+const ACT_1 = [
+  { type: 'mood', mood: 'focused' },
+  { type: 'gameEvent', name: 'cookie_spawn' },
+  { type: 'inv', item: 'cookie', delta: 1, hint: true },
+  { type: 'bubble', mood: 'focused',
+    text: "Pèse E pour manger le cookie. Vas-y.", hold: 1200 },
+  { type: 'waitKey', key: 'E' },
+  // User pressed E at 100HP → wasted
+  { type: 'sound', name: 'cookie_eaten' },
+  { type: 'gameEvent', name: 'eat_cookie' },
+  { type: 'inv', item: 'cookie', delta: -1 },
+  { type: 'delay', ms: 500 },
+  { type: 'wasted' },
+  { type: 'delay', ms: 800 },
+  { type: 'bubble', mood: 'stressed',
+    text: "Tsé là ? T'étais à 100 HP. T'as gaspillé ton cookie. Maintenant y t'en reste plus… et v'là le zombie.",
+    hold: 2500 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'chat', lines: ['gamergirl22: ayoye', 'speedrun_fr: RIP le cookie lol'] },
+  { type: 'delay', ms: 400 },
+  { type: 'gameEvent', name: 'zombie_attack' },
+  { type: 'delay', ms: 600 },
+  { type: 'bubble', mood: 'focused',
+    text: "Faut apprendre à vérifier AVANT de manger. C'est ça qu'on appelle une condition.",
+    hold: 2000 },
+  { type: 'chat', lines: ['pixel_queen: condition cest la clé', 'qc_dev: next step — on code ca'] },
+  { type: 'bubble', mood: 'happy',
+    text: "On va écrire ça en code. Ouvre le panneau — on y va ensemble.",
+    hold: 1500 },
+];
+
+// ============ KEYBOARD ============
+document.addEventListener('keydown', (e) => {
+  if (!state.running) return;
+  if (state.awaitingInput && state.awaitingInput.startsWith('key:')) {
+    const expected = state.awaitingInput.slice(4);
+    if (e.key.toUpperCase() === expected.toUpperCase()) {
+      hintKey('cookie', false);
+      sfx('click');
+      const r = state.awaitingInput_resolve;
+      state.awaitingInput = null;
+      state.awaitingInput_resolve = null;
+      if (r) r();
+    }
+  }
+});
+
+// ============ CODE PANEL TOGGLE ============
+document.getElementById('codeStrip').addEventListener('click', () => {
+  document.getElementById('codePanel').classList.toggle('expanded');
+  sfx('click');
+});
+
+// ============ CHAT WIDGET PLACEHOLDER ============
+document.getElementById('chatWidgetBtn').addEventListener('click', () => {
+  alert("Kaz : 'Heille, désolé bro — j'suis AFK 2 secondes. Reviens dans une minute.'\\n\\n(Feature chat en live sera dispo dès que les crédits Anthropic sont loadés.)");
+});
+
+// ============ BOOT ============
+document.getElementById('startBtn').addEventListener('click', async () => {
+  ctx();  // prime audio context (requires user gesture)
+  document.getElementById('startGate').style.display = 'none';
+  document.getElementById('app').style.visibility = 'visible';
+  state.running = true;
+  setHP(100);
+  setMood('neutral');
+  renderGame();
+  sfx('click');
+  startAmbientChat();
+  // Run the scenario
+  await runAct(ACT_0);
+  await runAct(ACT_1);
+  // End of prototype v1 — ACT 2-9 à venir
+  await showBubble("(Prototype v1 — suite en construction. ACT 2 : le panneau code s'ouvre, on écrit un if ensemble.)", { hold: 8000 });
+  setMood('thinking');
+});
+</script>
+</body>
+</html>

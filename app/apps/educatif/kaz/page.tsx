@@ -31,13 +31,13 @@ const LEVELS: LevelMeta[] = [
   },
   {
     num: 'S2',
-    slug: null,
+    slug: 'survie-xp-s2',
     title: 'Le cookie qui soigne',
-    concept: 'Conditions if/else — Coming soon.',
+    concept: 'Conditions if/else avec Kaz en live.',
     color: 'text-pink-300',
-    ringColor: 'border-pink-400/30',
+    ringColor: 'border-pink-400/50',
     emoji: '🍪',
-    unlocked: false,
+    unlocked: true,
   },
   {
     num: 'S3',
