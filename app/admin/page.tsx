@@ -97,38 +97,41 @@ export default function AdminPage() {
       <div className="blob bg-neon-violet w-[420px] h-[420px] -top-32 -left-24 animate-pulse-slow" />
       <div className="blob bg-neon-cyan w-[340px] h-[340px] -bottom-24 -right-24 animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Header */}
-        <header className="flex items-center justify-between mb-10 animate-fade-up">
-          <div>
+        <header className="flex flex-wrap items-center justify-between gap-3 mb-10 animate-fade-up">
+          <div className="min-w-0">
             <p className="text-white/40 text-xs tracking-wider uppercase mb-1">Administration</p>
-            <h1 className="text-3xl font-bold font-display">
+            <h1 className="text-2xl sm:text-3xl font-bold font-display">
               <span className="grad-text">Gestion de la famille</span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 flex-wrap">
             <button
               onClick={() => router.push('/admin/educatif/')}
-              className="text-sm px-4 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20 transition flex items-center gap-2"
+              className="text-sm px-3 sm:px-4 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20 transition flex items-center gap-2"
+              aria-label="Éducatif"
             >
               <FontAwesomeIcon icon={UI.graduationCap} className="text-xs" />
-              Éducatif
+              <span className="hidden sm:inline">Éducatif</span>
             </button>
             <button
               onClick={() => setShowCreate(true)}
               className="btn-primary text-sm"
+              aria-label="Nouveau membre"
             >
               <span className="flex items-center gap-2">
                 <FontAwesomeIcon icon={UI.plus} className="text-xs" />
-                Nouveau membre
+                <span className="hidden sm:inline">Nouveau membre</span>
               </span>
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="text-sm px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+              className="text-sm px-3 sm:px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+              aria-label="Retour"
             >
               <FontAwesomeIcon icon={UI.back} className="text-xs" />
-              Retour
+              <span className="hidden sm:inline">Retour</span>
             </button>
           </div>
         </header>
@@ -195,7 +198,7 @@ export default function AdminPage() {
               </div>
 
               {/* Toggles d'accès */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {apps.map((app) => {
                   const current = u.apps.find((a) => a.appId === app.id);
                   const hasAccess = current?.hasAccess ?? false;

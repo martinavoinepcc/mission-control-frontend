@@ -65,9 +65,9 @@ export default function RealmsPage() {
       <div className="blob bg-neon-violet w-[420px] h-[420px] -top-24 -left-20 animate-pulse-slow opacity-60" />
       <div className="blob bg-emerald-500 w-[420px] h-[420px] -bottom-24 -right-20 animate-pulse-slow opacity-30" style={{ animationDelay: '2s' }} />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Header */}
-        <header className="flex items-center justify-between mb-16 animate-fade-up">
+        <header className="flex items-center justify-between gap-2 mb-10 sm:mb-16 animate-fade-up">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-violet to-neon-cyan flex items-center justify-center">
               <FontAwesomeIcon icon={UI.compass} className="text-white text-lg" />
@@ -76,15 +76,16 @@ export default function RealmsPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-sm px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+            className="text-sm px-3 sm:px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2 flex-shrink-0"
+            aria-label="Déconnexion"
           >
             <FontAwesomeIcon icon={UI.logout} className="text-xs" />
-            Déconnexion
+            <span className="hidden sm:inline">Déconnexion</span>
           </button>
         </header>
 
         {/* Titre */}
-        <section className="mb-14 animate-fade-up text-center">
+        <section className="mb-8 sm:mb-14 animate-fade-up text-center">
           <p className="text-white/40 text-sm tracking-wider uppercase mb-2">Bonjour, {user.firstName}</p>
           <h1 className="text-4xl md:text-5xl font-bold font-display">
             Où tu vas <span className="bg-gradient-to-r from-neon-violet via-neon-pink to-neon-cyan bg-clip-text text-transparent">aujourd'hui</span> ?
@@ -93,11 +94,11 @@ export default function RealmsPage() {
         </section>
 
         {/* 2 grandes cartes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* FAMILLE — vibrant, up la vie */}
           <button
             onClick={() => router.push('/dashboard?realm=family')}
-            className="group relative rounded-3xl overflow-hidden p-10 text-left animate-fade-up transition-all hover:scale-[1.02] hover:shadow-2xl"
+            className="group relative rounded-3xl overflow-hidden p-6 sm:p-8 md:p-10 text-left animate-fade-up transition-all hover:scale-[1.02] hover:shadow-2xl"
             style={{ animationDelay: '80ms' }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-neon-violet/30 via-neon-pink/20 to-neon-cyan/30" />
@@ -109,7 +110,7 @@ export default function RealmsPage() {
                 <FontAwesomeIcon icon={UI.heartSolid} className="text-white text-2xl" />
               </div>
               <p className="text-[11px] uppercase tracking-[0.25em] text-white/60 mb-2">Espace</p>
-              <h2 className="text-4xl font-bold font-display mb-3">
+              <h2 className="text-3xl sm:text-4xl font-bold font-display mb-3">
                 <span className="bg-gradient-to-r from-neon-violet to-neon-pink bg-clip-text text-transparent">Famille</span>
               </h2>
               <p className="text-white/70 text-base mb-6 leading-relaxed">
@@ -126,7 +127,7 @@ export default function RealmsPage() {
           {/* TRAVAIL — zen, sérieux, focus */}
           <button
             onClick={() => router.push('/dashboard?realm=work')}
-            className="group relative rounded-3xl overflow-hidden p-10 text-left animate-fade-up transition-all hover:scale-[1.02]"
+            className="group relative rounded-3xl overflow-hidden p-6 sm:p-8 md:p-10 text-left animate-fade-up transition-all hover:scale-[1.02]"
             style={{ animationDelay: '160ms' }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-slate-800/80 via-slate-900/60 to-emerald-900/40" />
@@ -138,7 +139,7 @@ export default function RealmsPage() {
                 <FontAwesomeIcon icon={UI.briefcase} className="text-white text-2xl" />
               </div>
               <p className="text-[11px] uppercase tracking-[0.25em] text-emerald-300/60 mb-2">Espace · Admin</p>
-              <h2 className="text-4xl font-bold font-display mb-3 text-slate-100">
+              <h2 className="text-3xl sm:text-4xl font-bold font-display mb-3 text-slate-100">
                 Travail
               </h2>
               <p className="text-slate-300/80 text-base mb-6 leading-relaxed font-light">

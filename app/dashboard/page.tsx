@@ -94,44 +94,47 @@ function DashboardInner() {
         <div className="blob bg-emerald-600 w-[320px] h-[320px] -top-20 right-10 opacity-30 animate-pulse-slow" />
       )}
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Header */}
-        <header className="flex items-center justify-between mb-12 animate-fade-up">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${vibe.gradient} flex items-center justify-center`}>
+        <header className="flex items-center justify-between gap-2 mb-8 sm:mb-12 animate-fade-up">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${vibe.gradient} flex items-center justify-center flex-shrink-0`}>
               <FontAwesomeIcon icon={UI.compass} className="text-white text-lg" />
             </div>
-            <span className="font-display font-semibold text-lg">Mission Control</span>
-            <span className="ml-3 text-[10px] uppercase tracking-[0.25em] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60">
+            <span className="font-display font-semibold text-lg hidden sm:inline">Mission Control</span>
+            <span className="text-[10px] uppercase tracking-[0.25em] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 flex-shrink-0">
               {vibe.label}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             {hasMultipleRealms && (
               <button
                 onClick={() => router.push('/realms')}
-                className={`text-sm px-4 py-2 rounded-xl border transition flex items-center gap-2 ${vibe.backBtn}`}
+                className={`text-sm px-3 sm:px-4 py-2 rounded-xl border transition flex items-center gap-2 ${vibe.backBtn}`}
                 title="Changer d'espace"
+                aria-label="Espaces"
               >
                 <FontAwesomeIcon icon={UI.compass} className="text-xs" />
-                Espaces
+                <span className="hidden sm:inline">Espaces</span>
               </button>
             )}
             {user.role === 'ADMIN' && (
               <button
                 onClick={() => router.push('/admin')}
-                className={`text-sm px-4 py-2 rounded-xl border transition flex items-center gap-2 ${vibe.adminBtn}`}
+                className={`text-sm px-3 sm:px-4 py-2 rounded-xl border transition flex items-center gap-2 ${vibe.adminBtn}`}
+                aria-label="Administration"
               >
                 <FontAwesomeIcon icon={UI.admin} className="text-xs" />
-                Administration
+                <span className="hidden sm:inline">Administration</span>
               </button>
             )}
             <button
               onClick={handleLogout}
-              className="text-sm px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+              className="text-sm px-3 sm:px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+              aria-label="Déconnexion"
             >
               <FontAwesomeIcon icon={UI.logout} className="text-xs" />
-              Déconnexion
+              <span className="hidden sm:inline">Déconnexion</span>
             </button>
           </div>
         </header>
