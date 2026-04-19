@@ -469,6 +469,147 @@
     75% { transform: translateX(4px); }
   }
 
+
+  /* ===== Chat panel (live Kaz via Anthropic) ===== */
+  .chat-panel {
+    position: fixed;
+    bottom: 86px; right: 20px;
+    width: 340px; max-width: calc(100vw - 40px);
+    height: 460px; max-height: 70vh;
+    background: rgba(15, 10, 30, 0.95);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 18px;
+    display: flex; flex-direction: column;
+    z-index: 50;
+    opacity: 0; transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(168,85,247,0.2);
+  }
+  .chat-panel.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .chat-panel-header {
+    padding: 0.7rem 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .chat-panel-title {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.85rem; font-weight: 600;
+  }
+  .chat-panel-title::before {
+    content: '●'; color: var(--rose); font-size: 0.6rem;
+    animation: pulse 1.5s infinite;
+  }
+  .chat-panel-close {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); border: none;
+    color: var(--text); cursor: pointer;
+    font-size: 1.1rem; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chat-panel-close:hover { background: rgba(255,255,255,0.16); }
+  .chat-panel-body {
+    flex: 1; overflow-y: auto;
+    padding: 0.9rem;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    scroll-behavior: smooth;
+  }
+  .chat-panel-body::-webkit-scrollbar { width: 6px; }
+  .chat-panel-body::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.3); border-radius: 3px; }
+  .chat-msg-panel {
+    max-width: 85%;
+    padding: 0.55rem 0.85rem;
+    border-radius: 14px;
+    font-size: 0.85rem; line-height: 1.45;
+    animation: slideUp 0.2s ease-out;
+    word-wrap: break-word;
+  }
+  .chat-msg-panel.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--pink), var(--violet));
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-msg-panel.assistant {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .chat-msg-panel.error {
+    align-self: center;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.35);
+    color: #fca5a5;
+    font-size: 0.8rem;
+  }
+  .chat-msg-panel.system {
+    align-self: center;
+    background: transparent;
+    color: var(--text-faint);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+  .typing-dots {
+    display: inline-flex; gap: 3px; align-items: center;
+  }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dim);
+    animation: typingBounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+  .chat-panel-input-row {
+    display: flex; gap: 0.4rem; padding: 0.7rem;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.25);
+  }
+  .chat-panel-input {
+    flex: 1; min-width: 0;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+    padding: 0.55rem 0.9rem;
+    border-radius: 20px;
+    font-family: inherit; font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .chat-panel-input:focus { border-color: rgba(168,85,247,0.5); }
+  .chat-panel-input:disabled { opacity: 0.5; }
+  .chat-panel-send {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink), var(--violet));
+    border: none; color: white; cursor: pointer;
+    font-size: 1rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .chat-panel-send:hover:not(:disabled) { transform: scale(1.05); }
+  .chat-panel-send:disabled { opacity: 0.4; cursor: not-allowed; }
+  .chat-panel-remaining {
+    font-size: 0.62rem; color: var(--text-faint);
+    text-align: center; padding: 0.3rem 0 0.5rem;
+    font-family: monospace;
+  }
+
+  /* Notification badge on the chat button */
+  .chat-widget-btn.has-new::after {
+    content: ''; position: absolute;
+    top: 0; right: 0; width: 12px; height: 12px;
+    background: var(--amber); border: 2px solid var(--bg0);
+    border-radius: 50%;
+    animation: pulse 1.2s infinite;
+  }
+
   /* Mobile */
   @media (max-width: 768px) {
     .app { grid-template-columns: 1fr; grid-template-rows: 1fr 40vh; }
@@ -557,6 +698,21 @@
     <button class="chat-widget-btn" id="chatWidgetBtn" title="Pose une question à Kaz">💬</button>
   </div>
 </div>
+
+
+  <!-- Chat panel (slides in when chat button clicked) -->
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-panel-header">
+      <div class="chat-panel-title">Ask Kaz — LIVE</div>
+      <button class="chat-panel-close" id="chatPanelClose" aria-label="Fermer">×</button>
+    </div>
+    <div class="chat-panel-body" id="chatPanelBody"></div>
+    <div class="chat-panel-remaining" id="chatPanelRemaining"></div>
+    <div class="chat-panel-input-row">
+      <input type="text" class="chat-panel-input" id="chatPanelInput" placeholder="Pose ta question à Kaz…" maxlength="500">
+      <button class="chat-panel-send" id="chatPanelSend" aria-label="Envoyer">➤</button>
+    </div>
+  </div>
 
 <script>
 // ============ AUDIO (inline Web Audio, zero asset) ============
@@ -1169,10 +1325,183 @@ document.getElementById('codeStrip').addEventListener('click', () => {
   sfx('click');
 });
 
-// ============ CHAT WIDGET PLACEHOLDER ============
-document.getElementById('chatWidgetBtn').addEventListener('click', () => {
-  alert("Kaz : 'Heille, désolé bro — j'suis AFK 2 secondes. Reviens dans une minute.'\\n\\n(Feature chat en live sera dispo dès que les crédits Anthropic sont loadés.)");
+// ============ CHAT WIDGET (live via /kaz/chat) ============
+const API_BASE = 'https://api.my-mission-control.com';
+const LESSON_SLUG = 'survie-xp-s2';
+
+function getToken() {
+  try { return window.localStorage.getItem('mc_token') || null; } catch { return null; }
+}
+
+function openChatPanel() {
+  const panel = document.getElementById('chatPanel');
+  if (!panel.classList.contains('visible')) {
+    panel.classList.add('visible');
+    document.getElementById('chatWidgetBtn').classList.remove('has-new');
+    sfx('click');
+    // Seed welcome message once
+    const body = document.getElementById('chatPanelBody');
+    if (body.children.length === 0) {
+      addChatPanelMsg('system', 'Ask Kaz — pose-moi une question si tu bloques.');
+      addChatPanelMsg('assistant', 'Yo JaX. Pose-moi ta question — je suis là. Genre "c\'est quoi un if ?" ou "pourquoi ma condition marche pas". Let\'s go.');
+    }
+    setTimeout(() => document.getElementById('chatPanelInput').focus(), 200);
+  }
+}
+function closeChatPanel() {
+  document.getElementById('chatPanel').classList.remove('visible');
+  sfx('click');
+}
+function addChatPanelMsg(role, text) {
+  const el = document.createElement('div');
+  el.className = 'chat-msg-panel ' + role;
+  el.textContent = text;
+  const body = document.getElementById('chatPanelBody');
+  body.appendChild(el);
+  body.scrollTop = body.scrollHeight;
+  return el;
+}
+function setRemaining(n) {
+  const el = document.getElementById('chatPanelRemaining');
+  if (n != null) el.textContent = `${n} questions restantes aujourd'hui`;
+}
+
+document.getElementById('chatWidgetBtn').addEventListener('click', openChatPanel);
+document.getElementById('chatPanelClose').addEventListener('click', closeChatPanel);
+document.getElementById('chatPanelInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
 });
+document.getElementById('chatPanelSend').addEventListener('click', sendChatMessage);
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatPanelInput');
+  const sendBtn = document.getElementById('chatPanelSend');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const token = getToken();
+  if (!token) {
+    addChatPanelMsg('error', 'Tu dois être connecté pour jaser avec Kaz. Retourne sur my-mission-control.com et login.');
+    return;
+  }
+
+  input.value = '';
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  // User message in panel
+  addChatPanelMsg('user', msg);
+  sfx('click');
+
+  // Typing dots indicator
+  const typingEl = document.createElement('div');
+  typingEl.className = 'chat-msg-panel assistant';
+  typingEl.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+  document.getElementById('chatPanelBody').appendChild(typingEl);
+
+  // Kaz thinking mood + bubble typing state
+  setMood('thinking');
+  const bubble = document.getElementById('bubble');
+  const bubbleText = document.getElementById('bubbleText');
+  bubble.classList.add('visible', 'typing');
+  bubbleText.textContent = '';
+
+  try {
+    const resp = await fetch(API_BASE + '/kaz/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        lessonSlug: LESSON_SLUG,
+        message: msg,
+        context: {
+          lessonName: 'Survie XP S2 — Le cookie qui soigne',
+          concept: 'if/else conditions en Java',
+          actIndex: state.act,
+          jackState: { hp: state.hp, cookieQty: state.inv.cookie, potionQty: state.inv.potion },
+        },
+      }),
+    });
+
+    if (!resp.ok) {
+      // Handle non-stream errors (rate limit, auth)
+      let errText = 'Erreur serveur.';
+      try { const j = await resp.json(); errText = j.erreur || errText; } catch {}
+      typingEl.remove();
+      addChatPanelMsg('error', errText);
+      bubble.classList.remove('typing', 'visible');
+      setMood('stressed');
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    let fullText = '';
+    let firstDelta = true;
+
+    // Replace typing dots with assistant msg once first delta arrives
+    const msgEl = document.createElement('div');
+    msgEl.className = 'chat-msg-panel assistant';
+    msgEl.textContent = '';
+
+    let charsSinceSound = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const evStr = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        if (evStr.startsWith('data: ')) {
+          try {
+            const ev = JSON.parse(evStr.slice(6));
+            if (ev.type === 'delta') {
+              if (firstDelta) {
+                typingEl.replaceWith(msgEl);
+                firstDelta = false;
+                setMood('focused');
+              }
+              fullText += ev.text;
+              msgEl.textContent = fullText;
+              bubbleText.textContent = fullText;
+              const body = document.getElementById('chatPanelBody');
+              body.scrollTop = body.scrollHeight;
+              charsSinceSound += ev.text.length;
+              if (charsSinceSound >= 6) { sfx('tick'); charsSinceSound = 0; }
+            } else if (ev.type === 'done') {
+              bubble.classList.remove('typing');
+              setMood('happy');
+              sfx('if_taken');
+              if (typeof ev.remaining === 'number') setRemaining(ev.remaining);
+              if (firstDelta) {
+                // No delta arrived (possible edge case)
+                typingEl.replaceWith(msgEl);
+                msgEl.textContent = '(pas de réponse)';
+              }
+            } else if (ev.type === 'error') {
+              if (firstDelta) typingEl.remove();
+              addChatPanelMsg('error', ev.error || 'Erreur');
+              bubble.classList.remove('typing', 'visible');
+              setMood('stressed');
+            }
+          } catch (parseErr) {
+            console.warn('SSE parse:', parseErr);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    typingEl.remove();
+    addChatPanelMsg('error', 'Connexion perdue. ' + (e.message || ''));
+    bubble.classList.remove('typing', 'visible');
+    setMood('stressed');
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
 
 // ============ BOOT ============
 document.getElementById('startBtn').addEventListener('click', async () => {
