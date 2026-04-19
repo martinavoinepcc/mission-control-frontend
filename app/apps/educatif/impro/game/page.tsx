@@ -26,6 +26,8 @@ export default function ImproGamePage() {
   const [playersPerTeam, setPlayersPerTeam] = useState(3);
   const [totalRounds, setTotalRounds] = useState(7);
   const [difficulty, setDifficulty] = useState<ImprovDifficulty>('MEDIUM');
+  const [includeConstraints, setIncludeConstraints] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const [roundIndex, setRoundIndex] = useState(0); // 0-based
   const [history, setHistory] = useState<RoundEntry[]>([]);
@@ -45,12 +47,14 @@ export default function ImproGamePage() {
     try {
       const { card } = await ImprovAPI.generate({
         mode: 'GAME', generation: 'AUTO', teams: 2, playersPerTeam, difficulty,
+        forceNoConstraints: !includeConstraints,
       });
       setCard(card);
       setCaucusLeft(card.caucusSec);
       setPlayLeft(card.durationSec);
       setRoundIndex(0);
       setHistory([]); setScoreA(0); setScoreB(0);
+      setRulesOpen(false);
       setPhase('ROUND_READY');
     } catch (e: any) { setErr(e.message || 'Erreur.'); }
     finally { setLoading(false); }
@@ -73,11 +77,13 @@ export default function ImproGamePage() {
     try {
       const { card } = await ImprovAPI.generate({
         mode: 'GAME', generation: 'AUTO', teams: 2, playersPerTeam, difficulty,
+        forceNoConstraints: !includeConstraints,
       });
       setCard(card);
       setCaucusLeft(card.caucusSec);
       setPlayLeft(card.durationSec);
       setRoundIndex(nextIdx);
+      setRulesOpen(false);
       setPhase('ROUND_READY');
     } catch (e: any) { setErr(e.message || 'Erreur.'); }
     finally { setLoading(false); }
@@ -193,6 +199,17 @@ export default function ImproGamePage() {
                 </div>
               </div>
 
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 cursor-pointer hover:bg-white/[0.07] transition">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-white/90">Inclure des contraintes</div>
+                  <div className="text-xs text-white/50 mt-0.5">Ex. sans se toucher, en chantant, yeux fermés…</div>
+                </div>
+                <span className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${includeConstraints ? 'bg-blue-500' : 'bg-white/20'}`}>
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${includeConstraints ? 'translate-x-6' : 'translate-x-1'}`} />
+                </span>
+                <input type="checkbox" className="sr-only" checked={includeConstraints} onChange={(e) => setIncludeConstraints(e.target.checked)} />
+              </label>
+
               {err && <div className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{err}</div>}
               <button onClick={startMatch} disabled={loading} className="btn-primary w-full">
                 <span className="flex items-center justify-center gap-2">
@@ -229,11 +246,38 @@ export default function ImproGamePage() {
                   <p className="text-[10px] uppercase tracking-[0.25em] text-white/50 mb-1 font-mono">
                     {card.nature === 'MIXTE' ? 'Mixte' : 'Comparée'} · {card.category.difficulty === 'EASY' ? 'Facile' : card.category.difficulty === 'MEDIUM' ? 'Moyenne' : 'Difficile'}
                   </p>
-                  <h2 className="font-display text-xl sm:text-3xl font-bold">{card.category.name}</h2>
-                  {card.category.shortDescription && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-display text-xl sm:text-3xl font-bold">{card.category.name}</h2>
+                    {(card.category.rulesDescription || card.category.shortDescription) && (
+                      <button
+                        onClick={() => setRulesOpen((v) => !v)}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-blue-400/40 text-blue-300/90 hover:bg-blue-400/10 transition flex-shrink-0 text-sm font-bold"
+                        title="Afficher les règles"
+                        aria-label="Afficher les règles"
+                      >
+                        ?
+                      </button>
+                    )}
+                  </div>
+                  {card.category.shortDescription && !rulesOpen && (
                     <p className="text-white/60 text-sm mt-1">{card.category.shortDescription}</p>
                   )}
+                  {rulesOpen && (
+                    <div className="mt-3 rounded-xl border border-blue-400/30 bg-blue-400/5 p-3 text-sm text-white/80 leading-relaxed animate-fade-up">
+                      {card.category.rulesDescription || card.category.shortDescription}
+                    </div>
+                  )}
                 </div>
+
+                {card.horoscope && (
+                  <div className="mb-3 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 p-3 animate-fade-up">
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80 mb-1 font-mono flex items-center gap-2">
+                      <span>✨</span> Horoscope · <strong className="text-amber-200">{card.horoscope.sign}</strong>
+                      {card.horoscope.source === 'fallback' && <span className="text-white/30 text-[9px]">(banque)</span>}
+                    </p>
+                    <p className="text-white/90 text-sm leading-relaxed italic">« {card.horoscope.text} »</p>
+                  </div>
+                )}
                 {card.theme && (
                   <div className="border-t border-white/10 pt-3 mt-3">
                     <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Thème</p>

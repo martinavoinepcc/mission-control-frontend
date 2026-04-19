@@ -287,12 +287,19 @@ export type ImprovConstraint = {
 
 export type ImprovCard = {
   nature: ImprovNature;
-  category: { slug: string; name: string; shortDescription: string | null; difficulty: ImprovDifficulty };
+  category: {
+    slug: string;
+    name: string;
+    shortDescription: string | null;
+    rulesDescription: string | null;
+    difficulty: ImprovDifficulty;
+  };
   theme: { slug: string; name: string } | null;
   constraints: Array<{ slug: string; name: string; description: string | null; difficulty: ImprovDifficulty }>;
   players: { teams: number; playersPerTeam: number; total: number };
   durationSec: number;
   caucusSec: number;
+  horoscope?: { sign: string; text: string; source: string } | null;
 };
 
 export type GenerateInput = {
@@ -307,6 +314,7 @@ export type GenerateInput = {
   durationSec?: number;
   caucusSec?: number;
   constraintsSlugs?: string[];
+  forceNoConstraints?: boolean;
 };
 
 export const ImprovAPI = {
