@@ -47,6 +47,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 export type User = {
   id: number;
   email: string;
+  username: string | null;
   firstName: string;
   role: 'ADMIN' | 'MEMBER';
   profile: 'ADULT' | 'CHILD';
@@ -65,10 +66,10 @@ export type App = {
 };
 
 // Endpoints
-export async function login(email: string, password: string) {
+export async function login(identifier: string, password: string) {
   return request<{ token: string; user: User }>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ identifier, password }),
   });
 }
 

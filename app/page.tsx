@@ -8,7 +8,7 @@ import { UI } from '@/lib/icons';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -85,7 +85,7 @@ export default function LoginPage() {
     setLoading(true);
     setStatusText('AUTHENTIFICATION...');
     try {
-      const { token, user } = await login(email, password);
+      const { token, user } = await login(identifier, password);
       setToken(token);
       setStoredUser(user);
       setStatusText('ACCÈS ACCORDÉ');
@@ -150,19 +150,19 @@ export default function LoginPage() {
           <div className="scanline" />
 
           <div className="relative">
-            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-[0.18em] flex items-center gap-2" htmlFor="email">
+            <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-[0.18em] flex items-center gap-2" htmlFor="identifier">
               <FontAwesomeIcon icon={UI.envelope} className="text-neon-cyan text-[11px]" />
-              Courriel
+              Nom d'utilisateur
             </label>
             <input
-              id="email"
-              type="email"
-              autoComplete="email"
+              id="identifier"
+              type="text"
+              autoComplete="username"
               required
               className="input"
-              placeholder="vous@exemple.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Jax, Ali, MJ ou courriel"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               disabled={loading}
             />
           </div>
