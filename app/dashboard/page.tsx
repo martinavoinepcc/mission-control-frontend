@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getMe, clearToken, type User, type App } from '@/lib/api';
 import { UI, iconForApp } from '@/lib/icons';
+import { WeatherWidget } from '@/components/WeatherWidget';
 
 type Realm = 'FAMILY' | 'WORK';
 
@@ -139,13 +140,22 @@ function DashboardInner() {
           </div>
         </header>
 
-        {/* Salutation */}
+        {/* Salutation + météo */}
         <section className="mb-10 animate-fade-up">
-          <p className="text-white/40 text-sm tracking-wider uppercase mb-2">{vibe.label}</p>
-          <h1 className="text-4xl md:text-5xl font-bold font-display">
-            {vibe.greeting}, <span className={`bg-gradient-to-r ${vibe.gradient} bg-clip-text text-transparent`}>{user.firstName}</span>
-          </h1>
-          <p className="text-white/50 mt-3">{vibe.sub}</p>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <p className="text-white/40 text-sm tracking-wider uppercase mb-2">{vibe.label}</p>
+              <h1 className="text-4xl md:text-5xl font-bold font-display">
+                {vibe.greeting}, <span className={`bg-gradient-to-r ${vibe.gradient} bg-clip-text text-transparent`}>{user.firstName}</span>
+              </h1>
+              <p className="text-white/50 mt-3">{vibe.sub}</p>
+            </div>
+            {!isWork && (
+              <div className="flex-shrink-0 mt-2">
+                <WeatherWidget variant="compact" accentColor="#38BDF8" />
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Grille d'apps */}
