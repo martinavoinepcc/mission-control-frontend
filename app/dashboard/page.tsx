@@ -193,9 +193,17 @@ function AppCard({ app, delay, realm }: { app: App; delay: number; realm: Realm 
     <button
       onClick={() => {
         if (app.isMockup) {
-          alert(`${app.name}\n\nBientôt disponible.`);
+          alert(`${app.name}
+
+Bientôt disponible.`);
           return;
         }
+        // Launcher externe : ouvre app.url dans un nouvel onglet
+        if (app.url) {
+          window.open(app.url, '_blank', 'noopener,noreferrer');
+          return;
+        }
+        // Apps internes (routes Next.js locales)
         if (app.slug === 'educatif') window.location.href = '/apps/educatif/';
         else if (app.slug === 'maison') window.location.href = '/apps/maison/';
         else if (app.slug === 'chalet') window.location.href = '/apps/chalet/';
