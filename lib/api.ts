@@ -59,6 +59,7 @@ export type App = {
   slug: string;
   name: string;
   description: string | null;
+  url: string | null;
   icon: string;
   color: string;
   isMockup: boolean;
