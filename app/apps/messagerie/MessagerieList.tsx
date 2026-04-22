@@ -37,7 +37,6 @@ export default function MessagerieList() {
     }
     setUser(u);
     load();
-    // Poll léger toutes les 15 s quand l'onglet est visible
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') load();
     }, 15000);
@@ -91,7 +90,7 @@ export default function MessagerieList() {
             {convos.map((c) => (
               <li key={c.id}>
                 <Link
-                  href={`/apps/messagerie/${c.id}`}
+                  href={`/apps/messagerie/thread/?id=${c.id}`}
                   className="flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 sm:p-4 transition hover:bg-slate-800/60 active:bg-slate-800"
                 >
                   <div

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UI } from '@/lib/icons';
 import { getStoredUser, type User as MeUser } from '@/lib/api';
@@ -18,8 +18,13 @@ import {
 
 const POLL_INTERVAL_MS = 5000;
 
-export default function Thread({ conversationId }: { conversationId: number }) {
+export default function Thread() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const idStr = searchParams?.get('id') || '';
+  const conversationId = Number.parseInt(idStr, 10);
+  const validId = Number.isFinite(conversationId) && conversationId > 0;
+
   const [user, setUser] = useState<MeUser | null>(null);
   const [convo, setConvo] = useState<ConversationDetails | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -29,8 +34,6 @@ export default function Thread({ conversationId }: { conversationId: number }) {
   const [sending, setSending] = useState(false);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const lastIdRef = useRef<number>(0);
-  const userRef = useRef<MeUser | null>(null);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     const el = scrollerRef.current;
@@ -39,22 +42,21 @@ export default function Thread({ conversationId }: { conversationId: number }) {
   }, []);
 
   const loadMessages = useCallback(async () => {
+    if (!validId) return;
     try {
       const { messages: fresh } = await listMessages(conversationId, { limit: 100 });
       setMessages((prev) => {
         const prevLastId = prev.length ? prev[prev.length - 1].id : 0;
         const freshLastId = fresh.length ? fresh[fresh.length - 1].id : 0;
         if (prevLastId === freshLastId && prev.length === fresh.length) return prev;
-        lastIdRef.current = freshLastId;
         return fresh;
       });
       setError(null);
     } catch (e: any) {
       setError(e?.message || 'Erreur de chargement');
     }
-  }, [conversationId]);
+  }, [conversationId, validId]);
 
-  // Initial load
   useEffect(() => {
     const u = getStoredUser();
     if (!u) {
@@ -62,7 +64,11 @@ export default function Thread({ conversationId }: { conversationId: number }) {
       return;
     }
     setUser(u);
-    userRef.current = u;
+
+    if (!validId) {
+      setLoadingInitial(false);
+      return;
+    }
 
     (async () => {
       try {
@@ -75,24 +81,20 @@ export default function Thread({ conversationId }: { conversationId: number }) {
         setLoadingInitial(false);
       }
     })();
-  }, [conversationId, loadMessages, router]);
+  }, [conversationId, validId, loadMessages, router]);
 
-  // Mark as read + scroll to bottom on mount
   useEffect(() => {
-    if (!loadingInitial) {
+    if (!loadingInitial && validId) {
       markConversationRead(conversationId).catch(() => {});
-      // slight delay to let the DOM render
       window.setTimeout(() => scrollToBottom('auto'), 60);
     }
-  }, [loadingInitial, conversationId, scrollToBottom]);
+  }, [loadingInitial, conversationId, validId, scrollToBottom]);
 
-  // Poll for new messages when visible + when focused
   useEffect(() => {
-    let timer: number | null = null;
-    const tick = () => {
+    if (!validId) return;
+    const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') loadMessages();
-    };
-    timer = window.setInterval(tick, POLL_INTERVAL_MS);
+    }, POLL_INTERVAL_MS);
     const onVis = () => {
       if (document.visibilityState === 'visible') {
         loadMessages();
@@ -101,18 +103,16 @@ export default function Thread({ conversationId }: { conversationId: number }) {
     };
     document.addEventListener('visibilitychange', onVis);
     return () => {
-      if (timer) window.clearInterval(timer);
+      window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, [loadMessages, conversationId]);
+  }, [loadMessages, conversationId, validId]);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     if (!messages.length) return;
     const el = scrollerRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    // Only auto-scroll if user is near the bottom already (don't yank them up when reading old msgs)
     if (distanceFromBottom < 200) {
       window.setTimeout(() => scrollToBottom('smooth'), 30);
     }
@@ -121,14 +121,13 @@ export default function Thread({ conversationId }: { conversationId: number }) {
   async function onSend(e: React.FormEvent) {
     e.preventDefault();
     const body = draft.trim();
-    if (!body || sending) return;
+    if (!body || sending || !validId) return;
     setSending(true);
     setError(null);
     try {
       const msg = await sendMessage(conversationId, body);
       setMessages((prev) => [...prev, msg]);
       setDraft('');
-      lastIdRef.current = msg.id;
       window.setTimeout(() => scrollToBottom('smooth'), 30);
     } catch (e: any) {
       setError(e?.message || "Erreur d'envoi");
@@ -139,9 +138,21 @@ export default function Thread({ conversationId }: { conversationId: number }) {
 
   if (!user) return null;
 
-  const headerTitle = convo
-    ? conversationDisplayName(convo, user.id)
-    : 'Conversation';
+  if (!validId) {
+    return (
+      <main className="min-h-screen bg-slate-950 p-6 text-slate-300">
+        <p className="mb-4">Conversation invalide.</p>
+        <button
+          onClick={() => router.push('/apps/messagerie')}
+          className="rounded-xl bg-slate-800 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700"
+        >
+          ← Conversations
+        </button>
+      </main>
+    );
+  }
+
+  const headerTitle = convo ? conversationDisplayName(convo, user.id) : 'Conversation';
 
   return (
     <main className="flex flex-col h-[100dvh] bg-slate-950 text-slate-100 overflow-x-hidden">
@@ -180,10 +191,7 @@ export default function Thread({ conversationId }: { conversationId: number }) {
               const prev = i > 0 ? messages[i - 1] : null;
               const showAuthor = !mine && (!prev || prev.authorId !== m.authorId);
               return (
-                <li
-                  key={m.id}
-                  className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
-                >
+                <li key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
                     {showAuthor && (
                       <span className="mb-0.5 text-[11px] text-fuchsia-300/80">
