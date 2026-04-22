@@ -51,39 +51,59 @@ async function loadBitmap(file: File): Promise<{ width: number; height: number; 
   }
 }
 
-export async function compressImage(file: File, opts: CompressOptions = {}): Promise<CompressedImage> {
-  const maxDim = opts.maxDim ?? 1200;
-  const maxBytes = opts.maxBytes ?? 300 * 1024;
-  const mime = opts.mime ?? 'image/webp';
-  let quality = opts.qualityStart ?? 0.82;
-
-  const src = await loadBitmap(file);
+// Rendu à une taille + qualité donnée (helper interne)
+async function renderAt(
+  src: { width: number; height: number; draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void },
+  maxDim: number,
+  quality: number,
+  mime: string
+): Promise<{ dataUrl: string; width: number; height: number }> {
   const scale = Math.min(maxDim / src.width, maxDim / src.height, 1);
   const w = Math.max(1, Math.round(src.width * scale));
   const h = Math.max(1, Math.round(src.height * scale));
-
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D non disponible.');
-  // Fond noir pour les webp sur fond transparent (surtout pas pour avatars — callers peuvent override)
   src.draw(ctx, w, h);
+  return { dataUrl: canvas.toDataURL(mime, quality), width: w, height: h };
+}
 
-  let dataUrl = canvas.toDataURL(mime, quality);
-  // Boucle de réduction qualité si trop gros (tente 3 fois jusqu'à 0.5)
-  for (let i = 0; i < 4 && dataUrl.length > maxBytes && quality > 0.45; i += 1) {
-    quality = Math.max(0.45, quality - 0.12);
-    dataUrl = canvas.toDataURL(mime, quality);
+export async function compressImage(file: File, opts: CompressOptions = {}): Promise<CompressedImage> {
+  const startDim = opts.maxDim ?? 1200;
+  const maxBytes = opts.maxBytes ?? 300 * 1024;
+  const mime = opts.mime ?? 'image/webp';
+  const startQ = opts.qualityStart ?? 0.82;
+
+  const src = await loadBitmap(file);
+
+  // Stratégie multi-passes : on baisse la qualité jusqu'à 0.5, PUIS on réduit la dimension
+  // par paliers de 20 %. Garantit que le résultat respecte maxBytes en pratique.
+  const dimSequence = [startDim, Math.round(startDim * 0.8), Math.round(startDim * 0.64), Math.round(startDim * 0.5)];
+  let best: { dataUrl: string; width: number; height: number; quality: number } | null = null;
+
+  for (const dim of dimSequence) {
+    let q = startQ;
+    let r = await renderAt(src, dim, q, mime);
+    for (let i = 0; i < 4 && r.dataUrl.length > maxBytes && q > 0.5; i += 1) {
+      q = Math.max(0.5, q - 0.12);
+      r = await renderAt(src, dim, q, mime);
+    }
+    if (!best || r.dataUrl.length < best.dataUrl.length) {
+      best = { dataUrl: r.dataUrl, width: r.width, height: r.height, quality: q };
+    }
+    if (r.dataUrl.length <= maxBytes) break;
   }
 
+  const final = best!;
   return {
-    dataUrl,
-    width: w,
-    height: h,
-    bytes: dataUrl.length,
+    dataUrl: final.dataUrl,
+    width: final.width,
+    height: final.height,
+    bytes: final.dataUrl.length,
     mime,
-    qualityUsed: quality,
+    qualityUsed: final.quality,
   };
 }
 
