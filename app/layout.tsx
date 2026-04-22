@@ -21,7 +21,8 @@ export const metadata: Metadata = {
   },
 };
 
-// Adaptation mobile : viewport responsive avec scale user-scalable pour lisibilite
+// Adaptation mobile : viewport responsive + safe-area pour iPhone notch.
+// user-scalable reste activé pour accessibilité.
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -34,7 +35,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body className="min-h-screen antialiased">
+      <body className="min-h-screen antialiased overflow-x-hidden">
         {children}
         <ServiceWorkerRegistrar />
       </body>

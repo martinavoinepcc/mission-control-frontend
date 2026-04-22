@@ -7,7 +7,6 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser } from '@fortawesome/free-solid-svg-icons';
 
 import { getMe, clearToken, type User, type App } from '@/lib/api';
 
@@ -209,7 +208,7 @@ function DashboardInner() {
 
             <span className="font-display font-semibold text-lg hidden sm:inline">Mission Control</span>
 
-            <span className="text-[10px] uppercase tracking-[0.25em] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 flex-shrink-0">
+            <span className="hidden sm:inline-flex text-[10px] uppercase tracking-[0.25em] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 flex-shrink-0">
 
               {vibe.label}
 
@@ -217,7 +216,7 @@ function DashboardInner() {
 
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
 
             {hasMultipleRealms && (
 
@@ -225,7 +224,7 @@ function DashboardInner() {
 
                 onClick={() => router.push('/realms')}
 
-                className={`text-sm px-3 sm:px-4 py-2 rounded-xl border transition flex items-center gap-2 ${vibe.backBtn}`}
+                className={`text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border transition flex items-center justify-center sm:gap-2 ${vibe.backBtn}`}
 
                 title="Changer d'espace"
 
@@ -233,7 +232,7 @@ function DashboardInner() {
 
               >
 
-                <FontAwesomeIcon icon={UI.compass} className="text-xs" />
+                <FontAwesomeIcon icon={UI.compass} className="text-sm sm:text-xs" />
 
                 <span className="hidden sm:inline">Espaces</span>
 
@@ -247,13 +246,13 @@ function DashboardInner() {
 
                 onClick={() => router.push('/admin')}
 
-                className={`text-sm px-3 sm:px-4 py-2 rounded-xl border transition flex items-center gap-2 ${vibe.adminBtn}`}
+                className={`text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border transition flex items-center justify-center sm:gap-2 ${vibe.adminBtn}`}
 
                 aria-label="Administration"
 
               >
 
-                <FontAwesomeIcon icon={UI.admin} className="text-xs" />
+                <FontAwesomeIcon icon={UI.admin} className="text-sm sm:text-xs" />
 
                 <span className="hidden sm:inline">Administration</span>
 
@@ -265,13 +264,13 @@ function DashboardInner() {
 
               onClick={() => router.push('/profil')}
 
-              className="text-sm px-3 sm:px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+              className="text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center sm:gap-2"
 
               aria-label="Profil et notifications"
 
             >
 
-              <FontAwesomeIcon icon={faUser} className="text-xs" />
+              <FontAwesomeIcon icon={UI.user} className="text-sm sm:text-xs" />
 
               <span className="hidden sm:inline">Profil</span>
 
@@ -281,13 +280,13 @@ function DashboardInner() {
 
               onClick={handleLogout}
 
-              className="text-sm px-3 sm:px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+              className="text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center sm:gap-2"
 
               aria-label="Déconnexion"
 
             >
 
-              <FontAwesomeIcon icon={UI.logout} className="text-xs" />
+              <FontAwesomeIcon icon={UI.logout} className="text-sm sm:text-xs" />
 
               <span className="hidden sm:inline">Déconnexion</span>
 
@@ -453,6 +452,7 @@ Bientôt disponible.`);
         if (app.slug === 'educatif') window.location.href = '/apps/educatif/';
         else if (app.slug === 'maison') window.location.href = '/apps/maison/';
         else if (app.slug === 'chalet') window.location.href = '/apps/chalet/';
+        else if (app.slug === 'messagerie') window.location.href = '/apps/messagerie/';
       }}
       className={cardClass}
       style={cardStyle}

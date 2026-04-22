@@ -62,6 +62,8 @@ import {
   faClock,
   faBell,
   faStop,
+  faComments,
+  faPaperPlane,
   faPlus as faPlusIcon,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -78,6 +80,7 @@ export const APP_ICONS: Record<string, IconDefinition> = {
   'briefcase': faBriefcase,
   'chart-line': faChartLine,
   'masks-theater': faMasksTheater,
+  'comments': faComments,
 };
 
 // Fallback si le slug n'est pas mappé
@@ -146,4 +149,6 @@ export const UI = {
   clock: faClock,
   bell: faBell,
   stopSq: faStop,
+  comments: faComments,
+  send: faPaperPlane,
 };
