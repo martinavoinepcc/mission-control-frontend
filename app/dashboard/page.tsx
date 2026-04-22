@@ -55,6 +55,7 @@ function DashboardInner() {
 
   const [unreadTotal, setUnreadTotal] = useState<number>(0);
   const [hasMessagerie, setHasMessagerie] = useState<boolean>(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
 
 
 
@@ -406,45 +407,97 @@ function DashboardInner() {
 
             )}
 
-            <button
+            {/* Avatar rond qui ouvre le dropdown profil/déconnexion */}
 
-              onClick={() => router.push('/profil')}
+            <div className="relative flex-shrink-0">
 
-              className="text-sm h-11 w-11 sm:w-auto sm:h-auto sm:pl-2 sm:pr-4 sm:py-1.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center sm:gap-2 overflow-hidden"
+              <button
 
-              aria-label="Profil et notifications"
+                onClick={() => setProfileMenuOpen((v) => !v)}
 
-            >
+                className="relative h-11 w-11 rounded-full overflow-hidden ring-2 ring-white/15 hover:ring-white/30 transition flex items-center justify-center bg-slate-800"
 
-              {user.avatarData ? (
+                aria-label="Profil et déconnexion"
 
-                <Avatar userId={user.id} firstName={user.firstName} src={user.avatarData} size={36} />
+                aria-haspopup="menu"
 
-              ) : (
+                aria-expanded={profileMenuOpen}
 
-                <FontAwesomeIcon icon={UI.user} className="text-sm sm:text-xs" />
+              >
+
+                {user.avatarData ? (
+
+                  <Avatar userId={user.id} firstName={user.firstName} src={user.avatarData} size={44} />
+
+                ) : (
+
+                  <Avatar userId={user.id} firstName={user.firstName} size={44} />
+
+                )}
+
+              </button>
+
+              {profileMenuOpen && (
+
+                <>
+
+                  <div className="fixed inset-0 z-30" onClick={() => setProfileMenuOpen(false)} aria-hidden="true" />
+
+                  <div className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-2xl">
+
+                    <div className="flex items-center gap-3 border-b border-white/5 px-3 py-3">
+
+                      <Avatar userId={user.id} firstName={user.firstName} src={user.avatarData || null} size={36} />
+
+                      <div className="min-w-0">
+
+                        <p className="truncate font-semibold text-white">{user.firstName}</p>
+
+                        <p className="truncate text-xs text-slate-400">{user.role === 'ADMIN' ? 'Administrateur' : 'Membre'}</p>
+
+                      </div>
+
+                    </div>
+
+                    <button
+
+                      type="button"
+
+                      onClick={() => { setProfileMenuOpen(false); router.push('/profil'); }}
+
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-slate-200 hover:bg-white/5"
+
+                    >
+
+                      <FontAwesomeIcon icon={UI.user} className="text-xs w-4" />
+
+                      Mon profil
+
+                    </button>
+
+                    <button
+
+                      type="button"
+
+                      onClick={() => { setProfileMenuOpen(false); handleLogout(); }}
+
+                      className="flex w-full items-center gap-2 border-t border-white/5 px-3 py-2.5 text-left text-sm text-rose-300 hover:bg-rose-500/10"
+
+                    >
+
+                      <FontAwesomeIcon icon={UI.logout} className="text-xs w-4" />
+
+                      Se déconnecter
+
+                    </button>
+
+                  </div>
+
+                </>
 
               )}
 
-              <span className="hidden sm:inline">Profil</span>
-
-            </button>
-
-            <button
-
-              onClick={handleLogout}
-
-              className="text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center sm:gap-2"
-
-              aria-label="Déconnexion"
-
-            >
-
-              <FontAwesomeIcon icon={UI.logout} className="text-sm sm:text-xs" />
-
-              <span className="hidden sm:inline">Déconnexion</span>
-
-            </button>
+            </div>
 
           </div>
 
