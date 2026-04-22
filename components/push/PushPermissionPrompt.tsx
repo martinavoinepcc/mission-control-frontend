@@ -55,7 +55,7 @@ export default function PushPermissionPrompt() {
 
   if (env.ios && !env.standalone) {
     return (
-      <div className="rounded-2xl border border-fuchsia-500/30 bg-slate-900/50 p-5 text-sm text-slate-200">
+      <div className="rounded-2xl border border-sky-500/30 bg-slate-900/50 p-5 text-sm text-slate-200">
         <p className="font-semibold">Dernière étape sur iPhone</p>
         <p className="mt-2 text-slate-300">
           Apple demande que Mission Control soit installée à l&apos;écran d&apos;accueil avant
@@ -114,7 +114,7 @@ export default function PushPermissionPrompt() {
     <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 text-slate-100 shadow-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-fuchsia-300">Notifications push</p>
+          <p className="text-xs uppercase tracking-wide text-sky-300">Notifications push</p>
           <h3 className="mt-1 text-lg font-bold">Alertes sur ton téléphone</h3>
           <p className="mt-1 text-sm text-slate-300">
             Reçois un push natif quand quelqu&apos;un t&apos;écrit, même sans ouvrir l&apos;app.
@@ -138,7 +138,7 @@ export default function PushPermissionPrompt() {
           <button
             onClick={onEnable}
             disabled={status === 'working'}
-            className="rounded-xl bg-fuchsia-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-fuchsia-400 disabled:opacity-60"
+            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:opacity-60"
           >
             {status === 'working' ? 'Activation…' : 'Activer les notifications'}
           </button>
@@ -148,7 +148,7 @@ export default function PushPermissionPrompt() {
             <button
               onClick={onTest}
               disabled={status === 'working'}
-              className="rounded-xl bg-fuchsia-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-fuchsia-400 disabled:opacity-60"
+              className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:opacity-60"
             >
               {status === 'working' ? 'Envoi…' : 'Envoyer un push de test'}
             </button>

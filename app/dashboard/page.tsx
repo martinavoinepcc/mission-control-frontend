@@ -368,7 +368,7 @@ function DashboardInner() {
 
                 onClick={() => router.push('/apps/messagerie/')}
 
-                className="relative text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-fuchsia-400/30 text-fuchsia-200 hover:bg-fuchsia-400/10 transition flex items-center justify-center sm:gap-2"
+                className="relative text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-sky-400/30 text-sky-200 hover:bg-sky-400/10 transition flex items-center justify-center sm:gap-2"
 
                 aria-label={`Messagerie${unreadTotal > 0 ? ` (${unreadTotal} non lus)` : ''}`}
 
@@ -382,7 +382,7 @@ function DashboardInner() {
 
                 {unreadTotal > 0 && (
 
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-fuchsia-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-slate-950">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-sky-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-slate-950">
 
                     {unreadTotal > 99 ? '99+' : unreadTotal}
 

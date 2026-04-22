@@ -21,12 +21,12 @@ const config: Config = {
           700: '#15264D',
         },
         neon: {
-          // La clé "violet" est conservée pour ne pas casser les centaines d'usages Tailwind
-          // (bg-neon-violet, text-neon-violet, etc.) — mais la VALEUR est maintenant le bleu
-          // électrique du logo. Résultat : tous les accents primary basculent en bleu vif.
-          violet: '#29D0FE',
+          // Clés conservées pour ne pas casser les centaines d'usages Tailwind existants,
+          // mais toutes les VALEURS sont maintenant dans la famille bleue du logo —
+          // plus aucun mauve ni rose nulle part dans le portail.
+          violet: '#29D0FE', // bleu électrique logo (ex-mauve)
           cyan:   '#5EEAFF',
-          pink:   '#FF6DE0', // conservé tel quel — usage minoritaire (halo login, zéro sur messagerie)
+          pink:   '#0A6FD9', // deep blue (ex-rose) — usage quasi nul, sécurité
         },
         mc: {
           electric: '#29D0FE',

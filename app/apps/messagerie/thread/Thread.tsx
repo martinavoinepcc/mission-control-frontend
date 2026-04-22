@@ -391,7 +391,7 @@ export default function Thread() {
                       {m.body && (
                         <div
                           className={`px-3.5 py-2 text-[15px] leading-snug ${
-                            mine ? 'bg-fuchsia-500 text-white' : 'bg-slate-800 text-slate-100'
+                            mine ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-100'
                           }`}
                           style={{
                             wordBreak: 'break-word',
@@ -467,7 +467,7 @@ export default function Thread() {
           className="hidden"
           onChange={onPickImage}
         />
-        <div className="flex flex-1 items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 pl-4 pr-2 py-1 focus-within:border-fuchsia-500/60">
+        <div className="flex flex-1 items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 pl-4 pr-2 py-1 focus-within:border-sky-500/60">
           <textarea
             ref={textareaRef}
             value={draft}
@@ -487,7 +487,7 @@ export default function Thread() {
             type="submit"
             disabled={sending || attaching || (!draft.trim() && !attachPreview)}
             aria-label="Envoyer"
-            className="my-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-fuchsia-500 text-white transition hover:bg-fuchsia-400 disabled:opacity-30"
+            className="my-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-sky-500 text-white transition hover:bg-sky-400 disabled:opacity-30"
           >
             <FontAwesomeIcon icon={UI.send} className="text-sm" />
           </button>

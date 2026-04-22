@@ -98,9 +98,9 @@ export default function PushBanner() {
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/12 via-slate-900/40 to-slate-950 p-4 shadow-lg">
+    <div className="mb-4 rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/12 via-slate-900/40 to-slate-950 p-4 shadow-lg">
       <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-fuchsia-500/20 text-xl">
+        <div className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-sky-500/20 text-xl">
           🔔
         </div>
         <div className="min-w-0 flex-1">
@@ -123,7 +123,7 @@ export default function PushBanner() {
             {needsIosInstall ? (
               <a
                 href="/profil"
-                className="inline-flex items-center rounded-xl bg-fuchsia-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-fuchsia-400"
+                className="inline-flex items-center rounded-xl bg-sky-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-400"
               >
                 Voir le guide d&apos;installation →
               </a>
@@ -131,7 +131,7 @@ export default function PushBanner() {
               <button
                 onClick={onActivate}
                 disabled={state === 'working'}
-                className="inline-flex items-center rounded-xl bg-fuchsia-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-fuchsia-400 disabled:opacity-60"
+                className="inline-flex items-center rounded-xl bg-sky-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-400 disabled:opacity-60"
               >
                 {state === 'working' ? 'Activation…' : 'Activer les notifications'}
               </button>

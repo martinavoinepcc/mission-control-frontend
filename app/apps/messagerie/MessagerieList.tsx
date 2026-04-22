@@ -143,7 +143,7 @@ function NewConversationModal({
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/5 bg-slate-900/95 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-fuchsia-300">Nouvelle conversation</p>
+            <p className="text-[10px] uppercase tracking-wider text-sky-300">Nouvelle conversation</p>
             <h2 className="text-base font-bold">Choisis des membres</h2>
           </div>
           <button
@@ -179,7 +179,7 @@ function NewConversationModal({
                         onClick={() => toggle(u.id)}
                         className={`w-full flex items-center gap-3 rounded-xl border p-2 text-left transition ${
                           sel
-                            ? 'border-fuchsia-400 bg-fuchsia-500/10'
+                            ? 'border-sky-400 bg-sky-500/10'
                             : 'border-slate-800 bg-slate-900/60 hover:border-slate-600'
                         }`}
                       >
@@ -197,7 +197,7 @@ function NewConversationModal({
                         </div>
                         <div
                           className={`h-6 w-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                            sel ? 'border-fuchsia-400 bg-fuchsia-500 text-white' : 'border-slate-600'
+                            sel ? 'border-sky-400 bg-sky-500 text-white' : 'border-slate-600'
                           }`}
                         >
                           {sel && <FontAwesomeIcon icon={UI.checkMark} className="text-[10px]" />}
@@ -219,7 +219,7 @@ function NewConversationModal({
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="ex. Famille, Équipe hockey, …"
                     maxLength={60}
-                    className="w-full rounded-xl border border-white/10 bg-slate-800 px-3 py-2 text-[16px] text-white focus:border-fuchsia-400 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 px-3 py-2 text-[16px] text-white focus:border-sky-400 focus:outline-none"
                   />
                 </div>
               )}
@@ -237,7 +237,7 @@ function NewConversationModal({
           <button
             onClick={submit}
             disabled={!canCreate}
-            className="flex-1 rounded-xl bg-fuchsia-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-fuchsia-400 disabled:opacity-50"
+            className="flex-1 rounded-xl bg-sky-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-sky-400 disabled:opacity-50"
           >
             {loading ? 'Création…' : selected.size <= 1 ? 'Créer la discussion' : 'Créer le groupe'}
           </button>
@@ -303,13 +303,13 @@ export default function MessagerieList() {
             <FontAwesomeIcon icon={UI.back} />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-fuchsia-300">Messagerie</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-sky-300">Messagerie</p>
             <h1 className="text-lg sm:text-xl font-bold truncate">Conversations</h1>
           </div>
           <button
             onClick={() => setShowNew(true)}
             aria-label="Nouvelle conversation"
-            className="h-11 w-11 rounded-xl bg-fuchsia-500 text-white hover:bg-fuchsia-400 transition flex items-center justify-center flex-shrink-0"
+            className="h-11 w-11 rounded-xl bg-sky-500 text-white hover:bg-sky-400 transition flex items-center justify-center flex-shrink-0"
             title="Nouvelle conversation"
           >
             <FontAwesomeIcon icon={UI.plus} />
@@ -335,7 +335,7 @@ export default function MessagerieList() {
             <p className="mb-2">Aucune conversation pour l&apos;instant.</p>
             <button
               onClick={() => setShowNew(true)}
-              className="rounded-xl bg-fuchsia-500 px-4 py-2 text-sm font-semibold text-white hover:bg-fuchsia-400"
+              className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-400"
             >
               Commencer une conversation
             </button>
@@ -349,7 +349,7 @@ export default function MessagerieList() {
                 <li key={c.id}>
                   <Link
                     href={`/apps/messagerie/thread/?id=${c.id}`}
-                    className="group flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 sm:p-4 transition hover:border-fuchsia-500/30 hover:bg-slate-800/70 active:bg-slate-800"
+                    className="group flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 sm:p-4 transition hover:border-sky-500/30 hover:bg-slate-800/70 active:bg-slate-800"
                   >
                     <StackedAvatars members={c.participants} currentUserId={user.id} size={44} />
                     <div className="min-w-0 flex-1">
@@ -374,7 +374,7 @@ export default function MessagerieList() {
                             : 'Commencer la conversation…'}
                         </p>
                         {c.unreadCount > 0 && (
-                          <span className="flex-shrink-0 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[11px] font-bold text-white">
+                          <span className="flex-shrink-0 rounded-full bg-sky-500 px-2 py-0.5 text-[11px] font-bold text-white">
                             {c.unreadCount}
                           </span>
                         )}

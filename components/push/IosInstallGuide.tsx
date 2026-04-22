@@ -43,10 +43,10 @@ export default function IosInstallGuide({ compact = false }: { compact?: boolean
   }
 
   return (
-    <div className="rounded-2xl border border-fuchsia-500/30 bg-gradient-to-br from-slate-900 to-slate-950 p-5 text-slate-100 shadow-xl">
+    <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-br from-slate-900 to-slate-950 p-5 text-slate-100 shadow-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-fuchsia-300">Configuration iPhone</p>
+          <p className="text-xs uppercase tracking-wide text-sky-300">Configuration iPhone</p>
           <h3 className="mt-1 text-lg font-bold">
             Installe Mission Control sur ton iPhone
           </h3>
@@ -67,7 +67,7 @@ export default function IosInstallGuide({ compact = false }: { compact?: boolean
 
       <ol className="mt-4 space-y-3 text-sm">
         <li className="flex gap-3">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-fuchsia-500/20 font-bold text-fuchsia-200">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-500/20 font-bold text-sky-200">
             1
           </span>
           <span className="pt-0.5">
@@ -79,7 +79,7 @@ export default function IosInstallGuide({ compact = false }: { compact?: boolean
           </span>
         </li>
         <li className="flex gap-3">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-fuchsia-500/20 font-bold text-fuchsia-200">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-500/20 font-bold text-sky-200">
             2
           </span>
           <span className="pt-0.5">
@@ -91,7 +91,7 @@ export default function IosInstallGuide({ compact = false }: { compact?: boolean
           </span>
         </li>
         <li className="flex gap-3">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-fuchsia-500/20 font-bold text-fuchsia-200">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-500/20 font-bold text-sky-200">
             3
           </span>
           <span className="pt-0.5">
@@ -103,12 +103,12 @@ export default function IosInstallGuide({ compact = false }: { compact?: boolean
           </span>
         </li>
         <li className="flex gap-3">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-fuchsia-500/20 font-bold text-fuchsia-200">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-500/20 font-bold text-sky-200">
             4
           </span>
           <span className="pt-0.5">
             Ouvre l&apos;icône{' '}
-            <span className="font-semibold text-fuchsia-200">Mission Control</span> depuis ton écran
+            <span className="font-semibold text-sky-200">Mission Control</span> depuis ton écran
             d&apos;accueil, connecte-toi, puis reviens sur ton profil pour activer les
             notifications.
           </span>

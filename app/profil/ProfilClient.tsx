@@ -52,7 +52,7 @@ export default function ProfilClient() {
     return (
       <main className="min-h-screen bg-slate-950 p-6 text-slate-300">
         <p className="mb-4">Tu dois être connecté pour voir ton profil.</p>
-        <Link href="/login" className="text-fuchsia-400 underline">
+        <Link href="/login" className="text-sky-400 underline">
           Se connecter
         </Link>
       </main>
@@ -122,7 +122,7 @@ export default function ProfilClient() {
       >
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 pb-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-fuchsia-300">Profil</p>
+            <p className="text-xs uppercase tracking-wide text-sky-300">Profil</p>
             <h1 className="text-lg font-bold">Bonjour {user.firstName}</h1>
           </div>
           <Link
@@ -140,7 +140,7 @@ export default function ProfilClient() {
           <div className="flex items-center gap-4">
             <Avatar userId={user.id} firstName={user.firstName} src={user.avatarData || null} size={80} />
             <div className="min-w-0 flex-1">
-              <p className="text-xs uppercase tracking-wide text-fuchsia-300">Photo de profil</p>
+              <p className="text-xs uppercase tracking-wide text-sky-300">Photo de profil</p>
               <p className="text-sm text-slate-300">
                 Visible dans la messagerie et les notifications push.
               </p>
@@ -150,7 +150,7 @@ export default function ProfilClient() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={busy}
-              className="rounded-xl bg-fuchsia-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-fuchsia-400 disabled:opacity-60"
+              className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:opacity-60"
             >
               {user.avatarData ? 'Changer la photo' : 'Ajouter une photo'}
             </button>
@@ -215,7 +215,7 @@ export default function ProfilClient() {
           <div className="mt-4">
             <Link
               href="/change-password"
-              className="text-sm text-fuchsia-400 underline underline-offset-2 hover:text-fuchsia-300"
+              className="text-sm text-sky-400 underline underline-offset-2 hover:text-sky-300"
             >
               Changer mon mot de passe
             </Link>

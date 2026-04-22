@@ -212,7 +212,7 @@ export default function AvatarCropModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-neon-violet">Photo de profil</p>
+            <p className="text-[10px] uppercase tracking-wider text-sky-300">Photo de profil</p>
             <h2 className="text-base font-semibold text-white">Ajuster le cadrage</h2>
           </div>
           <button
@@ -292,7 +292,7 @@ export default function AvatarCropModal({
                 setTx(clampTx(tx, newS));
                 setTy(clampTy(ty, newS));
               }}
-              className="flex-1 accent-fuchsia-500"
+              className="flex-1 accent-sky-500"
             />
             <span className="text-xs text-slate-400">+</span>
           </div>
@@ -313,7 +313,7 @@ export default function AvatarCropModal({
           <button
             onClick={confirm}
             disabled={working || !img}
-            className="flex-1 rounded-xl bg-fuchsia-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-fuchsia-400 disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sky-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-sky-400 disabled:opacity-60"
           >
             {working ? 'Préparation…' : 'Utiliser cette photo'}
           </button>
