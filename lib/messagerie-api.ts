@@ -152,3 +152,67 @@ export function formatTime(iso: string): string {
   }
   return d.toLocaleDateString('fr-CA', { day: '2-digit', month: '2-digit' });
 }
+
+// ---- Avatars (couleur stable par userId) ----
+
+const AVATAR_COLORS = [
+  { bg: 'bg-fuchsia-500',  hex: '#EC4899' },
+  { bg: 'bg-violet-500',   hex: '#8B5CF6' },
+  { bg: 'bg-cyan-500',     hex: '#06B6D4' },
+  { bg: 'bg-amber-500',    hex: '#F59E0B' },
+  { bg: 'bg-emerald-500',  hex: '#10B981' },
+  { bg: 'bg-rose-500',     hex: '#F43F5E' },
+  { bg: 'bg-sky-500',      hex: '#0EA5E9' },
+  { bg: 'bg-indigo-500',   hex: '#6366F1' },
+];
+
+export function avatarColor(userId: number): { bg: string; hex: string } {
+  const idx = Math.abs(userId) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
+}
+
+export function avatarInitial(firstName: string | null | undefined): string {
+  if (!firstName) return '·';
+  const trimmed = firstName.trim();
+  if (!trimmed) return '·';
+  // Supporte aussi les accents (Alizée → A, Marie-Josée → M)
+  const first = trimmed.charAt(0).toUpperCase();
+  return first;
+}
+
+// ---- Date separators pour le thread ----
+
+export function formatDateSeparator(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) return "Aujourd'hui";
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate()
+  ) {
+    return 'Hier';
+  }
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (24 * 3600 * 1000));
+  if (diffDays < 7) {
+    return d.toLocaleDateString('fr-CA', { weekday: 'long' });
+  }
+  return d.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// Regroupe deux dates en "le même jour calendaire" (utilisé pour insérer les séparateurs)
+export function isSameCalendarDay(a: string, b: string): boolean {
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate()
+  );
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UI } from '@/lib/icons';
@@ -11,12 +11,82 @@ import {
   sendMessage,
   markConversationRead,
   conversationDisplayName,
-  formatTime,
+  avatarColor,
+  avatarInitial,
+  formatDateSeparator,
+  isSameCalendarDay,
   type ConversationDetails,
   type Message,
 } from '@/lib/messagerie-api';
 
 const POLL_INTERVAL_MS = 5000;
+
+// --- Small presentational pieces ---
+
+function Avatar({
+  userId,
+  firstName,
+  size = 36,
+  ring = false,
+}: {
+  userId: number;
+  firstName: string | null;
+  size?: number;
+  ring?: boolean;
+}) {
+  const c = avatarColor(userId);
+  return (
+    <div
+      className={`${c.bg} text-white rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${
+        ring ? 'ring-2 ring-slate-900' : ''
+      }`}
+      style={{ width: size, height: size, fontSize: Math.max(12, Math.floor(size / 2.4)) }}
+      aria-label={firstName || 'Membre'}
+      title={firstName || ''}
+    >
+      {avatarInitial(firstName)}
+    </div>
+  );
+}
+
+function StackedAvatars({
+  members,
+  currentUserId,
+  max = 3,
+}: {
+  members: Array<{ id: number; firstName: string }>;
+  currentUserId: number;
+  max?: number;
+}) {
+  const others = members.filter((m) => m.id !== currentUserId);
+  if (others.length === 0) return null;
+  const shown = others.slice(0, max);
+  const rest = others.length - shown.length;
+  return (
+    <div className="flex -space-x-2 flex-shrink-0">
+      {shown.map((m) => (
+        <Avatar key={m.id} userId={m.id} firstName={m.firstName} size={32} ring />
+      ))}
+      {rest > 0 && (
+        <div className="h-8 w-8 rounded-full bg-slate-700 text-white text-[11px] flex items-center justify-center ring-2 ring-slate-900">
+          +{rest}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DateSeparator({ iso }: { iso: string }) {
+  return (
+    <li className="my-3 flex items-center justify-center">
+      <span className="rounded-full bg-slate-900/80 px-3 py-1 text-[11px] uppercase tracking-wider text-slate-400">
+        {formatDateSeparator(iso)}
+      </span>
+    </li>
+  );
+}
+
+// --- Main component ---
 
 export default function Thread() {
   const router = useRouter();
@@ -34,6 +104,7 @@ export default function Thread() {
   const [sending, setSending] = useState(false);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     const el = scrollerRef.current;
@@ -46,9 +117,9 @@ export default function Thread() {
     try {
       const { messages: fresh } = await listMessages(conversationId, { limit: 100 });
       setMessages((prev) => {
-        const prevLastId = prev.length ? prev[prev.length - 1].id : 0;
-        const freshLastId = fresh.length ? fresh[fresh.length - 1].id : 0;
-        if (prevLastId === freshLastId && prev.length === fresh.length) return prev;
+        const prevLast = prev.length ? prev[prev.length - 1].id : 0;
+        const freshLast = fresh.length ? fresh[fresh.length - 1].id : 0;
+        if (prevLast === freshLast && prev.length === fresh.length) return prev;
         return fresh;
       });
       setError(null);
@@ -69,7 +140,6 @@ export default function Thread() {
       setLoadingInitial(false);
       return;
     }
-
     (async () => {
       try {
         const c = await getConversation(conversationId);
@@ -112,14 +182,20 @@ export default function Thread() {
     if (!messages.length) return;
     const el = scrollerRef.current;
     if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceFromBottom < 200) {
-      window.setTimeout(() => scrollToBottom('smooth'), 30);
-    }
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distance < 200) window.setTimeout(() => scrollToBottom('smooth'), 30);
   }, [messages.length, scrollToBottom]);
 
-  async function onSend(e: React.FormEvent) {
-    e.preventDefault();
+  // Auto-grow textarea (jusqu'à ~5 lignes)
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+  }, [draft]);
+
+  async function onSend(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     const body = draft.trim();
     if (!body || sending || !validId) return;
     setSending(true);
@@ -133,8 +209,14 @@ export default function Thread() {
       setError(e?.message || "Erreur d'envoi");
     } finally {
       setSending(false);
+      textareaRef.current?.focus();
     }
   }
+
+  const participantsList = useMemo(() => {
+    if (!convo) return [];
+    return convo.participants.map((p) => ({ id: p.id, firstName: p.firstName }));
+  }, [convo]);
 
   if (!user) return null;
 
@@ -153,28 +235,37 @@ export default function Thread() {
   }
 
   const headerTitle = convo ? conversationDisplayName(convo, user.id) : 'Conversation';
+  const headerSub = convo
+    ? convo.participants
+        .filter((p) => p.id !== user.id)
+        .map((p) => p.firstName)
+        .join(' · ') || 'Personne d\'autre pour le moment'
+    : '';
 
   return (
     <main className="flex flex-col h-[100dvh] bg-slate-950 text-slate-100 overflow-x-hidden">
-      <header className="flex items-center gap-3 border-b border-white/5 bg-slate-950/90 px-3 py-3 backdrop-blur-sm sm:px-4">
-        <button
-          onClick={() => router.push('/apps/messagerie')}
-          aria-label="Retour aux conversations"
-          className="w-11 h-11 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center flex-shrink-0"
-        >
-          <FontAwesomeIcon icon={UI.back} />
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-wide text-fuchsia-300">Messagerie</p>
-          <h1 className="truncate text-base font-semibold sm:text-lg">{headerTitle}</h1>
-          {convo && (
-            <p className="truncate text-xs text-slate-400">
-              {convo.participants.length} participant{convo.participants.length > 1 ? 's' : ''}
-            </p>
-          )}
+      {/* HEADER — safe-area top, bouton back bien visible sous la dynamic island */}
+      <header
+        className="border-b border-white/5 bg-slate-950/90 backdrop-blur-md"
+        style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+      >
+        <div className="flex items-center gap-3 px-3 pb-3 sm:px-4">
+          <button
+            onClick={() => router.push('/apps/messagerie')}
+            aria-label="Retour aux conversations"
+            className="h-11 w-11 rounded-xl border border-white/15 text-white/80 hover:bg-white/5 transition flex items-center justify-center flex-shrink-0"
+          >
+            <FontAwesomeIcon icon={UI.back} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-base font-semibold sm:text-lg">{headerTitle}</h1>
+            <p className="truncate text-xs text-slate-400">{headerSub}</p>
+          </div>
+          <StackedAvatars members={participantsList} currentUserId={user.id} max={3} />
         </div>
       </header>
 
+      {/* SCROLLING MESSAGES AREA */}
       <div
         ref={scrollerRef}
         className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-4"
@@ -183,34 +274,60 @@ export default function Thread() {
         {loadingInitial ? (
           <div className="text-center text-sm text-slate-400">Chargement…</div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-sm text-slate-400">Aucun message encore.</div>
+          <div className="mt-10 text-center text-sm text-slate-400">
+            <p>Aucun message encore.</p>
+            <p className="mt-1 text-slate-500">Écris le premier ci-dessous.</p>
+          </div>
         ) : (
-          <ol className="space-y-2">
+          <ol className="space-y-0.5">
             {messages.map((m, i) => {
               const mine = m.authorId === user.id;
               const prev = i > 0 ? messages[i - 1] : null;
-              const showAuthor = !mine && (!prev || prev.authorId !== m.authorId);
+              const next = i < messages.length - 1 ? messages[i + 1] : null;
+
+              const showDateSep = !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
+              const firstOfGroup = !prev || prev.authorId !== m.authorId || !isSameCalendarDay(prev.createdAt, m.createdAt);
+              const lastOfGroup = !next || next.authorId !== m.authorId || !isSameCalendarDay(next.createdAt, m.createdAt);
+
               return (
-                <li key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
-                    {showAuthor && (
-                      <span className="mb-0.5 text-[11px] text-fuchsia-300/80">
-                        {m.authorFirstName}
-                      </span>
+                <div key={m.id}>
+                  {showDateSep && <DateSeparator iso={m.createdAt} />}
+                  <li
+                    className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'} ${
+                      firstOfGroup ? 'mt-2' : 'mt-0.5'
+                    }`}
+                  >
+                    {!mine && (
+                      <div className="w-9 flex-shrink-0">
+                        {lastOfGroup ? (
+                          <Avatar userId={m.authorId} firstName={m.authorFirstName} size={32} />
+                        ) : null}
+                      </div>
                     )}
-                    <div
-                      className={`rounded-2xl px-3.5 py-2 text-[15px] leading-snug ${
-                        mine
-                          ? 'rounded-br-md bg-fuchsia-500 text-white'
-                          : 'rounded-bl-md bg-slate-800 text-slate-100'
-                      }`}
-                      style={{ wordBreak: 'break-word' }}
-                    >
-                      {m.body}
+                    <div className={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                      {firstOfGroup && !mine && (
+                        <span className="mb-0.5 px-1 text-[11px] text-slate-400">
+                          {m.authorFirstName}
+                        </span>
+                      )}
+                      <div
+                        className={`px-3.5 py-2 text-[15px] leading-snug ${
+                          mine
+                            ? 'bg-fuchsia-500 text-white'
+                            : 'bg-slate-800 text-slate-100'
+                        }`}
+                        style={{
+                          wordBreak: 'break-word',
+                          borderRadius: 18,
+                          borderBottomRightRadius: mine && lastOfGroup ? 6 : 18,
+                          borderBottomLeftRadius: !mine && lastOfGroup ? 6 : 18,
+                        }}
+                      >
+                        {m.body}
+                      </div>
                     </div>
-                    <span className="mt-0.5 text-[11px] text-slate-500">{formatTime(m.createdAt)}</span>
-                  </div>
-                </li>
+                  </li>
+                </div>
               );
             })}
           </ol>
@@ -223,33 +340,37 @@ export default function Thread() {
         </div>
       )}
 
+      {/* INPUT — safe-area bottom, bouton send collé au textarea */}
       <form
         onSubmit={onSend}
         className="flex items-end gap-2 border-t border-white/5 bg-slate-950/95 px-3 py-2 sm:px-4"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              onSend(e as unknown as React.FormEvent);
-            }
-          }}
-          placeholder="Écris un message…"
-          rows={1}
-          className="flex-1 resize-none rounded-2xl border border-white/10 bg-slate-900 px-4 py-2.5 text-[16px] text-white placeholder:text-slate-500 focus:border-fuchsia-500/60 focus:outline-none"
-          style={{ maxHeight: '140px' }}
-        />
-        <button
-          type="submit"
-          disabled={sending || !draft.trim()}
-          aria-label="Envoyer"
-          className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-full bg-fuchsia-500 text-white transition hover:bg-fuchsia-400 disabled:opacity-40"
-        >
-          <FontAwesomeIcon icon={UI.send} />
-        </button>
+        <div className="flex flex-1 items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 pl-4 pr-2 py-1 focus-within:border-fuchsia-500/60">
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                onSend();
+              }
+            }}
+            placeholder="Écris un message…"
+            rows={1}
+            className="flex-1 resize-none bg-transparent py-2 text-[16px] text-white placeholder:text-slate-500 focus:outline-none"
+            style={{ maxHeight: 140 }}
+          />
+          <button
+            type="submit"
+            disabled={sending || !draft.trim()}
+            aria-label="Envoyer"
+            className="my-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-fuchsia-500 text-white transition hover:bg-fuchsia-400 disabled:opacity-30"
+          >
+            <FontAwesomeIcon icon={UI.send} className="text-sm" />
+          </button>
+        </div>
       </form>
     </main>
   );
