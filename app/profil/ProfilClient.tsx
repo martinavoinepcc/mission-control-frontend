@@ -13,7 +13,8 @@ import {
 import IosInstallGuide from '@/components/push/IosInstallGuide';
 import PushPermissionPrompt from '@/components/push/PushPermissionPrompt';
 import Avatar from '@/components/Avatar';
-import { compressAvatar, humanBytes } from '@/lib/image-utils';
+import { humanBytes } from '@/lib/image-utils';
+import AvatarCropModal, { type CropResult } from '@/components/AvatarCropModal';
 
 type SaveState = 'idle' | 'compressing' | 'uploading' | 'ok' | 'error';
 
@@ -22,6 +23,7 @@ export default function ProfilClient() {
   const [loaded, setLoaded] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [saveMsg, setSaveMsg] = useState<string>('');
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -57,23 +59,31 @@ export default function ProfilClient() {
     );
   }
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // permet de re-sélectionner le même fichier
     if (!file) return;
-    e.target.value = '';
     if (!file.type.startsWith('image/')) {
       setSaveState('error');
       setSaveMsg('Fichier non supporté (image requise).');
       return;
     }
+    setSaveState('idle');
+    setSaveMsg('');
+    setPendingFile(file); // ouvre le crop modal
+  }
+
+  async function onCropConfirm(result: CropResult) {
     try {
-      setSaveState('compressing');
-      setSaveMsg('Préparation de l\'image…');
-      const compressed = await compressAvatar(file);
-      setSaveMsg(`Envoi (${humanBytes(compressed.bytes)})…`);
+      setPendingFile(null);
       setSaveState('uploading');
-      const res = await uploadAvatar(compressed.dataUrl);
-      const updated: User = { ...user!, avatarData: res.avatarData, avatarUpdatedAt: res.avatarUpdatedAt };
+      setSaveMsg(`Envoi (${humanBytes(result.bytes)})…`);
+      const res = await uploadAvatar(result.dataUrl);
+      const updated: User = {
+        ...user!,
+        avatarData: res.avatarData,
+        avatarUpdatedAt: res.avatarUpdatedAt,
+      };
       setUser(updated);
       setStoredUser(updated);
       setSaveState('ok');
@@ -212,6 +222,15 @@ export default function ProfilClient() {
           </div>
         </section>
       </div>
+
+      {/* Crop modal — s'ouvre quand l'utilisateur a choisi un fichier image */}
+      {pendingFile && (
+        <AvatarCropModal
+          file={pendingFile}
+          onCancel={() => setPendingFile(null)}
+          onConfirm={onCropConfirm}
+        />
+      )}
     </main>
   );
 }
