@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser } from '@fortawesome/free-solid-svg-icons';
 
 import { getMe, clearToken, type User, type App } from '@/lib/api';
 
@@ -259,6 +260,22 @@ function DashboardInner() {
               </button>
 
             )}
+
+            <button
+
+              onClick={() => router.push('/profil')}
+
+              className="text-sm px-3 sm:px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center gap-2"
+
+              aria-label="Profil et notifications"
+
+            >
+
+              <FontAwesomeIcon icon={faUser} className="text-xs" />
+
+              <span className="hidden sm:inline">Profil</span>
+
+            </button>
 
             <button
 
