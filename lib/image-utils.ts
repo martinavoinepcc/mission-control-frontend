@@ -107,46 +107,80 @@ export async function compressImage(file: File, opts: CompressOptions = {}): Pro
   };
 }
 
-// Spécialisation pour avatar : carré centré, 256×256, webp haute qualité.
+// Spécialisation pour avatar : carré centré, multi-pass dimension + qualité.
+// Cible ~25 KB, budget dur ~100 KB. Garantit que le résultat rentre dans la limite backend
+// (120 KB base64) même pour une photo iPhone haute-résolution très détaillée.
 export async function compressAvatar(file: File): Promise<CompressedImage> {
-  const SIZE = 256;
   const src = await loadBitmap(file);
 
-  const canvas = document.createElement('canvas');
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas 2D non disponible.');
-
-  // Crop centré vers carré
-  const min = Math.min(src.width, src.height);
-  const sx = (src.width - min) / 2;
-  const sy = (src.height - min) / 2;
-
-  // createImageBitmap.draw ne supporte pas sx/sy. On passe par un canvas intermédiaire si besoin.
+  // Canvas intermédiaire avec l'image complète (pour pouvoir faire drawImage avec sx/sy)
   const tmp = document.createElement('canvas');
   tmp.width = src.width;
   tmp.height = src.height;
   const tctx = tmp.getContext('2d');
-  if (!tctx) throw new Error('Canvas 2D tmp non disponible.');
+  if (!tctx) throw new Error('Canvas 2D intermédiaire non disponible.');
   src.draw(tctx, src.width, src.height);
-  ctx.drawImage(tmp, sx, sy, min, min, 0, 0, SIZE, SIZE);
 
-  let quality = 0.85;
-  let dataUrl = canvas.toDataURL('image/webp', quality);
-  // Cible ~25 KB
-  for (let i = 0; i < 4 && dataUrl.length > 40 * 1024 && quality > 0.5; i += 1) {
-    quality = Math.max(0.5, quality - 0.12);
-    dataUrl = canvas.toDataURL('image/webp', quality);
+  const min = Math.min(src.width, src.height);
+  const sx = (src.width - min) / 2;
+  const sy = (src.height - min) / 2;
+
+  // Cible et budget
+  const targetBytes = 30 * 1024;   // préféré : ~30 KB
+  const hardLimit = 100 * 1024;    // plafond absolu : 100 KB (laisse marge sous limite backend 120 KB)
+
+  // Multi-pass : baisse la dimension puis la qualité jusqu'à respecter la cible.
+  const dims = [256, 200, 160, 128, 96];
+  const qualitySteps = [0.85, 0.75, 0.65, 0.55];
+
+  let best: { dataUrl: string; width: number; height: number; quality: number } | null = null;
+
+  for (const SIZE of dims) {
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+    ctx.drawImage(tmp, sx, sy, min, min, 0, 0, SIZE, SIZE);
+
+    for (const q of qualitySteps) {
+      const dataUrl = canvas.toDataURL('image/webp', q);
+      if (!best || dataUrl.length < best.dataUrl.length) {
+        best = { dataUrl, width: SIZE, height: SIZE, quality: q };
+      }
+      if (dataUrl.length <= targetBytes) {
+        return {
+          dataUrl,
+          width: SIZE,
+          height: SIZE,
+          bytes: dataUrl.length,
+          mime: 'image/webp',
+          qualityUsed: q,
+        };
+      }
+    }
+    // Si ce dim à la plus basse qualité rentre dans le hardLimit, on accepte
+    if (best && best.dataUrl.length <= hardLimit) {
+      return {
+        dataUrl: best.dataUrl,
+        width: best.width,
+        height: best.height,
+        bytes: best.dataUrl.length,
+        mime: 'image/webp',
+        qualityUsed: best.quality,
+      };
+    }
   }
 
+  // Si même 96×96 quality 0.55 ne passe pas (extrêmement rare), on renvoie le plus petit qu'on a eu.
+  const final = best!;
   return {
-    dataUrl,
-    width: SIZE,
-    height: SIZE,
-    bytes: dataUrl.length,
+    dataUrl: final.dataUrl,
+    width: final.width,
+    height: final.height,
+    bytes: final.dataUrl.length,
     mime: 'image/webp',
-    qualityUsed: quality,
+    qualityUsed: final.quality,
   };
 }
 
