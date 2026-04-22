@@ -163,12 +163,14 @@ export default function AvatarCropModal({
       if (!ctx) throw new Error('Canvas 2D non disponible.');
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, OUT, OUT);
 
-      // Multi-pass quality reduction jusqu'à ≤ 100 KB
+      // On utilise JPEG (pas webp) pour compat max : les notifications push iOS rendent
+      // l'icon JPEG/PNG systématiquement, webp est parfois ignoré côté Apple Push Service.
+      // JPEG 0.85 pour 256×256 ≈ 25-40 KB, largement sous la limite 120 KB backend.
       let q = 0.85;
-      let dataUrl = canvas.toDataURL('image/webp', q);
+      let dataUrl = canvas.toDataURL('image/jpeg', q);
       for (let i = 0; i < 4 && dataUrl.length > 30 * 1024 && q > 0.55; i += 1) {
         q = Math.max(0.55, q - 0.1);
-        dataUrl = canvas.toDataURL('image/webp', q);
+        dataUrl = canvas.toDataURL('image/jpeg', q);
       }
       // Fallback : réduire la dimension si quality=0.55 insuffisant
       if (dataUrl.length > 100 * 1024) {
@@ -179,7 +181,7 @@ export default function AvatarCropModal({
           const ctx2 = c2.getContext('2d');
           if (!ctx2) continue;
           ctx2.drawImage(img, sx, sy, sw, sh, 0, 0, smaller, smaller);
-          const d = c2.toDataURL('image/webp', 0.72);
+          const d = c2.toDataURL('image/jpeg', 0.72);
           if (d.length < dataUrl.length) dataUrl = d;
           if (dataUrl.length <= 100 * 1024) break;
         }
