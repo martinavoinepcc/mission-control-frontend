@@ -24,6 +24,18 @@ html, body {
 html {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
+  /* Indique au navigateur de rendre les UI natifs (scrollbar, dropdown popup, date picker…)
+     avec un thème sombre. Sans ça, Safari/Chrome dessinent le popup <select> en blanc et
+     les <option> qui héritent de color:white du parent sont illisibles. */
+  color-scheme: dark;
+}
+
+/* Fallback explicite : les <option> des <select> héritent parfois du parent text-white
+   (Tailwind) et deviennent blanc-sur-blanc dans le popup natif. On force un style lisible. */
+select option,
+select optgroup {
+  background-color: #0f172a; /* slate-900 */
+  color: #f1f5f9;            /* slate-100 */
 }
 
 /* Touch target mobile : 44×44 min partout. */
