@@ -133,13 +133,18 @@ export async function markConversationRead(conversationId: number): Promise<void
 export async function createConversation(input: {
   title?: string;
   participantIds: number[];
-}): Promise<ConversationDetails> {
+}): Promise<ConversationDetails & { reused?: boolean }> {
   const res = await authFetch('/conversations', {
     method: 'POST',
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
-  return (await res.json()) as ConversationDetails;
+  return (await res.json()) as ConversationDetails & { reused?: boolean };
+}
+
+export async function deleteConversation(conversationId: number): Promise<void> {
+  const res = await authFetch(`/conversations/${conversationId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
 }
 
 // ---- UI helpers ----

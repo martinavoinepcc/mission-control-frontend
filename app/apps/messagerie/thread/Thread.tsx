@@ -11,6 +11,7 @@ import {
   listConversations,
   sendMessage,
   markConversationRead,
+  deleteConversation,
   conversationDisplayName,
   formatDateSeparator,
   isSameCalendarDay,
@@ -102,6 +103,11 @@ export default function Thread() {
 
   // Lightbox (tap image to zoom)
   const [lightbox, setLightbox] = useState<string | null>(null);
+
+  // Menu ••• (delete)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -312,6 +318,41 @@ export default function Thread() {
             <p className="truncate text-xs text-slate-400">{headerSub}</p>
           </div>
           <StackedAvatars members={participantsList} currentUserId={user.id} max={3} />
+
+          {/* Menu ••• pour actions convo */}
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Options de la conversation"
+              className="h-11 w-11 rounded-xl border border-white/15 text-white/80 hover:bg-white/5 transition flex items-center justify-center"
+            >
+              <span className="text-xl leading-none">⋯</span>
+            </button>
+            {menuOpen && (
+              <>
+                {/* backdrop pour fermer */}
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setMenuOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="absolute right-0 top-full z-40 mt-1 w-56 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-2xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setConfirmDelete(true);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-rose-300 hover:bg-rose-500/10"
+                  >
+                    <FontAwesomeIcon icon={UI.trash} className="text-xs" />
+                    Supprimer la conversation
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -417,6 +458,18 @@ export default function Thread() {
                         </div>
                       )}
                     </div>
+                    {mine && (
+                      <div className="w-9 flex-shrink-0">
+                        {lastOfGroup ? (
+                          <Avatar
+                            userId={user.id}
+                            firstName={user.firstName}
+                            src={user.avatarData || null}
+                            size={32}
+                          />
+                        ) : null}
+                      </div>
+                    )}
                   </li>
                 </div>
               );
@@ -506,6 +559,57 @@ export default function Thread() {
           </button>
         </div>
       </form>
+
+      {/* Confirm suppression */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => !deleting && setConfirmDelete(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold">Supprimer la conversation ?</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Tous les messages seront perdus pour toi et les autres participants. Cette action est
+              irréversible.
+            </p>
+            {error && (
+              <p className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                {error}
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-slate-800 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-60"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  if (!validId) return;
+                  setDeleting(true);
+                  setError(null);
+                  try {
+                    await deleteConversation(conversationId);
+                    router.push('/apps/messagerie');
+                  } catch (e: any) {
+                    setError(e?.message || 'Suppression impossible');
+                    setDeleting(false);
+                  }
+                }}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-rose-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-rose-400 disabled:opacity-60"
+              >
+                {deleting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox (image plein écran) */}
       {lightbox && (

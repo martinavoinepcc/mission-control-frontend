@@ -16,6 +16,7 @@ import { WeatherWidget } from '@/components/WeatherWidget';
 import PushBanner from '@/components/push/PushBanner';
 import { listConversations } from '@/lib/messagerie-api';
 import { setAppBadge } from '@/lib/app-badge';
+import Avatar from '@/components/Avatar';
 
 // Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
 const APP_PRIORITY: Record<string, number> = {
@@ -409,13 +410,21 @@ function DashboardInner() {
 
               onClick={() => router.push('/profil')}
 
-              className="text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center sm:gap-2"
+              className="text-sm h-11 w-11 sm:w-auto sm:h-auto sm:pl-2 sm:pr-4 sm:py-1.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center sm:gap-2 overflow-hidden"
 
               aria-label="Profil et notifications"
 
             >
 
-              <FontAwesomeIcon icon={UI.user} className="text-sm sm:text-xs" />
+              {user.avatarData ? (
+
+                <Avatar userId={user.id} firstName={user.firstName} src={user.avatarData} size={36} />
+
+              ) : (
+
+                <FontAwesomeIcon icon={UI.user} className="text-sm sm:text-xs" />
+
+              )}
 
               <span className="hidden sm:inline">Profil</span>
 
