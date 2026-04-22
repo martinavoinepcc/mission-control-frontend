@@ -13,16 +13,27 @@ const config: Config = {
         display: ['"Space Grotesk"', 'Inter', 'sans-serif'],
       },
       colors: {
+        // Palette calibrée sur le logo Mission Control (fond noir pur + bleu électrique #29D0FE).
         cosmos: {
-          950: '#050814',
-          900: '#0A0F24',
-          800: '#12193A',
-          700: '#1B2454',
+          950: '#000208', // fond noir du logo
+          900: '#060E20',
+          800: '#0E1B36',
+          700: '#15264D',
         },
         neon: {
-          violet: '#9B6DFF',
-          cyan: '#5EEAFF',
-          pink: '#FF6DE0',
+          // La clé "violet" est conservée pour ne pas casser les centaines d'usages Tailwind
+          // (bg-neon-violet, text-neon-violet, etc.) — mais la VALEUR est maintenant le bleu
+          // électrique du logo. Résultat : tous les accents primary basculent en bleu vif.
+          violet: '#29D0FE',
+          cyan:   '#5EEAFF',
+          pink:   '#FF6DE0', // conservé tel quel — usage minoritaire (halo login, zéro sur messagerie)
+        },
+        mc: {
+          electric: '#29D0FE',
+          sky:      '#5EEAFF',
+          deep:     '#0A6FD9',
+          steel:    '#64748B',
+          space:    '#000208',
         },
       },
       keyframes: {
@@ -39,8 +50,8 @@ const config: Config = {
           '50%': { transform: 'translateY(-8px)' },
         },
         'glow': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(155, 109, 255, 0.35)' },
-          '50%': { boxShadow: '0 0 40px rgba(155, 109, 255, 0.65)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(41, 208, 254, 0.35)' },
+          '50%': { boxShadow: '0 0 40px rgba(41, 208, 254, 0.65)' },
         },
       },
       animation: {

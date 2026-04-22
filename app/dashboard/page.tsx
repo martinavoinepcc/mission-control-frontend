@@ -200,13 +200,13 @@ function DashboardInner() {
 
         sub: 'Espace de travail — zen, sérieux, concentré.',
 
-        gradient: 'from-slate-400 to-emerald-300',
+        gradient: 'from-slate-300 to-sky-400',
 
         blob1: 'bg-slate-500',
 
-        blob2: 'bg-emerald-500',
+        blob2: 'bg-sky-500',
 
-        adminBtn: 'border-emerald-400/30 text-emerald-300/90 hover:bg-emerald-400/10',
+        adminBtn: 'border-sky-400/30 text-sky-300/90 hover:bg-sky-400/10',
 
         backBtn: 'border-slate-400/30 text-slate-300/90 hover:bg-slate-400/10',
 
@@ -276,7 +276,7 @@ function DashboardInner() {
 
       {isWork && (
 
-        <div className="blob bg-emerald-600 w-[320px] h-[320px] -top-20 right-10 opacity-30 animate-pulse-slow" />
+        <div className="blob bg-sky-600 w-[320px] h-[320px] -top-20 right-10 opacity-30 animate-pulse-slow" />
 
       )}
 
@@ -290,9 +290,21 @@ function DashboardInner() {
 
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
 
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${vibe.gradient} flex items-center justify-center flex-shrink-0`}>
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-cosmos-950">
 
-              <FontAwesomeIcon icon={UI.compass} className="text-white text-lg" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+
+              <img
+
+                src="/logo/mc-logo-80.png"
+
+                alt="Mission Control"
+
+                draggable={false}
+
+                className="w-10 h-10 object-contain"
+
+              />
 
             </div>
 

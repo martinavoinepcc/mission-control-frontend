@@ -53,7 +53,7 @@ export default function LoginPage() {
           const dy = particles[i].y - particles[j].y;
           const d = Math.hypot(dx, dy);
           if (d < 140) {
-            ctx.strokeStyle = `rgba(155, 109, 255, ${0.15 * (1 - d / 140)})`;
+            ctx.strokeStyle = `rgba(41, 208, 254, ${0.15 * (1 - d / 140)})`;
             ctx.lineWidth = 0.6;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
@@ -125,12 +125,16 @@ export default function LoginPage() {
             {/* Orbital rings */}
             <div className="orbital-ring w-32 h-32" />
             <div className="orbital-ring reverse w-24 h-24" />
-            {/* Halo */}
-            <div className="absolute w-16 h-16 bg-gradient-to-br from-neon-violet to-neon-cyan rounded-2xl blur-2xl opacity-70" />
-            {/* Logo */}
-            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-violet to-neon-cyan flex items-center justify-center animate-glow">
-              <FontAwesomeIcon icon={UI.compass} className="text-white text-2xl" />
-            </div>
+            {/* Halo bleu électrique derrière le logo */}
+            <div className="absolute w-20 h-20 bg-gradient-to-br from-neon-violet to-neon-cyan rounded-full blur-2xl opacity-70" />
+            {/* Logo Mission Control */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo/mc-icon-256.png"
+              alt="Mission Control"
+              draggable={false}
+              className="relative w-20 h-20 object-contain animate-glow rounded-2xl"
+            />
           </div>
           <h1 className="text-3xl font-bold font-display tracking-tight glitch">
             <span className="grad-text">My Mission Control</span>
