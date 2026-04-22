@@ -282,7 +282,13 @@ function DashboardInner() {
 
 
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div
+
+        className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pb-6 sm:pb-10"
+
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+
+      >
 
         {/* Header */}
 
