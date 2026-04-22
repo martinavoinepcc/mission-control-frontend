@@ -15,6 +15,7 @@ import { UI, iconForApp } from '@/lib/icons';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import PushBanner from '@/components/push/PushBanner';
 import { listConversations } from '@/lib/messagerie-api';
+import { setAppBadge } from '@/lib/app-badge';
 
 // Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
 const APP_PRIORITY: Record<string, number> = {
@@ -140,7 +141,11 @@ function DashboardInner() {
 
         if (cancelled) return;
 
-        setUnreadTotal(convos.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+        const total = convos.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+
+        setUnreadTotal(total);
+
+        setAppBadge(total); // pastille iPhone home screen / dock macOS
 
       } catch {
 

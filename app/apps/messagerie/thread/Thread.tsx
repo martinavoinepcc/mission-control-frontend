@@ -8,6 +8,7 @@ import { getStoredUser, type User as MeUser } from '@/lib/api';
 import {
   getConversation,
   listMessages,
+  listConversations,
   sendMessage,
   markConversationRead,
   conversationDisplayName,
@@ -20,6 +21,7 @@ import {
 } from '@/lib/messagerie-api';
 import Avatar from '@/components/Avatar';
 import { compressImage, humanBytes } from '@/lib/image-utils';
+import { setAppBadge } from '@/lib/app-badge';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -153,7 +155,18 @@ export default function Thread() {
 
   useEffect(() => {
     if (!loadingInitial && validId) {
-      markConversationRead(conversationId).catch(() => {});
+      markConversationRead(conversationId)
+        .then(async () => {
+          // Recalcule le total non-lus pour mettre à jour la pastille iPhone
+          try {
+            const all = await listConversations();
+            const total = all.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+            setAppBadge(total);
+          } catch {
+            /* silencieux */
+          }
+        })
+        .catch(() => {});
       window.setTimeout(() => scrollToBottom('auto'), 60);
     }
   }, [loadingInitial, conversationId, validId, scrollToBottom]);

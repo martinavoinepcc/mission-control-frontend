@@ -12,12 +12,17 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
   },
   icons: {
+    // Onglet navigateur (laptop) → logo BLANC
     icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-64.png', sizes: '64x64', type: 'image/png' },
       { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+    // Raccourci iPhone (home screen, iOS apple-touch-icon) → logo NOIR
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/apple-touch-icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
   },
 };
 

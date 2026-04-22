@@ -17,6 +17,7 @@ import {
 } from '@/lib/messagerie-api';
 import Avatar from '@/components/Avatar';
 import PushBanner from '@/components/push/PushBanner';
+import { setAppBadge } from '@/lib/app-badge';
 
 // --- Stack d'avatars (photo si dispo, sinon couleur+initiale) ---
 function StackedAvatars({
@@ -260,6 +261,8 @@ export default function MessagerieList() {
       const list = await listConversations();
       setConvos(list);
       setError(null);
+      const total = list.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+      setAppBadge(total); // resync pastille à chaque poll
     } catch (e: any) {
       setError(e?.message || 'Erreur de chargement');
     }
