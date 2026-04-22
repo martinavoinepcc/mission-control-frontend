@@ -52,6 +52,16 @@ export type User = {
   role: 'ADMIN' | 'MEMBER';
   profile: 'ADULT' | 'CHILD';
   mustChangePassword: boolean;
+  avatarData?: string | null;        // data URL base64 (inline)
+  avatarUpdatedAt?: string | null;
+};
+
+// Utilisateur dans le picker "Nouvelle conversation" — pas d'email exposé
+export type PickableUser = {
+  id: number;
+  firstName: string;
+  username: string | null;
+  avatarData: string | null;
 };
 
 export type App = {
@@ -84,6 +94,30 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
 export async function getMe() {
   return request<{ user: User; apps: App[] }>('/users/me', { method: 'GET' });
+}
+
+// Liste des users qui ont accès à la messagerie (pour le picker).
+export async function listPickableUsers() {
+  return request<{ users: PickableUser[] }>('/users', { method: 'GET' });
+}
+
+// Avatar — upload/delete
+export async function uploadAvatar(dataUrl: string) {
+  return request<{ ok: true; avatarData: string; avatarUpdatedAt: string }>(
+    '/users/me/avatar',
+    { method: 'POST', body: JSON.stringify({ data: dataUrl }) }
+  );
+}
+
+export async function deleteAvatar() {
+  return request<{ ok: true }>('/users/me/avatar', { method: 'DELETE' });
+}
+
+// URL publique pour l'avatar d'un user (utilisée dans les push icons).
+const API_URL_EXPORT = process.env.NEXT_PUBLIC_API_URL || 'https://api.my-mission-control.com';
+export function avatarUrlFor(userId: number, version?: string | null): string {
+  const v = version ? `?v=${encodeURIComponent(version)}` : '';
+  return `${API_URL_EXPORT}/users/${userId}/avatar${v}`;
 }
 
 // ============ ÉDUCATIF ============

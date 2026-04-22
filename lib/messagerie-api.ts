@@ -32,6 +32,8 @@ async function jsonOr<T>(res: Response, fallback: T): Promise<T> {
 export type MsgAuthor = {
   id: number;
   firstName: string;
+  hasAvatar?: boolean;
+  avatarUpdatedAt?: string | null;
 };
 
 export type ConversationSummary = {
@@ -61,11 +63,20 @@ export type ConversationDetails = {
   participants: Array<MsgAuthor & { username?: string | null }>;
 };
 
+export type MessageImageMeta = {
+  data: string;
+  width?: number;
+  height?: number;
+};
+
 export type Message = {
   id: number;
   authorId: number;
   authorFirstName: string | null;
   body: string;
+  imageData?: string | null;
+  imageWidth?: number | null;
+  imageHeight?: number | null;
   createdAt: string;
   editedAt?: string | null;
 };
@@ -98,10 +109,18 @@ export async function listMessages(
   return (await res.json()) as { messages: Message[]; hasMore: boolean };
 }
 
-export async function sendMessage(conversationId: number, body: string): Promise<Message> {
+export async function sendMessage(
+  conversationId: number,
+  body: string,
+  image?: MessageImageMeta
+): Promise<Message> {
+  const payload: any = { body };
+  if (image && image.data) {
+    payload.image = { data: image.data, width: image.width, height: image.height };
+  }
   const res = await authFetch(`/conversations/${conversationId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ body }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
   return (await res.json()) as Message;
@@ -215,4 +234,20 @@ export function isSameCalendarDay(a: string, b: string): boolean {
     da.getMonth() === db.getMonth() &&
     da.getDate() === db.getDate()
   );
+}
+
+// ---- URL publique de l'avatar (utilisée aussi dans les push icons côté backend) ----
+
+export function avatarUrlFor(userId: number, version?: string | null): string | null {
+  if (!userId) return null;
+  const v = version ? `?v=${encodeURIComponent(version)}` : '';
+  return `${API_URL}/users/${userId}/avatar${v}`;
+}
+
+// Helper : retourne le src d'avatar à utiliser côté UI pour un participant.
+// Si l'user a un avatar connu (hasAvatar=true), on renvoie l'URL binaire publique.
+// Sinon null → le composant Avatar affichera l'initiale colorée.
+export function participantAvatarSrc(p: MsgAuthor): string | null {
+  if (!p.hasAvatar) return null;
+  return avatarUrlFor(p.id, p.avatarUpdatedAt || null);
 }

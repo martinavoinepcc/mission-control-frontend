@@ -13,6 +13,19 @@ import { getMe, clearToken, type User, type App } from '@/lib/api';
 import { UI, iconForApp } from '@/lib/icons';
 
 import { WeatherWidget } from '@/components/WeatherWidget';
+import PushBanner from '@/components/push/PushBanner';
+import { listConversations } from '@/lib/messagerie-api';
+
+// Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
+const APP_PRIORITY: Record<string, number> = {
+  messagerie: 0,
+  educatif: 10,
+  maison: 20,
+  chalet: 30,
+  assistant: 40,
+  qscale: 50,
+  logifox: 60,
+};
 
 
 
@@ -37,6 +50,9 @@ function DashboardInner() {
   const [apps, setApps] = useState<App[]>([]);
 
   const [loading, setLoading] = useState(true);
+
+  const [unreadTotal, setUnreadTotal] = useState<number>(0);
+  const [hasMessagerie, setHasMessagerie] = useState<boolean>(false);
 
 
 
@@ -78,11 +94,85 @@ function DashboardInner() {
 
   const filteredApps = useMemo(
 
-    () => apps.filter((a) => (a.realm || 'FAMILY') === realm),
+    () => apps
+
+      .filter((a) => (a.realm || 'FAMILY') === realm)
+
+      .slice()
+
+      .sort((a, b) => {
+
+        const pa = APP_PRIORITY[a.slug] ?? 999;
+
+        const pb = APP_PRIORITY[b.slug] ?? 999;
+
+        return pa - pb;
+
+      }),
 
     [apps, realm]
 
   );
+
+
+
+  useEffect(() => {
+
+    setHasMessagerie(apps.some((a) => a.slug === 'messagerie'));
+
+  }, [apps]);
+
+
+
+  // Compteur non-lus dans le header (poll 30s, sans bruit si échec)
+
+  useEffect(() => {
+
+    if (!hasMessagerie) { setUnreadTotal(0); return; }
+
+    let cancelled = false;
+
+    const pull = async () => {
+
+      try {
+
+        const convos = await listConversations();
+
+        if (cancelled) return;
+
+        setUnreadTotal(convos.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+
+      } catch {
+
+        /* silencieux */
+
+      }
+
+    };
+
+    pull();
+
+    const t = window.setInterval(() => {
+
+      if (document.visibilityState === 'visible') pull();
+
+    }, 30000);
+
+    const onVis = () => { if (document.visibilityState === 'visible') pull(); };
+
+    document.addEventListener('visibilitychange', onVis);
+
+    return () => {
+
+      cancelled = true;
+
+      window.clearInterval(t);
+
+      document.removeEventListener('visibilitychange', onVis);
+
+    };
+
+  }, [hasMessagerie]);
 
 
 
@@ -260,6 +350,38 @@ function DashboardInner() {
 
             )}
 
+            {hasMessagerie && (
+
+              <button
+
+                onClick={() => router.push('/apps/messagerie/')}
+
+                className="relative text-sm w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-fuchsia-400/30 text-fuchsia-200 hover:bg-fuchsia-400/10 transition flex items-center justify-center sm:gap-2"
+
+                aria-label={`Messagerie${unreadTotal > 0 ? ` (${unreadTotal} non lus)` : ''}`}
+
+                title="Messagerie"
+
+              >
+
+                <FontAwesomeIcon icon={UI.comments} className="text-sm sm:text-xs" />
+
+                <span className="hidden sm:inline">Messagerie</span>
+
+                {unreadTotal > 0 && (
+
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-fuchsia-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-slate-950">
+
+                    {unreadTotal > 99 ? '99+' : unreadTotal}
+
+                  </span>
+
+                )}
+
+              </button>
+
+            )}
+
             <button
 
               onClick={() => router.push('/profil')}
@@ -331,6 +453,12 @@ function DashboardInner() {
           </div>
 
         </section>
+
+
+
+        {/* Bannière d'activation des notifs — visible sur le dashboard FAMILY seulement */}
+
+        {!isWork && <PushBanner />}
 
 
 

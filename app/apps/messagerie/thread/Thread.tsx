@@ -11,50 +11,26 @@ import {
   sendMessage,
   markConversationRead,
   conversationDisplayName,
-  avatarColor,
-  avatarInitial,
   formatDateSeparator,
   isSameCalendarDay,
+  participantAvatarSrc,
   type ConversationDetails,
   type Message,
+  type MsgAuthor,
 } from '@/lib/messagerie-api';
+import Avatar from '@/components/Avatar';
+import { compressImage, humanBytes } from '@/lib/image-utils';
 
 const POLL_INTERVAL_MS = 5000;
 
-// --- Small presentational pieces ---
-
-function Avatar({
-  userId,
-  firstName,
-  size = 36,
-  ring = false,
-}: {
-  userId: number;
-  firstName: string | null;
-  size?: number;
-  ring?: boolean;
-}) {
-  const c = avatarColor(userId);
-  return (
-    <div
-      className={`${c.bg} text-white rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${
-        ring ? 'ring-2 ring-slate-900' : ''
-      }`}
-      style={{ width: size, height: size, fontSize: Math.max(12, Math.floor(size / 2.4)) }}
-      aria-label={firstName || 'Membre'}
-      title={firstName || ''}
-    >
-      {avatarInitial(firstName)}
-    </div>
-  );
-}
+// --- Presentational helpers ---
 
 function StackedAvatars({
   members,
   currentUserId,
   max = 3,
 }: {
-  members: Array<{ id: number; firstName: string }>;
+  members: MsgAuthor[];
   currentUserId: number;
   max?: number;
 }) {
@@ -65,10 +41,20 @@ function StackedAvatars({
   return (
     <div className="flex -space-x-2 flex-shrink-0">
       {shown.map((m) => (
-        <Avatar key={m.id} userId={m.id} firstName={m.firstName} size={32} ring />
+        <Avatar
+          key={m.id}
+          userId={m.id}
+          firstName={m.firstName}
+          src={participantAvatarSrc(m)}
+          size={32}
+          ring
+        />
       ))}
       {rest > 0 && (
-        <div className="h-8 w-8 rounded-full bg-slate-700 text-white text-[11px] flex items-center justify-center ring-2 ring-slate-900">
+        <div
+          className="h-8 w-8 rounded-full bg-slate-700 text-white text-[11px] flex items-center justify-center"
+          style={{ boxShadow: '0 0 0 2px #0f172a' }}
+        >
           +{rest}
         </div>
       )}
@@ -86,7 +72,7 @@ function DateSeparator({ iso }: { iso: string }) {
   );
 }
 
-// --- Main component ---
+// --- Main ---
 
 export default function Thread() {
   const router = useRouter();
@@ -103,8 +89,21 @@ export default function Thread() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
 
+  // Image attachment state
+  const [attachPreview, setAttachPreview] = useState<{
+    dataUrl: string;
+    width: number;
+    height: number;
+    bytes: number;
+  } | null>(null);
+  const [attaching, setAttaching] = useState(false);
+
+  // Lightbox (tap image to zoom)
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     const el = scrollerRef.current;
@@ -135,7 +134,6 @@ export default function Thread() {
       return;
     }
     setUser(u);
-
     if (!validId) {
       setLoadingInitial(false);
       return;
@@ -183,10 +181,9 @@ export default function Thread() {
     const el = scrollerRef.current;
     if (!el) return;
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distance < 200) window.setTimeout(() => scrollToBottom('smooth'), 30);
+    if (distance < 250) window.setTimeout(() => scrollToBottom('smooth'), 30);
   }, [messages.length, scrollToBottom]);
 
-  // Auto-grow textarea (jusqu'à ~5 lignes)
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -194,16 +191,48 @@ export default function Thread() {
     ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
   }, [draft]);
 
+  async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+    if (!file.type.startsWith('image/')) {
+      setError('Fichier non supporté (image requise).');
+      return;
+    }
+    setAttaching(true);
+    setError(null);
+    try {
+      const c = await compressImage(file, { maxDim: 1600, maxBytes: 600 * 1024 });
+      setAttachPreview({ dataUrl: c.dataUrl, width: c.width, height: c.height, bytes: c.bytes });
+    } catch (err: any) {
+      setError(err?.message || 'Erreur de compression');
+    } finally {
+      setAttaching(false);
+    }
+  }
+
   async function onSend(e?: React.FormEvent) {
     if (e) e.preventDefault();
     const body = draft.trim();
-    if (!body || sending || !validId) return;
+    if (!validId || sending) return;
+    if (!body && !attachPreview) return;
     setSending(true);
     setError(null);
     try {
-      const msg = await sendMessage(conversationId, body);
+      const msg = await sendMessage(
+        conversationId,
+        body,
+        attachPreview
+          ? {
+              data: attachPreview.dataUrl,
+              width: attachPreview.width,
+              height: attachPreview.height,
+            }
+          : undefined
+      );
       setMessages((prev) => [...prev, msg]);
       setDraft('');
+      setAttachPreview(null);
       window.setTimeout(() => scrollToBottom('smooth'), 30);
     } catch (e: any) {
       setError(e?.message || "Erreur d'envoi");
@@ -215,7 +244,15 @@ export default function Thread() {
 
   const participantsList = useMemo(() => {
     if (!convo) return [];
-    return convo.participants.map((p) => ({ id: p.id, firstName: p.firstName }));
+    return convo.participants;
+  }, [convo]);
+
+  const authorMap = useMemo(() => {
+    const m: Record<number, { firstName: string; hasAvatar?: boolean; avatarUpdatedAt?: string | null }> = {};
+    (convo?.participants || []).forEach((p) => {
+      m[p.id] = { firstName: p.firstName, hasAvatar: p.hasAvatar, avatarUpdatedAt: p.avatarUpdatedAt };
+    });
+    return m;
   }, [convo]);
 
   if (!user) return null;
@@ -239,12 +276,12 @@ export default function Thread() {
     ? convo.participants
         .filter((p) => p.id !== user.id)
         .map((p) => p.firstName)
-        .join(' · ') || 'Personne d\'autre pour le moment'
+        .join(' · ') || "Personne d'autre pour le moment"
     : '';
 
   return (
     <main className="flex flex-col h-[100dvh] bg-slate-950 text-slate-100 overflow-x-hidden">
-      {/* HEADER — safe-area top, bouton back bien visible sous la dynamic island */}
+      {/* HEADER */}
       <header
         className="border-b border-white/5 bg-slate-950/90 backdrop-blur-md"
         style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
@@ -265,7 +302,7 @@ export default function Thread() {
         </div>
       </header>
 
-      {/* SCROLLING MESSAGES AREA */}
+      {/* MESSAGES */}
       <div
         ref={scrollerRef}
         className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-4"
@@ -286,8 +323,12 @@ export default function Thread() {
               const next = i < messages.length - 1 ? messages[i + 1] : null;
 
               const showDateSep = !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
-              const firstOfGroup = !prev || prev.authorId !== m.authorId || !isSameCalendarDay(prev.createdAt, m.createdAt);
-              const lastOfGroup = !next || next.authorId !== m.authorId || !isSameCalendarDay(next.createdAt, m.createdAt);
+              const firstOfGroup =
+                !prev || prev.authorId !== m.authorId || !isSameCalendarDay(prev.createdAt, m.createdAt);
+              const lastOfGroup =
+                !next || next.authorId !== m.authorId || !isSameCalendarDay(next.createdAt, m.createdAt);
+
+              const authorInfo = authorMap[m.authorId] || { firstName: m.authorFirstName || '' };
 
               return (
                 <div key={m.id}>
@@ -300,7 +341,17 @@ export default function Thread() {
                     {!mine && (
                       <div className="w-9 flex-shrink-0">
                         {lastOfGroup ? (
-                          <Avatar userId={m.authorId} firstName={m.authorFirstName} size={32} />
+                          <Avatar
+                            userId={m.authorId}
+                            firstName={m.authorFirstName}
+                            src={participantAvatarSrc({
+                              id: m.authorId,
+                              firstName: m.authorFirstName || '',
+                              hasAvatar: authorInfo.hasAvatar,
+                              avatarUpdatedAt: authorInfo.avatarUpdatedAt || null,
+                            })}
+                            size={32}
+                          />
                         ) : null}
                       </div>
                     )}
@@ -310,21 +361,48 @@ export default function Thread() {
                           {m.authorFirstName}
                         </span>
                       )}
-                      <div
-                        className={`px-3.5 py-2 text-[15px] leading-snug ${
-                          mine
-                            ? 'bg-fuchsia-500 text-white'
-                            : 'bg-slate-800 text-slate-100'
-                        }`}
-                        style={{
-                          wordBreak: 'break-word',
-                          borderRadius: 18,
-                          borderBottomRightRadius: mine && lastOfGroup ? 6 : 18,
-                          borderBottomLeftRadius: !mine && lastOfGroup ? 6 : 18,
-                        }}
-                      >
-                        {m.body}
-                      </div>
+                      {m.imageData && (
+                        <button
+                          type="button"
+                          onClick={() => setLightbox(m.imageData!)}
+                          className={`mb-1 max-w-full overflow-hidden rounded-2xl ${
+                            mine ? 'self-end' : 'self-start'
+                          }`}
+                          aria-label="Voir l'image"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={m.imageData}
+                            alt=""
+                            width={m.imageWidth || undefined}
+                            height={m.imageHeight || undefined}
+                            style={{
+                              maxHeight: 360,
+                              maxWidth: '100%',
+                              width: 'auto',
+                              height: 'auto',
+                              display: 'block',
+                            }}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </button>
+                      )}
+                      {m.body && (
+                        <div
+                          className={`px-3.5 py-2 text-[15px] leading-snug ${
+                            mine ? 'bg-fuchsia-500 text-white' : 'bg-slate-800 text-slate-100'
+                          }`}
+                          style={{
+                            wordBreak: 'break-word',
+                            borderRadius: 18,
+                            borderBottomRightRadius: mine && lastOfGroup ? 6 : 18,
+                            borderBottomLeftRadius: !mine && lastOfGroup ? 6 : 18,
+                          }}
+                        >
+                          {m.body}
+                        </div>
+                      )}
                     </div>
                   </li>
                 </div>
@@ -340,12 +418,55 @@ export default function Thread() {
         </div>
       )}
 
-      {/* INPUT — safe-area bottom, bouton send collé au textarea */}
+      {/* Preview image avant envoi */}
+      {attachPreview && (
+        <div className="border-t border-white/5 bg-slate-900/60 px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={attachPreview.dataUrl}
+              alt="Aperçu"
+              className="h-16 w-16 rounded-lg object-cover"
+            />
+            <div className="min-w-0 flex-1 text-xs text-slate-300">
+              <p className="truncate">
+                Image prête à envoyer — {humanBytes(attachPreview.bytes)}
+              </p>
+              <p className="text-slate-500">{attachPreview.width}×{attachPreview.height}</p>
+            </div>
+            <button
+              onClick={() => setAttachPreview(null)}
+              className="h-8 w-8 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center"
+              aria-label="Retirer"
+            >
+              <FontAwesomeIcon icon={UI.close} className="text-xs" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* INPUT */}
       <form
         onSubmit={onSend}
         className="flex items-end gap-2 border-t border-white/5 bg-slate-950/95 px-3 py-2 sm:px-4"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={attaching || sending}
+          aria-label="Joindre une image"
+          className="h-11 w-11 flex-shrink-0 rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center disabled:opacity-50"
+        >
+          <FontAwesomeIcon icon={UI.plus} />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onPickImage}
+        />
         <div className="flex flex-1 items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 pl-4 pr-2 py-1 focus-within:border-fuchsia-500/60">
           <textarea
             ref={textareaRef}
@@ -357,14 +478,14 @@ export default function Thread() {
                 onSend();
               }
             }}
-            placeholder="Écris un message…"
+            placeholder={attachPreview ? "Ajoute un message (optionnel)…" : "Écris un message…"}
             rows={1}
             className="flex-1 resize-none bg-transparent py-2 text-[16px] text-white placeholder:text-slate-500 focus:outline-none"
             style={{ maxHeight: 140 }}
           />
           <button
             type="submit"
-            disabled={sending || !draft.trim()}
+            disabled={sending || attaching || (!draft.trim() && !attachPreview)}
             aria-label="Envoyer"
             className="my-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-fuchsia-500 text-white transition hover:bg-fuchsia-400 disabled:opacity-30"
           >
@@ -372,6 +493,30 @@ export default function Thread() {
           </button>
         </div>
       </form>
+
+      {/* Lightbox (image plein écran) */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setLightbox(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt=""
+            className="max-h-full max-w-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightbox(null)}
+            aria-label="Fermer"
+            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-white/20 text-white hover:bg-white/30 flex items-center justify-center"
+            style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+          >
+            <FontAwesomeIcon icon={UI.close} />
+          </button>
+        </div>
+      )}
     </main>
   );
 }
