@@ -21,13 +21,14 @@ async function authFetch(path: string, init: RequestInit = {}): Promise<Response
 
 // ---- Helpers ----
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(base64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
-  return out;
+  const ab = new ArrayBuffer(raw.length);
+  const view = new Uint8Array(ab);
+  for (let i = 0; i < raw.length; i += 1) view[i] = raw.charCodeAt(i);
+  return ab;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer | null): string {
@@ -137,7 +138,7 @@ export async function subscribeToPush(): Promise<{ ok: true } | { ok: false; rea
       existing ||
       (await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+        applicationServerKey: urlBase64ToArrayBuffer(VAPID_PUBLIC),
       }));
 
     const p256dh = arrayBufferToBase64(sub.getKey('p256dh'));
