@@ -4,7 +4,7 @@
 //    avec fallback postMessage → window.location.href pour iOS PWA standalone
 //    où client.navigate() peut échouer silencieusement.
 
-const SW_VERSION = '2026-04-22-phase3';
+const SW_VERSION = '2026-04-22-phase3-image';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -38,6 +38,10 @@ self.addEventListener('push', (event) => {
       receivedAt: Date.now(),
     },
   };
+  // image = grande image dans la notif dépliée (Android) / long-press (iOS).
+  // Sur iPhone, c'est le seul moyen de faire apparaître la photo de l'auteur,
+  // car la petite icône du lock screen est forcée à l'icône de la PWA par iOS.
+  if (payload.image) options.image = payload.image;
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
