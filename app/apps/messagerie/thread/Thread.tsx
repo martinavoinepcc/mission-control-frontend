@@ -13,6 +13,7 @@ import {
   markConversationRead,
   deleteConversation,
   conversationDisplayName,
+  formatTime,
   formatDateSeparator,
   isSameCalendarDay,
   participantAvatarSrc,
