@@ -457,6 +457,11 @@ export default function Thread() {
                           {m.body}
                         </div>
                       )}
+                      {lastOfGroup && (
+                        <span className={`mt-0.5 px-1 text-[10px] text-slate-500 ${mine ? 'self-end' : 'self-start'}`}>
+                          {formatTime(m.createdAt)}
+                        </span>
+                      )}
                     </div>
                     {mine && (
                       <div className="w-9 flex-shrink-0">
