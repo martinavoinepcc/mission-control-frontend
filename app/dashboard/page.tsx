@@ -666,6 +666,7 @@ Bientôt disponible.`);
         else if (app.slug === 'maison') window.location.href = '/apps/maison/';
         else if (app.slug === 'chalet') window.location.href = '/apps/chalet/';
         else if (app.slug === 'messagerie') window.location.href = '/apps/messagerie/';
+        else if (app.slug === 'assistant') window.location.href = '/apps/friday/';
       }}
       className={cardClass}
       style={cardStyle}
