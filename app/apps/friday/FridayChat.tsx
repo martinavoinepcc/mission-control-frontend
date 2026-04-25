@@ -367,7 +367,10 @@ export default function FridayChat() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 py-3 space-y-1"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {loadingConvos ? (
             <div className="px-3 py-6 text-center text-white/40 text-sm">Chargement…</div>
           ) : convos.length === 0 ? (
@@ -419,9 +422,10 @@ export default function FridayChat() {
         </div>
       </aside>
 
-      {/* Main chat */}
+      {/* Main chat — min-h-0 + min-w-0 pour que les enfants overflow-y/x
+          fonctionnent correctement. h-full pour remplir le main 100dvh. */}
       <section
-        className="relative z-10 flex-1 flex flex-col min-w-0 h-full"
+        className="relative z-10 flex-1 flex flex-col min-w-0 min-h-0 h-full"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <header className="flex items-center gap-2 px-3 sm:px-4 h-14 border-b border-white/10 bg-slate-950/60 backdrop-blur-md flex-shrink-0">
@@ -457,8 +461,16 @@ export default function FridayChat() {
           </div>
         )}
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-4 py-4 sm:py-6">
-          <div className="max-w-3xl mx-auto space-y-4">
+        {/* min-h-0 + min-w-0 sur le scroll container :
+            crucial pour que flex-1 puisse shrink correctement et que l'overflow
+            interne déclenche bien le scroll (sinon iOS fait scroller le body
+            entier au lieu du conteneur, et la page paraît bloquée). */}
+        <div
+          ref={scrollRef}
+          className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 sm:px-4 py-4 sm:py-6"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          <div className="max-w-3xl mx-auto space-y-4 min-w-0">
             {!activeId && messages.length === 0 && (
               <EmptyState bridgeConfigured={bridgeConfigured} />
             )}
@@ -525,7 +537,9 @@ function MessageBubble({ message, userName }: { message: LiveMessage; userName: 
   const isError = !!message.errorMessage;
 
   return (
-    <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    // min-w-0 sur le flex row : permet aux enfants de shrink sous leur largeur
+    // intrinsèque (sinon un long mot pousse hors écran sur iPhone).
+    <div className={`flex gap-2 sm:gap-3 min-w-0 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -534,9 +548,14 @@ function MessageBubble({ message, userName }: { message: LiveMessage; userName: 
           <FontAwesomeIcon icon={faRobot} className="text-sm text-cyan-300" />
         </div>
       )}
-      <div className={`max-w-[80%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+      {/* min-w-0 + max-w pour laisser le contenu shrink. 85% sur mobile (un peu
+          plus généreux), 80% sur desktop. */}
+      <div className={`min-w-0 max-w-[85%] sm:max-w-[80%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
         <div
-          className={`px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
+          // [overflow-wrap:anywhere] : casse les longs mots/URLs n'importe où
+          // pour empêcher le débordement horizontal — break-words tout seul ne
+          // suffit pas pour les chaînes sans espaces.
+          className={`px-3 sm:px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] min-w-0 max-w-full ${
             isUser
               ? 'bg-cyan-500 text-white rounded-br-sm'
               : isError
@@ -547,7 +566,7 @@ function MessageBubble({ message, userName }: { message: LiveMessage; userName: 
           {message.content || (message.streaming ? <StreamingDots /> : '…')}
           {message.streaming && message.content && <span className="ml-1 inline-block w-1 h-3 bg-white/60 animate-pulse" />}
         </div>
-        <span className="text-[10px] text-white/30 px-2">
+        <span className="text-[10px] text-white/30 px-2 truncate max-w-full">
           {isUser ? userName : 'FRIDAY'} · {formatRelativeTime(message.createdAt)}
         </span>
       </div>
