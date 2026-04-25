@@ -46,6 +46,9 @@ export type FridayMessage = {
 
 export type BridgeStatus = {
   configured: boolean;
+  active?: boolean;          // FRIDAY a poll dans les 60 dernières secondes
+  lastPollAt?: string | null;
+  mode?: string;             // "pull"
 };
 
 // ───────── CRUD conversations ─────────

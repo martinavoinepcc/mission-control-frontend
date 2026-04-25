@@ -25,6 +25,7 @@ export default function FridayChat() {
 
   const [user, setUser] = useState<User | null>(null);
   const [bridgeConfigured, setBridgeConfigured] = useState<boolean | null>(null);
+  const [bridgeActive, setBridgeActive] = useState<boolean>(false);
   const [convos, setConvos] = useState<FridayConversation[]>([]);
   const [messages, setMessages] = useState<LiveMessage[]>([]);
   const [loadingConvos, setLoadingConvos] = useState(true);
@@ -57,6 +58,7 @@ export default function FridayChat() {
       const data = await listFridayConversations();
       setConvos(data.conversations);
       setBridgeConfigured(data.bridge.configured);
+      setBridgeActive(!!data.bridge.active);
     } catch (err: any) {
       setError(err?.message || 'Erreur de chargement.');
     } finally {
@@ -250,9 +252,18 @@ export default function FridayChat() {
         )
       );
     } finally {
+      // Si le stream s'est fermé sans qu'on ait reçu `done` (proxy timeout, network blip,
+      // delta géant qui passe pas), on re-fetch la conversation depuis la DB. Ça récupère
+      // le message FRIDAY saved côté serveur et remplace le placeholder bloqué.
+      const incomplete = streamingMessageId.current !== null;
       setStreaming(false);
       streamingMessageId.current = null;
-      // Refresh convo list ordering
+      if (incomplete && conversationId) {
+        try {
+          const data = await getFridayConversation(conversationId);
+          setMessages(data.messages);
+        } catch { /* silencieux — on a déjà affiché l'erreur */ }
+      }
       loadConvos();
     }
   }
@@ -273,7 +284,7 @@ export default function FridayChat() {
 
   if (!user) {
     return (
-      <main className="relative min-h-screen flex items-center justify-center">
+      <main className="relative flex items-center justify-center" style={{ height: '100dvh' }}>
         <div className="absolute inset-0 cosmic-grid" />
         <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
       </main>
@@ -281,7 +292,7 @@ export default function FridayChat() {
   }
 
   return (
-    <main className="relative min-h-screen flex">
+    <main className="relative flex overflow-hidden" style={{ height: '100dvh' }}>
       <div className="absolute inset-0 cosmic-grid pointer-events-none" />
       <div className="blob bg-neon-violet w-[400px] h-[400px] -top-32 -left-24 animate-pulse-slow opacity-40" />
       <div className="blob bg-neon-cyan w-[320px] h-[320px] -bottom-32 -right-24 animate-pulse-slow opacity-30" style={{ animationDelay: '2s' }} />
@@ -295,11 +306,15 @@ export default function FridayChat() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar : full-width sur petit mobile, 320px sur tablette+ */}
       <aside
-        className={`fixed lg:static z-40 inset-y-0 left-0 w-80 max-w-[85vw] flex flex-col border-r border-white/10 bg-slate-950/95 backdrop-blur-xl transition-transform lg:translate-x-0 ${
+        className={`fixed lg:static z-40 inset-y-0 left-0 w-[88vw] sm:w-80 sm:max-w-[85vw] flex flex-col border-r border-white/10 bg-slate-950/95 backdrop-blur-xl transition-transform lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
         <div className="flex items-center gap-2 px-4 h-14 border-b border-white/10 flex-shrink-0">
           <button
@@ -347,7 +362,7 @@ export default function FridayChat() {
           <div className="mx-3 mt-3 rounded-lg bg-amber-500/10 border border-amber-400/30 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
             <FontAwesomeIcon icon={faExclamationTriangle} className="mt-0.5 flex-shrink-0" />
             <div>
-              FRIDAY n&apos;est pas encore branchée. Configure <code className="text-amber-100">FRIDAY_WEBHOOK_URL</code> et <code className="text-amber-100">FRIDAY_HMAC_SECRET</code> dans Render.
+              FRIDAY n&apos;est pas encore branchée. Configure <code className="text-amber-100">FRIDAY_HMAC_SECRET</code> dans Render et démarre la boucle de poll côté FRIDAY.
             </div>
           </div>
         )}
@@ -390,11 +405,13 @@ export default function FridayChat() {
         <div className="border-t border-white/10 px-4 py-3 text-[10px] text-white/40 flex-shrink-0">
           <div>Connecté : <span className="text-white/60">{user.firstName}</span></div>
           <div className="mt-0.5">
-            Pont :
-            {bridgeConfigured ? (
-              <span className="ml-1 text-emerald-300">● actif</span>
-            ) : bridgeConfigured === false ? (
-              <span className="ml-1 text-amber-300">● non configuré</span>
+            FRIDAY :
+            {bridgeConfigured === false ? (
+              <span className="ml-1 text-amber-300">● non configurée</span>
+            ) : bridgeActive ? (
+              <span className="ml-1 text-emerald-300">● connectée</span>
+            ) : bridgeConfigured ? (
+              <span className="ml-1 text-amber-300">● en attente (boucle inactive)</span>
             ) : (
               <span className="ml-1 text-white/40">…</span>
             )}
@@ -403,11 +420,14 @@ export default function FridayChat() {
       </aside>
 
       {/* Main chat */}
-      <section className="relative z-10 flex-1 flex flex-col min-w-0">
-        <header className="flex items-center gap-2 px-4 h-14 border-b border-white/10 bg-slate-950/60 backdrop-blur-md flex-shrink-0">
+      <section
+        className="relative z-10 flex-1 flex flex-col min-w-0 h-full"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <header className="flex items-center gap-2 px-3 sm:px-4 h-14 border-b border-white/10 bg-slate-950/60 backdrop-blur-md flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/5 text-white/70 lg:hidden"
+            className="w-11 h-11 rounded-lg flex items-center justify-center hover:bg-white/5 text-white/70 lg:hidden"
             aria-label="Ouvrir la liste des conversations"
           >
             <FontAwesomeIcon icon={faBars} />
@@ -437,7 +457,7 @@ export default function FridayChat() {
           </div>
         )}
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-4 py-4 sm:py-6">
           <div className="max-w-3xl mx-auto space-y-4">
             {!activeId && messages.length === 0 && (
               <EmptyState bridgeConfigured={bridgeConfigured} />
@@ -451,7 +471,10 @@ export default function FridayChat() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 bg-slate-950/80 backdrop-blur-md px-4 py-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+        <div
+          className="border-t border-white/10 bg-slate-950/80 backdrop-blur-md px-3 sm:px-4 pt-3 flex-shrink-0"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
           <div className="max-w-3xl mx-auto flex items-end gap-2">
             <textarea
               ref={textareaRef}
@@ -460,19 +483,24 @@ export default function FridayChat() {
               onKeyDown={handleKeyDown}
               placeholder={
                 bridgeConfigured === false
-                  ? 'FRIDAY n\'est pas branchée — branche-la pour activer le chat.'
-                  : 'Écris à FRIDAY… (Shift+Entrée pour saut de ligne)'
+                  ? 'FRIDAY n\'est pas branchée — démarre sa boucle de poll.'
+                  : 'Écris à FRIDAY…'
               }
               rows={1}
-              className="flex-1 resize-none rounded-2xl bg-white/5 border border-white/10 focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20 outline-none px-4 py-3 text-sm text-white placeholder:text-white/30 max-h-[200px]"
+              // text-base = 16px : empêche iOS de zoomer auto sur le focus
+              className="flex-1 resize-none rounded-2xl bg-white/5 border border-white/10 focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20 outline-none px-4 py-3 text-base sm:text-sm text-white placeholder:text-white/30 max-h-[40vh]"
               disabled={streaming}
+              autoComplete="off"
+              autoCorrect="on"
+              spellCheck={true}
+              enterKeyHint="send"
             />
             <button
               onClick={send}
               disabled={streaming || !input.trim()}
-              className="h-11 w-11 rounded-2xl flex items-center justify-center bg-cyan-500 text-white hover:bg-cyan-400 disabled:bg-white/10 disabled:text-white/30 transition flex-shrink-0"
+              className="h-12 w-12 sm:h-11 sm:w-11 rounded-2xl flex items-center justify-center bg-cyan-500 text-white hover:bg-cyan-400 active:scale-95 disabled:bg-white/10 disabled:text-white/30 transition flex-shrink-0"
               aria-label="Envoyer"
-              title="Envoyer (Entrée)"
+              title="Envoyer"
             >
               {streaming ? (
                 <FontAwesomeIcon icon={faCircleNotch} className="animate-spin" />
@@ -481,7 +509,7 @@ export default function FridayChat() {
               )}
             </button>
           </div>
-          <p className="max-w-3xl mx-auto text-[10px] text-white/30 mt-2 text-center">
+          <p className="max-w-3xl mx-auto text-[10px] text-white/30 mt-2 text-center hidden sm:block">
             FRIDAY peut faire des erreurs. Les conversations sont sauvegardées dans Mission Control.
           </p>
         </div>
