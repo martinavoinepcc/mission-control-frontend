@@ -257,7 +257,10 @@ export function ChaletControl({
   return (
     <main className="min-h-screen bg-[#0a0a14] text-white pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-20 flex items-center justify-between px-3 sm:px-5 py-3 border-b border-white/10 bg-black/60 backdrop-blur">
+      <header
+        className="sticky top-0 z-20 flex items-center justify-between px-3 sm:px-5 pb-3 border-b border-white/10 bg-black/60 backdrop-blur"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      >
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/dashboard')}
