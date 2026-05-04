@@ -1698,9 +1698,9 @@
 </head>
 <body>
 
-<!-- Bandeau transition Phase A (clone S1 layout pour S2; scenario V2 a porter) -->
+<!-- Bandeau Draft : Phase B port done, en attente VO HeyGen -->
 <div class="transition-banner">
-  <span>📝</span><span>S2 — clone layout S1. Scenario cookie/conditions a porter (Phase B).</span>
+  <span>📝</span><span>Draft — voix Kaz textuelle. VO HeyGen quand satisfait.</span>
 </div>
 
 <!-- ========== STREAM HEADER ========== -->
@@ -1980,56 +1980,57 @@
         <div class="status-text" id="statusText"></div>
       </div>
 
-      <!-- Choice cards overlay -->
+      <!-- Choice cards overlay (V2 — actions de protection) -->
       <div class="choice-overlay" id="choiceOverlay">
         <div class="choice-container">
-          <div class="choice-title">CHOISIS TA STRATÉGIE</div>
-          <div class="choice-subtitle">Le warrior est trop fort. Qu'est-ce qu'on change?</div>
+          <div class="choice-title">CHOISIS L'ACTION</div>
+          <div class="choice-subtitle">Plus de cookies dans l'inventaire. Quelle protection on cable a la place ?</div>
           <div class="choice-cards">
-            <div class="choice-card life" data-choice="life">
-              <div class="choice-icon">🩺</div>
-              <div class="choice-label">Plus de vie</div>
-              <div class="choice-desc">Si on tombe moins vite, on a le temps de riposter.</div>
-              <div class="choice-var">health = 200</div>
+            <div class="choice-card life" data-choice="useShield">
+              <div class="choice-icon">🛡️</div>
+              <div class="choice-label">Auto Shield</div>
+              <div class="choice-desc">Bulle bleue 3 secondes. Degats a zero pendant.</div>
+              <div class="choice-var">ruleAction = useShield</div>
             </div>
-            <div class="choice-card damage" data-choice="damage">
-              <div class="choice-icon">⚔️</div>
-              <div class="choice-label">Plus de dégâts</div>
-              <div class="choice-desc">One-shot le warrior avant qu'il frappe.</div>
-              <div class="choice-var">damage = 50</div>
-            </div>
-            <div class="choice-card speed" data-choice="speed">
+            <div class="choice-card damage" data-choice="autoDash">
               <div class="choice-icon">💨</div>
-              <div class="choice-label">Plus rapide</div>
-              <div class="choice-desc">Esquiver ses coups et le déborder.</div>
-              <div class="choice-var">speed = 2.0</div>
+              <div class="choice-label">Auto Dash</div>
+              <div class="choice-desc">Esquive rapide. Stamina utilisee.</div>
+              <div class="choice-var">ruleAction = autoDash</div>
+            </div>
+            <div class="choice-card speed" data-choice="autoAttack">
+              <div class="choice-icon">⚔️</div>
+              <div class="choice-label">Auto Attack</div>
+              <div class="choice-desc">Strike les zombies in range. Stamina full requis.</div>
+              <div class="choice-var">ruleAction = autoAttack</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Power choice overlay (Act 8) -->
+      <!-- Power choice overlay (Act 8 — style de combat boss) -->
       <div class="power-overlay" id="powerOverlay">
         <div class="choice-container">
-          <div class="choice-title" style="color:#fbbf24;">POWER MOVE — ÇA PASSE OU ÇA CASSE</div>
-          <div class="choice-subtitle">3 warriors. Un seul coup pour tous les éteindre. Choisis ton arme.</div>
+          <div class="choice-title" style="color:#fbbf24;">STYLE DE COMBAT BOSS</div>
+          <div class="choice-subtitle">200 HP, il tape 35. Choisis ton style avant d'ecrire la regle.</div>
           <div class="choice-cards">
-            <div class="power-card power-fire" data-power="fireball">
-              <div class="choice-icon">🔥</div>
-              <div class="choice-label">Fireball</div>
-              <div class="choice-desc">Boule de feu qui explose au sol. Large zone, gros dégâts.</div>
-              <div class="choice-var">int fireballDamage = 100;</div>
-            </div>            <div class="power-card power-lightning" data-power="lightning">
-              <div class="choice-icon">⚡</div>
-              <div class="choice-label">Lightning</div>
-              <div class="choice-desc">Éclair instantané, rapide, traverse les warriors en ligne.</div>
-              <div class="choice-var">int lightningDamage = 80;</div>
+            <div class="power-card power-fire" data-power="tank">
+              <div class="choice-icon">🛡️</div>
+              <div class="choice-label">Tank</div>
+              <div class="choice-desc">Encaisse les coups, regen via cookies. Tu vas long.</div>
+              <div class="choice-var">style = tank</div>
             </div>
-            <div class="power-card power-explosion" data-power="explosion">
-              <div class="choice-icon">💥</div>
-              <div class="choice-label">Explosion</div>
-              <div class="choice-desc">Boom circulaire massif autour de Kaz. Dégâts monstres.</div>
-              <div class="choice-var">int explosionDamage = 120;</div>
+            <div class="power-card power-lightning" data-power="ninja">
+              <div class="choice-icon">💨</div>
+              <div class="choice-label">Ninja</div>
+              <div class="choice-desc">Esquive constante. Stamina = ton oxygene.</div>
+              <div class="choice-var">style = ninja</div>
+            </div>
+            <div class="power-card power-explosion" data-power="berserker">
+              <div class="choice-icon">⚔️</div>
+              <div class="choice-label">Berserker</div>
+              <div class="choice-desc">Counter-strike full. Zero defense, max damage.</div>
+              <div class="choice-var">style = berserker</div>
             </div>
           </div>
         </div>
@@ -2163,63 +2164,73 @@
 const state = {
   act: 0,
   bubbleIdx: 0,
-  code: { health: 0, damage: 30, maxHealth: 100, speed: 1.0 },
+  // S2 — code editor V2: une regle if/else et ses pieces
+  // ruleOp: signe operateur (<, >, ==), ruleValue: seuil, ruleAction: action a declencher
+  code: {
+    life: 100,           // vie initiale Kaz dans la simulation
+    cookies: 2,          // inventaire cookies au depart
+    ruleOp: '?',         // slot a remplir en ACT 3 (vise '<')
+    ruleAction: 'eatCookie',  // action initiale
+    // Pour les variations
+    altVariable: 'life',
+    altOp: '<',
+    altValue: 50,
+    altAction: 'eatCookie',
+  },
+  installedRule: null,   // {variable, op, value, action} — la regle effectivement en place
   viewers: 1,
   followers: 0,
   xp: 0,
-  strategy: null,
+  strategy: null,        // pour la variation choisie ACT 5/6/7
   editingVar: null,
   canEdit: false,
-  allowedEdit: null, // which var is unlocked at this step
+  allowedEdit: null,
   advancing: false,
   chatOpen: false,
 };
 
-// ========== BUBBLE SEQUENCE ==========
+// ========== BUBBLE SEQUENCE — S2 V2 ==========
+// Pivot pedagogique 2026-05-04 : Kaz se plante (mange cookies a 100, swarm, meurt)
+// -> JaxPlayz code une regle qui le PROTEGE -> variations -> JaxPlayz ecrit la regle finale.
 const ACTS = [
-  // ACT 1 - La Galère
+  // ACT 1 (idx 0) - LA GALERE COOKIE
   {
-    name: "La Galère",
+    name: "La Galere Cookie",
     bubbles: [
-      "Yo yo yo ! Première fois en live, KazGamez_QC en stream ! 🎮",
-      "Je viens de finir mon mod SurvieXP. Un mini-mod Minecraft que j'ai codé moi-même. Let's tester...",
-      "Un zombie arrive. Cool cool. Je m'en occupe.",
-      "... Wait quoi ?!",
-      "JE MEURS EN UN COUP ?! Y'a un bug dans mon mod, c'est pas normal !",
-      "OK retry. C'est sûrement random...",
-      "NON. Encore mort. Ça fait 3 fois. Y'a VRAIMENT un bug.",
-      "Bon, je peux pas continuer à jouer comme ça. Faut checker le code Java.",
+      "Yo yo yo ! KazGamez_QC en stream ! 🎮 Je continue Survie XP — aujourd'hui on test les cookies.",
+      "Setup : j'ai 2 cookies dans mon inventaire. Chaque cookie soigne 50 HP. Je suis full life 100/100.",
+      "Reflexe humain : je vais pile les manger juste pour voir l'animation. Watch.",
+      "Yo j'ai mange les 2 cookies en 2 clics. J'etais deja a 100 HP. Pure gaspillage. Whatever, tantque je joue bien.",
+      "Wait... un swarm de zombies arrive. Cool je m'en occupe.",
+      "AYOYE ils sont 5 ! Je tape un pis 4 me cognent. Inventaire vide, plus de cookie pour heal.",
+      "JE MEURS. Pas parce que j'savais pas me battre. Parce que j'ai mange les cookies a 100 sans reflechir.",
+      "Bon. C'pas un bug, c'est une erreur de logique HUMAINE. Faut une REGLE qui empeche ca. Faut coder une condition.",
     ],
-    // Animations synced au dialogue
     beats: [
-      null,                  // 0 — "Yo yo yo !"
-      null,                  // 1 — intro mod
-      'zombie.spawn',        // 2 — "Un zombie arrive"
-      'zombie.strike_kaz',   // 3 — "Wait quoi ?!"
-      'kaz.game_over',       // 4 — "JE MEURS EN UN COUP ?!"
-      'arena.reset_fight',   // 5 — "OK retry"
-      () => {                // 6 — "Encore mort" (restrike + game over)
-        fireBeat('zombie.strike_kaz');
-        setTimeout(() => fireBeat('kaz.game_over'), 550);
-      },
-      null,                  // 7 — "Bon, faut checker le code"
+      null,                     // 0 — Yo yo
+      'cookie.appear_inventory',// 1 — Setup
+      'kaz.eat_cookie_double',  // 2 — pile les manger
+      null,                     // 3 — gaspillage
+      'swarm.spawn_5',          // 4 — swarm zombies arrive
+      'swarm.batter_kaz',       // 5 — ils tapent
+      'kaz.dies_swarm',         // 6 — JE MEURS
+      null,                     // 7 — c'pas un bug
     ],
     onEnter: () => {
-      setMood('stressed');
+      setMood('happy');
+      setTimeout(() => { state.viewers = 9; updateStats(); }, 800);
     },
-    onExit: () => { state.viewers = 1; updateStats(); },
+    onExit: () => { state.viewers = 9; updateStats(); },
   },
 
-  // ACT 2 - La Demande
+  // ACT 2 (idx 1) - LA DEMANDE A JAXPLAYZ
   {
     name: "La Demande",
     bubbles: [
-      "Attends... JE VOIS UN VIEWER DANS MON CHAT !",
-      "Yo JaxPlayz ! T'es mon PREMIER viewer ever ! 🙌",
-      "Écoute, j'ai littéralement les mains sur la manette, je peux pas aller taper dans le code moi-même.",
-      "Toi par contre, t'as ton clavier. Tu peux m'aider ? Genre, sérieusement ?",
-      "T'es officiellement mon Guy in the Chair. Comme Ned dans Spider-Man. 🕸️",
-      "OK regarde à droite de ton écran, y'a le fichier KazMod.java. C'est le code qui fait tourner mon mod.",
+      "Attends... j'ai un viewer dans le chat !",
+      "Yo JaxPlayz ! T'es la 1ere personne a watcher ce stream. Bro tu vas m'aider ?",
+      "Mes mains sont sur la manette. Toi t'as ton clavier. T'es mon Guy in the Chair.",
+      "Regarde a droite — KazMod.java. Le code qui fait tourner le jeu. On va y ajouter une REGLE qui m'empeche de manger pour rien.",
     ],
     onEnter: () => {
       setMood('focused');
@@ -2229,198 +2240,181 @@ const ACTS = [
     },
   },
 
-  // ACT 3 - La Leçon Guidée
+  // ACT 3 (idx 2) - JAXPLAYZ ECRIT LA 1RE CONDITION (op slot)
   {
-    name: "La Leçon Guidée",
+    name: "Ta 1re Condition",
     bubbles: [
-      "Trouve la ligne qui dit : int health = 0",
-      "Je te l'highlight en jaune. Tu la vois ?",
-      "OK regarde bien chaque mot. C'est important.",
-      "« int » → ça veut dire INTEGER, un chiffre entier (pas de virgule).",
-      "« health » → c'est juste le NOM qu'on donne à la variable. C'est une boîte étiquetée \"vie\".",
-      "« = 0 » → c'est la VALEUR dans la boîte. Et là c'est ZÉRO. Genre. ZÉRO.",
-      "BRO. Je spawn avec 0 de vie. Pas étonnant que je meurs en 1 coup. Celui qui a codé ça est une cave. (C'est moi.)",
-      "Clique sur le 0 en jaune et tape 100. Après, appuie sur le gros bouton vert TESTER.",
+      "Regarde la ligne `if (life ? 50)` — y'a un slot en jaune entre `life` et `50`. C'est l'OPERATEUR qui manque.",
+      "Une condition `if`, c'est : SI question vraie, ALORS action. Ici on veut « SI ma vie EST PLUS PETITE que 50, manger un cookie ».",
+      "Les operateurs : `<` plus petit que. `>` plus grand que. `==` egal a (deux signes egaux, pas un).",
+      "Clique sur le `?` jaune pis tape le bon signe. Apres, gros bouton vert TESTER.",
     ],
     onEnter: () => {
       setMood('focused');
-      highlightLine('health');
-      unlockEdit('health');
+      highlightLine('ruleOp');
+      unlockEdit('ruleOp');
     },
   },
 
-  // ACT 4 - Le Retry
+  // ACT 4 (idx 3) - LE FIX FONCTIONNE - ARENA TEST
   {
-    name: "Le Retry",
+    name: "Le Fix Marche",
     bubbles: [
-      "AAAH LET'S GOOOO ! 🔥",
-      "Regarde-moi survivre maintenant. C'était SEULEMENT ça le bug !",
-      "Tu viens de fixer ton premier bug de ta vie. Ça se fête.",
-      "Ma vie est à 100/100 maintenant. Le zombie va passer un mauvais quart d'heure.",
+      "AH LET'S GOOOO ! T'as installe la regle.",
+      "Watch — je suis a 100 HP. Le code va checker AVANT que je mange. Je tente de pesser sur E pour manger un cookie.",
+      "Refus ! Le code dit : life pas plus petit que 50, action ignoree. Le code me PROTEGE de mon propre clic random.",
+      "Maintenant les vrais zombies. Wave de 3 — watch ton code travailler.",
+      "Vie tombe a 35 — la condition se declenche TOUTE SEULE — cookie auto-mange, vie remonte. T'as rien fait. Le code l'a faite.",
+      "C'est ca coder. Une regle qu'on ecrit une fois, qui s'applique TOUT le temps tant que la condition matche.",
     ],
-    // Animations synced au dialogue
     beats: [
-      'arena.reset_fight',       // 0 — "LET'S GOOOO"
-      'zombie.strike_survives',  // 1 — "Regarde-moi survivre"
-      'kaz.finish_zombie',       // 2 — "Tu viens de fixer un bug"
-      null,                      // 3 — "Ma vie est à 100"
+      'arena.respawn_with_rule',  // 0 — t'as installe
+      'kaz.protected_block',       // 1 — Refus du clic
+      null,                        // 2 — explication refus
+      'wave.spawn_3_zombies',      // 3 — vrais zombies
+      'kaz.auto_heal_trigger',     // 4 — auto-heal
+      null,                        // 5 — c'est ca coder
     ],
     onEnter: () => {
-      setMood('happy');
+      setMood('hype');
       removeHighlight();
-      clearChoice();
       setTimeout(() => {
-        state.viewers = 3; state.followers = 2; updateStats();
-        pushChat('viewer1', 'MineBlox42', 'nice save 👏');
-      }, 1800);
-      setTimeout(() => pushChat('viewer2', 'PixelPro', 'first time watching, lets gooo'), 3200);
+        state.viewers = 18; state.followers = 4; updateStats();
+        pushChat('viewer1', 'cookieandy_90', 'holy shield 🛡️');
+        pushChat('viewer2', 'pixel_queen', 'jax = future safe streamer');
+      }, 1500);
+      setTimeout(() => pushChat('viewer3', 'speedrun_fr', 'AUTO HEAL is goated'), 3000);
     },
   },
 
-  // ACT 5 - L'Escalade
+  // ACT 5 (idx 4) - L'ESCALADE / VARIATION
   {
-    name: "L'Escalade",
+    name: "Variation Action",
     bubbles: [
-      "Wait. C'est quoi ÇA ? Wave 2 ?!",
-      "Un ZOMBIE WARRIOR. Lui il tape 40 de dégâts par coup.",
-      "Avec 100 de vie j'tiens 2 coups. C'est pas assez.",
-      "On est 3 viewers maintenant. Faut pas décevoir les gens. Qu'est-ce qu'on fait, chat ?",
-      "Regarde dans l'arène, y'a 3 stratégies qui s'offrent à nous. Choisis-en une.",
-      "T'as appris comment modifier une variable. C'est exactement la même move. Go, je te regarde.",
+      "OK on monte d'un cran. Wave 4 — 5 zombies pis je commence sans cookies dans l'inventaire.",
+      "Heal me sauvera pas cette fois — pas de cookies. Faut une AUTRE protection.",
+      "Bonne nouvelle : la condition `if (life < 50)` reste pareil. Faut juste changer L'ACTION. Eat cookie => use shield.",
+      "Trois choix possibles : useShield, autoDash, autoAttack. Choisis la strategie. Je suis ton style.",
     ],
-    // Animations synced au dialogue
     beats: [
-      'wave2.announce',             // 0 — "Wave 2 ?!"
-      'warrior.appears',            // 1 — "Un ZOMBIE WARRIOR"
-      'warrior.triple_kill_kaz',    // 2 — "J'tiens 2 coups"
-      null,                          // 3 — appel au chat
-      null,                          // 4 — "3 stratégies"
-      null,                          // 5 — "Go, je te regarde"
+      'wave.announce_4',          // 0 — wave 4
+      'wave.spawn_5_zombies',     // 1 — pas de cookies
+      null,                        // 2 — meme condition autre action
+      null,                        // 3 — choisis style
     ],
     onEnter: () => {
       setMood('stressed');
-      state.viewers = 3; state.followers = 2; updateStats();
       setTimeout(() => {
         showChoices();
-        pushChat('viewer1', 'MineBlox42', 'oh non le warrior 😱');
-      }, 4200);
+        pushChat('viewer1', 'cookieandy_90', 'shield > heal pour 0 cookies');
+      }, 3500);
     },
   },
 
-  // ACT 6 - Le Choix
+  // ACT 6 (idx 5) - APPLIQUE LE CHOIX
   {
-    name: "L'Application",
+    name: "Applique le Choix",
     bubbles: [
-      (s) => `Bon choix ! ${choiceText(s.strategy)}. Let's go.`,
-      (s) => `Va changer ${choiceVar(s.strategy)} dans le code. Même move qu'avant mais sans highlight cette fois.`,
-      "Trouve la bonne ligne, clique sur la valeur, tape la nouvelle. Tu connais la move.",
-      "Je te regarde. Take your time.",
+      (s) => `${actionTitle(s.strategy)} c'est solide. Maintenant remplace l'action dans le code.`,
+      "Trouve la ligne `eatCookie()` pis remplace par ton action. Clique pis tape.",
+      "Apres, TESTER. Je te regarde — take your time.",
     ],
     onEnter: () => {
       setMood('focused');
-      unlockEdit(strategyVar(state.strategy));
+      unlockEdit('ruleAction');
     },
   },
 
-  // ACT 7 (idx 6) - Victoire INTERMÉDIAIRE (Wave 2 down, but...)
+  // ACT 7 (idx 6) - VICTOIRE INTERMEDIAIRE + STAMINA INTRO
   {
-    name: "Wave 2 Down",
+    name: "Wave 4 Down",
     bubbles: [
-      "OHHHHH YES ! Warrior DOWN ! 🔥",
-      "Let's goooo ! On est passés de 0 à 12 followers. T'as sauvé mon stream, bro.",
-      "Mais attends... t'entends ça ?",
-      "C'est pas UN mob qui arrive. J'entends plusieurs pas. NON NON NON.",
+      "OHHHH YES. Wave 4 wipe avec ta nouvelle regle.",
+      "Stream prend des followers : 12 maintenant. T'as sauve mon ass.",
+      "Mais wait — j'entends quelque chose. Wave 5 arrive. Plus de zombies, ET un boss au fond.",
+      "Faut combiner DEUX regles : une pour heal, une pour autre chose. Bienvenue dans le `else if`.",
     ],
-    // Animations synced au dialogue
     beats: [
-      'warrior.combo_defeat',  // 0 — "Warrior DOWN !"
-      null,                    // 1 — "12 followers"
-      null,                    // 2 — "t'entends ça ?"
-      null,                    // 3 — "plusieurs pas"
+      'wave.combo_defeat_4',      // 0 — wave 4 wipe
+      null,                        // 1 — followers
+      'boss.distant_appear',       // 2 — wave 5 + boss au fond
+      null,                        // 3 — else if
     ],
     onEnter: () => {
       setMood('happy');
       setTimeout(() => {
-        pushChat('viewer1', 'MineBlox42', 'W W W W W');
-        pushChat('viewer3', 'DiamondDealer', 'followed 🔥');
-        pushChat('viewer2', 'PixelPro', 'OMG this stream');
+        pushChat('viewer1', 'cookieandy_90', 'W W W W');
+        pushChat('viewer3', 'manon_t', 'jax CODE');
+        pushChat('viewer2', 'pixel_queen', 'OMG this stream');
       }, 1800);
       setTimeout(() => {
-        state.viewers = 12; state.followers = 12; updateStats();
+        state.viewers = 22; state.followers = 12; updateStats();
       }, 2800);
     },
   },
 
-  // ACT 8 (idx 7) - Wave 3 ULTIME
+  // ACT 8 (idx 7) - LE BOSS APPROCHE - NEED POWER RULE
   {
-    name: "Wave 3",
+    name: "Boss Wave 5",
     bubbles: [
-      "WAVE 3 ! TROIS WARRIORS EN MÊME TEMPS !",
-      "Dude, plus de vie ça suffit pas pour wipe trois mobs. Plus de dégâts non plus — je frappe UN à la fois.",
-      "Il nous faut un POWER MOVE. Une attaque qui touche TOUT LE MONDE en un coup.",
-      "Et pour ça, on peut pas juste modifier une variable qui existe. Faut en INVENTER une NOUVELLE.",
-      "Choisis ton power move. C'est quoi ton style ?",
+      "WAVE 5 + LE BOSS ! 200 HP, il tape 35.",
+      "Une simple regle marche pas — faut combiner condition + action. Genre : SI life basse, eat cookie. SINON SI stamina full, autoAttack.",
+      "On va pas juste modifier — on va INVENTER ta regle finale from scratch. Comme tu l'as fait pour la variable en S1.",
+      "Choisis ton style de combat. C'est ton boss kill, ta strategie.",
     ],
-    // Animations synced au dialogue
     beats: [
-      () => { fireBeat('wave3.announce'); setTimeout(() => fireBeat('wave3.spawn_three'), 600); }, // 0
-      'wave3.triple_kill_kaz',  // 1 — "ça suffit pas"
-      null,                      // 2 — "POWER MOVE"
-      null,                      // 3 — "INVENTER"
-      null,                      // 4 — "C'est quoi ton style ?"
+      () => { fireBeat('wave3.announce'); setTimeout(() => fireBeat('boss.spawn_with_swarm'), 600); }, // 0
+      'kaz.boss_press',           // 1 — boss tape fort
+      null,                        // 2 — INVENTER
+      null,                        // 3 — choisis style
     ],
     onEnter: () => {
       setMood('stressed');
-      setTimeout(showPowerChoices, 5200);
+      setTimeout(showPowerChoices, 5000);
     },
   },
 
-  // ACT 9 (idx 8) - L'ÉCRITURE (Jax invente la variable from scratch)
+  // ACT 9 (idx 8) - JAXPLAYZ COMPOSE LA REGLE FINALE (4 slots)
   {
-    name: "Invente ta variable",
+    name: "Compose ta Regle",
     bubbles: [
-      (s) => `${powerTitle(s.power)} ! LET'S GO. On code ça ensemble, ligne par ligne.`,
-      "Regarde le code : j'ai ajouté une ligne VIDE en jaune. Tu vois les 3 SLOTS en pointillé ?",
-      "Pour créer une variable en Java, il faut 3 ingrédients : le TYPE, le NOM, la VALEUR. On y va slot par slot.",
-      "SLOT 1 — le TYPE. Pour un nombre de dégâts (chiffre entier sans virgule), c'est lequel ? Clique sur le premier slot.",
-      "SLOT 2 — le NOM. C'est TOI qui l'invente. Donne-lui un nom qui DIT ce que ça fait. Pas d'espace, pas de majuscule au début. Je te suggère un nom mais tu peux taper ce que tu veux.",
-      "SLOT 3 — la VALEUR. Combien de dégâts ton power fait ? Vise gros mais pas absurde.",
-      "Parfait. Ta variable est complète. LANCE LE TEST.",
+      (s) => `${powerTitle(s.power)} ! Let's go. On code ta regle finale, slot par slot.`,
+      "Regarde la ligne en jaune. 4 SLOTS : VARIABLE — OPERATEUR — VALEUR — ACTION.",
+      "SLOT 1 — VARIABLE. Sur quoi tu veux check ? life, stamina, ou zombiesNear ? Clique le 1er slot.",
+      "SLOT 2 — OPERATEUR. <, >, ou == ? Clique le 2e.",
+      "SLOT 3 — VALEUR. Le seuil qui declenche. 30, 50, ou 100 ?",
+      "SLOT 4 — ACTION. Quoi faire quand condition vraie ? eatCookie, useShield, autoDash, ou autoAttack ?",
+      "Parfait. Ta regle est complete. LANCE LE TEST.",
     ],
     onEnter: () => {
       setMood('focused');
-      addNewCodeLineSlot();
+      addRuleComposerLine();
     },
   },
 
-  // ACT 10 (idx 9) - VICTOIRE FINALE (max props)
+  // ACT 10 (idx 9) - GREAT SUCCESS - BOSS DOWN
   {
-    name: "GREAT SUCCESS",
+    name: "Boss Down",
     bubbles: [
       "BRO. BRO. BRO.",
-      "T'AS. ÉCRIT. UNE. VARIABLE. COMPLÈTE. EN JAVA. FROM SCRATCH. 🤯",
-      "Pas juste modifié un chiffre. T'as INVENTÉ du code. T'as décidé du type, du nom, de la valeur.",
-      (s) => `Et ton power ${powerTitle(s.power)} vient d'OBLITERATE trois warriors d'un coup. Viewer count : 50 viewers, 50 followers.`,
-      "Tu sais ce que ça veut dire ? T'es plus juste un viewer. T'es mon CO-DEV. Mon Guy in the Chair officiel.",
+      "T'AS. ECRIT. UNE. CONDITION. COMPLETE. EN JAVA. FROM SCRATCH. 🤯",
+      "Pas juste modifie un signe. T'as INVENTE la regle. Tu as choisi la variable, l'operateur, le seuil, l'action.",
+      (s) => `Ta regle vient de wipe le boss. Viewer count : 50, followers : 50.`,
+      "Tu sais ce que ca veut dire ? T'es mon CO-DEV permanent. Guy in the Chair officiel.",
       "Super team wins. GREAT SUCCESS.",
-      "Check ton badge. Prochaine scène : LES CONDITIONS (si ceci ALORS cela). On va rendre mon épée intelligente. 🔥",
+      "Check ton badge. Prochaine scene : LES BOUCLES (loops). On va automatiser les bouts plates de mon mod. 🔥",
     ],
-    // Animations synced au dialogue
     beats: [
-      null,                      // 0 — "BRO. BRO. BRO."
-      null,                      // 1 — célébration du code écrit
-      null,                      // 2 — "T'as décidé du type"
-      'power.wipe_wave3',        // 3 — "ton power OBLITERATE trois warriors"
-      null,                      // 4 — "T'es mon CO-DEV"
-      null,                      // 5 — "Super team wins"
-      null,                      // 6 — "LES CONDITIONS"
+      null, null, null,
+      'rule.wipe_boss',           // 3 — la regle wipe le boss
+      null, null, null,
     ],
     onEnter: () => {
       setMood('happy');
       setTimeout(() => {
-        pushChat('viewer1', 'MineBlox42', 'HE JUST CODED THAT LIVE');
-        pushChat('viewer2', 'PixelPro', '+follow');
-        pushChat('viewer3', 'DiamondDealer', 'legendary duo');
+        pushChat('viewer1', 'cookieandy_90', 'HE JUST CODED THAT LIVE');
+        pushChat('viewer2', 'pixel_queen', '+follow');
+        pushChat('viewer3', 'manon_t', 'legendary duo');
         pushChat('mod', 'BotStreamGuard', 'WELCOME 50 NEW FOLLOWERS 🎉');
       }, 3500);
       setTimeout(() => {
@@ -2434,25 +2428,27 @@ const ACTS = [
 ];
 
 // ========== CODE RENDERING ==========
+// S2 V2 : KazMod.java avec une regle conditionnelle (if/else)
 const CODE_LINES = [
   { num: 1, html: '<span class="code-kw">package</span> <span class="code-fn">com.kaz.survieXP</span>;' },
   { num: 2, html: '' },
   { num: 3, html: '<span class="code-kw">public class</span> <span class="code-ty">KazMod</span> {' },
-  { num: 4, html: '  <span class="code-cm">// Stats du joueur</span>' },
-  { num: 5, html: '  <span class="code-kw">int</span> health = <span class="editable" data-var="health">__V__</span>;', hasEdit: true, var: 'health' },
-  { num: 6, html: '  <span class="code-kw">int</span> maxHealth = <span class="code-num">100</span>;' },
-  { num: 7, html: '  <span class="code-kw">int</span> damage = <span class="editable" data-var="damage">__V__</span>;', hasEdit: true, var: 'damage' },
-  { num: 8, html: '  <span class="code-kw">double</span> speed = <span class="editable" data-var="speed">__V__</span>;', hasEdit: true, var: 'speed' },
-  { num: 9, html: '' },
-  { num: 10, html: '  <span class="code-kw">public void</span> <span class="code-fn">onSpawn</span>() {' },
-  { num: 11, html: '    <span class="code-ty">player</span>.setHealth(health);' },
-  { num: 12, html: '    <span class="code-ty">player</span>.setSpeed(speed);' },
+  { num: 4, html: '  <span class="code-cm">// Stats Kaz</span>' },
+  { num: 5, html: '  <span class="code-kw">int</span> life = <span class="code-num">100</span>;' },
+  { num: 6, html: '  <span class="code-kw">int</span> cookies = <span class="code-num">2</span>;' },
+  { num: 7, html: '' },
+  { num: 8, html: '  <span class="code-cm">// Regle de protection auto</span>' },
+  { num: 9, html: '  <span class="code-kw">public void</span> <span class="code-fn">onTick</span>() {' },
+  { num: 10, html: '    <span class="code-kw">if</span> (life <span class="editable" data-var="ruleOp">__V__</span> <span class="code-num">50</span>) {', hasEdit: true, var: 'ruleOp' },
+  { num: 11, html: '      <span class="editable" data-var="ruleAction">__V__</span>();', hasEdit: true, var: 'ruleAction' },
+  { num: 12, html: '    }' },
   { num: 13, html: '  }' },
   { num: 14, html: '' },
-  { num: 15, html: '  <span class="code-kw">public void</span> <span class="code-fn">onAttack</span>(<span class="code-ty">Entity</span> target) {' },
-  { num: 16, html: '    target.takeDamage(damage);' },
-  { num: 17, html: '  }' },
-  { num: 18, html: '}' },
+  { num: 15, html: '  <span class="code-kw">public void</span> <span class="code-fn">eatCookie</span>() {' },
+  { num: 16, html: '    cookies--;' },
+  { num: 17, html: '    life += <span class="code-num">50</span>;' },
+  { num: 18, html: '  }' },
+  { num: 19, html: '}' },
 ];
 
 function renderCode() {
@@ -2465,7 +2461,7 @@ function renderCode() {
     let html = line.html.replace('__V__', () => {
       const v = state.code[line.var];
       if (typeof v === 'number' && !Number.isInteger(v)) return v.toFixed(1);
-      return v;
+      return v != null ? String(v) : '';
     });
     div.innerHTML = `<span class="line-num">${line.num}</span><span class="line-content">${html}</span>`;
     body.appendChild(div);
@@ -2511,7 +2507,9 @@ function startEditing(el, varName) {
   const currentVal = state.code[varName];
   const input = document.createElement('input');
   input.type = 'text';
-  input.inputMode = 'numeric';
+  // Numeric pour les nombres, text pour ruleOp/ruleAction (S2)
+  const isNumeric = (typeof currentVal === 'number') && varName !== 'ruleOp' && varName !== 'ruleAction';
+  input.inputMode = isNumeric ? 'numeric' : 'text';
   input.value = '';
   input.placeholder = String(currentVal);
   el.innerHTML = '';
@@ -2521,21 +2519,25 @@ function startEditing(el, varName) {
   function commit() {
     let v = input.value.trim();
     if (v === '') v = String(currentVal);
-    const parsed = varName === 'speed' ? parseFloat(v) : parseInt(v, 10);
-    if (Number.isNaN(parsed)) {
-      el.classList.remove('active');
-      el.innerHTML = String(currentVal);
-      el.classList.add('pulsing');
-      return;
+    let parsed;
+    if (isNumeric) {
+      parsed = varName === 'speed' ? parseFloat(v) : parseInt(v, 10);
+      if (Number.isNaN(parsed)) {
+        el.classList.remove('active');
+        el.innerHTML = String(currentVal);
+        el.classList.add('pulsing');
+        return;
+      }
+    } else {
+      // String value (ruleOp, ruleAction). Validation done at btnTest level.
+      parsed = v;
     }
     state.code[varName] = parsed;
     el.classList.remove('active');
-    el.textContent = varName === 'speed' ? parsed.toFixed(1) : String(parsed);
+    el.textContent = isNumeric && varName === 'speed' ? parsed.toFixed(1) : String(parsed);
     el.classList.add('locked');
-    // enable test button
     document.getElementById('btnTest').disabled = false;
     document.getElementById('btnTest').classList.add('pulse');
-    // hide pulsing on all others
     document.querySelectorAll('.editable').forEach(x => x.classList.remove('pulsing'));
   }
 
@@ -2795,6 +2797,206 @@ const COMBAT_BEATS = {
 
   // --- ACT 10 : win-wave3-power (chained, wraps existing runCombat) ---
   'power.wipe_wave3': () => { runCombat('win-wave3-power'); },
+
+  // ============================================================
+  // V2 ADDITIONS — beats specifiques au scenario S2 (cookies/conditions)
+  // ============================================================
+
+  // ACT 1 V2 — Kaz se plante en mangeant les cookies a 100, swarm le tue
+  'cookie.appear_inventory': () => {
+    showStatus('🍪 INVENTAIRE : 2 COOKIES', 'warn', 1500);
+  },
+  'kaz.eat_cookie_double': () => {
+    const player = document.getElementById('player');
+    // 2 flash verts rapides simulant le gaspillage cookie
+    if (player) {
+      player.classList.add('hit');
+      spawnSparks(player, '#22c55e');
+      setTimeout(() => { spawnSparks(player, '#22c55e'); }, 300);
+      setTimeout(() => player.classList.remove('hit'), 700);
+    }
+    showStatus('🍪 +50 HP (deja full) | 🍪 +50 HP (deja full)', 'warn', 2000);
+  },
+  'swarm.spawn_5': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    const playerHp = document.getElementById('playerHp');
+    if (player) player.style.left = '15%';
+    [enemy, enemy2, enemy3].forEach((e, i) => {
+      if (!e) return;
+      e.style.display = '';
+      e.style.opacity = '1';
+      e.style.transform = '';
+      e.style.right = (15 + i * 4) + '%';
+    });
+    if (playerHp) playerHp.style.width = '100%';
+    showStatus('SWARM ZOMBIES — 5 INCOMING', 'danger', 1400);
+  },
+  'swarm.batter_kaz': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    const playerHp = document.getElementById('playerHp');
+    [enemy, enemy2, enemy3].forEach((e, i) => {
+      if (!e) return;
+      setTimeout(() => {
+        e.style.right = '32%';
+        e.classList.add('attacking');
+        if (player) player.classList.add('hit');
+        showDamage(player, '30', 'danger');
+        screenShake(8);
+        spawnSparks(player, '#dc2626');
+        if (playerHp) playerHp.style.width = Math.max(0, 100 - 30 * (i + 1)) + '%';
+      }, i * 600);
+      setTimeout(() => {
+        if (e) { e.style.right = (15 + i * 4) + '%'; e.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, i * 600 + 450);
+    });
+  },
+  'kaz.dies_swarm': () => {
+    setTimeout(() => showStatus('GAME OVER — INVENTAIRE VIDE', 'danger', 2200), 200);
+  },
+
+  // ACT 4 V2 — JaxPlayz a installe la regle, Kaz teste
+  'arena.respawn_with_rule': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    const playerHp = document.getElementById('playerHp');
+    if (player) { player.style.left = '15%'; player.classList.remove('hit'); }
+    [enemy, enemy2, enemy3].forEach(e => {
+      if (!e) return;
+      e.style.display = 'none';
+      e.style.opacity = '1';
+      e.style.transform = '';
+    });
+    if (playerHp) playerHp.style.width = '100%';
+    showStatus('✓ RULE INSTALLED — life<50 → eatCookie()', 'success', 2000);
+  },
+  'kaz.protected_block': () => {
+    const player = document.getElementById('player');
+    if (player) {
+      // Visuel refus : flash rouge + screen shake leger
+      player.classList.add('hit');
+      spawnSparks(player, '#ef4444');
+      setTimeout(() => player.classList.remove('hit'), 400);
+    }
+    screenShake(4);
+    showStatus('⛔ BLOCKED — life pas < 50', 'danger', 1800);
+  },
+  'wave.spawn_3_zombies': () => {
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    [enemy, enemy2, enemy3].forEach((e, i) => {
+      if (!e) return;
+      e.style.display = '';
+      e.style.opacity = '1';
+      e.style.transform = '';
+      e.style.right = (15 + i * 6) + '%';
+    });
+    showStatus('WAVE 3 ZOMBIES', 'warn', 1200);
+  },
+  'kaz.auto_heal_trigger': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const playerHp = document.getElementById('playerHp');
+    // 1) zombie tape Kaz, HP descend a 35
+    if (enemy) { enemy.style.right = '32%'; enemy.classList.add('attacking'); }
+    if (player) player.classList.add('hit');
+    showDamage(player, '65', 'danger');
+    screenShake(10);
+    spawnSparks(player, '#dc2626');
+    if (playerHp) playerHp.style.width = '35%';
+    setTimeout(() => {
+      if (enemy) { enemy.style.right = '20%'; enemy.classList.remove('attacking'); }
+      if (player) player.classList.remove('hit');
+    }, 500);
+    // 2) Auto-heal : la condition matche, cookie auto-mange
+    setTimeout(() => {
+      if (player) {
+        spawnSparks(player, '#22c55e');
+        spawnSparks(player, '#22c55e');
+      }
+      showStatus('✓ if (life<50) → eatCookie() AUTO', 'success', 1800);
+      if (playerHp) playerHp.style.width = '85%';
+    }, 1100);
+  },
+
+  // ACT 5 V2 — Wave 4, cookies vides, faut une autre action
+  'wave.announce_4': () => {
+    showStatus('WAVE 4 — INVENTAIRE COOKIES = 0', 'warn', 1400);
+  },
+  'wave.spawn_5_zombies': () => {
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    [enemy, enemy2, enemy3].forEach((e, i) => {
+      if (!e) return;
+      e.style.display = '';
+      e.style.opacity = '1';
+      e.style.transform = '';
+      e.style.right = (15 + i * 5) + '%';
+    });
+  },
+
+  // ACT 7 V2 — Wave 4 down, boss au fond
+  'wave.combo_defeat_4': () => {
+    runCombat('win-wave3-power');  // reuse S1 wipe anim
+  },
+  'boss.distant_appear': () => {
+    showStatus('⚠ BOSS APPROCHE', 'danger', 1800);
+  },
+
+  // ACT 8 V2 — Boss spawn + pression
+  'boss.spawn_with_swarm': () => {
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    [enemy, enemy2, enemy3].forEach((e, i) => {
+      if (!e) return;
+      e.style.display = '';
+      e.style.opacity = '1';
+      e.style.transform = '';
+      // Boss = enemy principal recolore en violet/rouge fonce
+      if (i === 0) {
+        const svg = e.querySelector('svg');
+        if (svg) svg.querySelectorAll('rect').forEach(r => {
+          if (r.getAttribute('fill') === '#65a30d') r.setAttribute('fill', '#7f1d1d');
+          if (r.getAttribute('fill') === '#4d7c0f') r.setAttribute('fill', '#991b1b');
+          if (r.getAttribute('fill') === '#3f6212') r.setAttribute('fill', '#b91c1c');
+        });
+        e.style.transform = 'scale(1.4)';
+        e.style.right = '12%';
+      } else {
+        e.style.right = (22 + i * 5) + '%';
+      }
+    });
+    showStatus('💀 BOSS SPAWN — 200 HP, 35 DMG', 'danger', 1800);
+  },
+  'kaz.boss_press': () => {
+    const player = document.getElementById('player');
+    const playerHp = document.getElementById('playerHp');
+    if (player) {
+      player.classList.add('hit');
+      showDamage(player, '35', 'danger');
+      screenShake(12);
+      spawnSparks(player, '#dc2626');
+      if (playerHp) playerHp.style.width = '20%';
+      setTimeout(() => player.classList.remove('hit'), 500);
+    }
+  },
+
+  // ACT 10 V2 — La regle composee wipe le boss
+  'rule.wipe_boss': () => {
+    runCombat('win-wave3-power');
+    setTimeout(() => showStatus('✓ TA REGLE A WIPE LE BOSS', 'success', 2200), 600);
+  },
 };
 
 function fireBeat(beat) {
@@ -3477,29 +3679,31 @@ function clearChoice() {
 }
 
 function choiceText(c) {
-  if (c === 'life') return 'Plus de vie, OK on tank';
-  if (c === 'damage') return 'Plus de dégâts, full offensif';
-  if (c === 'speed') return 'Plus de vitesse, on esquive';
+  if (c === 'useShield') return 'Bouclier auto, on tank les degats';
+  if (c === 'autoDash') return 'Esquive auto, on dodge';
+  if (c === 'autoAttack') return 'Attaque auto, on contre-frappe';
   return 'Choix fait';
 }
+function actionTitle(c) {
+  if (c === 'useShield') return 'AUTO SHIELD';
+  if (c === 'autoDash') return 'AUTO DASH';
+  if (c === 'autoAttack') return 'AUTO ATTACK';
+  if (c === 'eatCookie') return 'AUTO HEAL';
+  return 'Action';
+}
 function choiceVar(c) {
-  if (c === 'life') return 'health à 200';
-  if (c === 'damage') return 'damage à 50';
-  if (c === 'speed') return 'speed à 2.0';
+  if (c === 'useShield') return "ruleAction a 'useShield'";
+  if (c === 'autoDash') return "ruleAction a 'autoDash'";
+  if (c === 'autoAttack') return "ruleAction a 'autoAttack'";
   return '';
 }
-function strategyVar(s) {
-  if (s === 'life') return 'health';
-  if (s === 'damage') return 'damage';
-  if (s === 'speed') return 'speed';
-  return null;
-}
+// Backward-compat avec helpers S1 (state.strategy + retry-warrior)
+function strategyVar(s) { return 'ruleAction'; }
 function strategyThreshold(s) {
-  if (s === 'life') return { var: 'health', min: 150, hint: 'Euh bro, avec ça je tank 2 coups max. Mets au moins 150, idéalement 200.' };
-  if (s === 'damage') return { var: 'damage', min: 40, hint: 'Avec ce damage, je cogne comme un moustique. Vise 50+ pour one-shot.' };
-  if (s === 'speed') return { var: 'speed', min: 1.8, hint: 'Trop slow, le warrior me catch. Monte à 1.8 minimum.' };
+  // Pour les actions, la "validation" est de matcher l'action choisie.
   return null;
 }
+function isValidAction(s) { return ['useShield','autoDash','autoAttack'].includes(s); }
 
 // ========== POWER CHOICE (Act 8) ==========
 function showPowerChoices() {
@@ -3516,192 +3720,147 @@ function onPowerClick(e) {
   goToAct(8);
 }
 function powerTitle(p) {
-  if (p === 'fireball') return '🔥 FIREBALL';
-  if (p === 'lightning') return '⚡ LIGHTNING';
-  if (p === 'explosion') return '💥 EXPLOSION';
-  return 'POWER MOVE';
+  if (p === 'tank') return '🛡️ TANK';
+  if (p === 'ninja') return '💨 NINJA';
+  if (p === 'berserker') return '⚔️ BERSERKER';
+  return 'STYLE';
 }
-function powerSuggestedName(p) {
-  if (p === 'fireball') return 'fireballDamage';
-  if (p === 'lightning') return 'lightningDamage';
-  if (p === 'explosion') return 'explosionDamage';
-  return 'powerDamage';
-}
-function powerSuggestedValue(p) {
-  if (p === 'fireball') return 100;
-  if (p === 'lightning') return 80;
-  if (p === 'explosion') return 120;
-  return 100;
+// Suggestions de regle finale selon le style (pour ACT 9)
+function powerSuggestedRule(p) {
+  if (p === 'tank')      return { variable: 'life',        op: '<',  value: 50, action: 'eatCookie'  };
+  if (p === 'ninja')     return { variable: 'stamina',     op: '>',  value: 30, action: 'autoDash'   };
+  if (p === 'berserker') return { variable: 'stamina',     op: '==', value: 100,action: 'autoAttack' };
+  return { variable: 'life', op: '<', value: 50, action: 'eatCookie' };
 }
 
-// ========== NEW VARIABLE LINE (Mad Libs) ==========
-function addNewCodeLineSlot() {
+// ========== RULE COMPOSER (V2 - 4 slots: variable/op/value/action) ==========
+// Remplace le Mad Libs S1 (type/name/value pour variables) par 4 slots pour conditions.
+
+// Backward-compat: addNewCodeLineSlot reste appele par les ACTS, alias vers la nouvelle fonction
+function addNewCodeLineSlot() { addRuleComposerLine(); }
+
+function addRuleComposerLine() {
   const body = document.getElementById('codeBody');
-  // Remove existing new-line if any
   const existing = body.querySelector('.new-line');
   if (existing) existing.remove();
 
+  state.newRule = { variable: null, op: null, value: null, action: null };
+  // Compat shim S1: btnTest verifie state.newVar.value
+  state.newVar = { type: 'rule', name: 'composed', value: null };
+
   const line = document.createElement('div');
   line.className = 'code-line new-line';
-  line.innerHTML = `
-    <span class="line-num">+</span>
-    <span class="line-content">  <span class="slot slot-type pulsing" data-slot="type">[ TYPE ]</span> <span class="slot slot-name" data-slot="name">[ NOM ]</span> <span class="code-kw" style="color:#e2e8f0; padding:0 4px;">=</span> <span class="slot slot-value" data-slot="value">[ VALEUR ]</span>;</span>
-  `;
+  line.innerHTML =
+    '<span class="line-num">+</span>' +
+    '<span class="line-content"><span class="code-kw">if</span> (' +
+    '<span class="slot slot-variable pulsing" data-slot="variable">[ VAR ]</span> ' +
+    '<span class="slot slot-op" data-slot="op">[ OP ]</span> ' +
+    '<span class="slot slot-value" data-slot="value">[ ? ]</span>) { ' +
+    '<span class="slot slot-action" data-slot="action">[ ACTION ]</span>(); }</span>';
 
-  // Insert after line 8 (speed declaration)
   const allLines = body.querySelectorAll('.code-line');
-  if (allLines.length >= 8) {
-    allLines[7].insertAdjacentElement('afterend', line);
-  } else {
-    body.appendChild(line);
-  }
+  if (allLines.length >= 9) allLines[8].insertAdjacentElement('afterend', line);
+  else body.appendChild(line);
 
-  // Wire up slot clicks
   line.querySelectorAll('.slot').forEach(slot => {
-    slot.addEventListener('click', onSlotClick);
+    slot.addEventListener('click', onRuleSlotClick);
   });
 }
 
-function onSlotClick(e) {
+function onRuleSlotClick(e) {
   const slot = e.currentTarget;
-  const type = slot.dataset.slot;
+  const which = slot.dataset.slot;
   if (slot.classList.contains('filled')) return;
-
-  if (type === 'type') openTypeSlot(slot);
-  else if (type === 'name') openNameSlot(slot);
-  else if (type === 'value') openValueSlot(slot);
+  if (which === 'variable') openVariableSlot(slot);
+  else if (which === 'op') openOpSlot(slot);
+  else if (which === 'value') openValueRuleSlot(slot);
+  else if (which === 'action') openActionSlot(slot);
 }
 
-function openTypeSlot(slot) {
+function openVariableSlot(slot) {
   slot.classList.add('active');
-  slot.innerHTML = `
-    <span class="slot-picker">
-      <button class="slot-opt" data-val="int">int</button>
-      <button class="slot-opt" data-val="double">double</button>
-      <button class="slot-opt" data-val="String">String</button>
-    </span>
-  `;
+  slot.innerHTML = '<span class="slot-picker">' +
+    '<button class="slot-opt" data-val="life">life</button>' +
+    '<button class="slot-opt" data-val="stamina">stamina</button>' +
+    '<button class="slot-opt" data-val="zombiesNear">zombiesNear</button>' +
+    '</span>';
   slot.querySelectorAll('.slot-opt').forEach(btn => {
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      const v = btn.dataset.val;
-      if (v !== 'int') {
-        pushHintBubble(`Bon essai. Mais ${v} c'est pour ${v === 'double' ? 'des chiffres à virgule' : 'du texte'}. Ton power fait un chiffre entier. Réessaie.`);
-        return;
-      }
-      completeTypeSlot(slot, v);
+      completeRuleSlot(slot, 'variable', btn.dataset.val, 'code-ty');
     });
   });
 }
-
-function completeTypeSlot(slot, val) {
-  slot.classList.remove('active', 'pulsing');
-  slot.classList.add('filled');
-  slot.innerHTML = `<span class="code-kw">${val}</span>`;
-  state.newVar.type = val;
-  // Move pulsing to name slot
-  const line = slot.closest('.new-line');
-  const nameSlot = line.querySelector('.slot-name');
-  if (!nameSlot.classList.contains('filled')) nameSlot.classList.add('pulsing');
-  checkNewVarComplete();
-}
-
-function openNameSlot(slot) {
-  if (!state.newVar.type) {
-    pushHintBubble("Chut, commence par le TYPE à gauche 👈");
-    return;
-  }
+function openOpSlot(slot) {
+  if (!state.newRule.variable) { pushHintBubble("Choisis d'abord la VARIABLE 👈"); return; }
   slot.classList.add('active');
-  const suggested = powerSuggestedName(state.power);
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'slot-input';
-  input.value = suggested;
-  input.placeholder = 'invente un nom';
-  slot.innerHTML = '';
-  slot.appendChild(input);
-  input.focus();
-  input.select();
-
-  function commit() {
-    let v = input.value.trim();
-    if (v === '') v = suggested;
-    // Very light validation: no space, starts with lowercase letter
-    if (/\s/.test(v) || !/^[a-zA-Z][a-zA-Z0-9_]*$/.test(v)) {
-      pushHintBubble("Pas d'espace ni de caractère bizarre. Juste des lettres. Ex: fireballDamage");
-      input.focus();
-      return;
-    }
-    completeNameSlot(slot, v);
-  }
-
-  input.addEventListener('blur', commit);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') commit();
+  slot.innerHTML = '<span class="slot-picker">' +
+    '<button class="slot-opt" data-val="<">&lt;</button>' +
+    '<button class="slot-opt" data-val=">">&gt;</button>' +
+    '<button class="slot-opt" data-val="==">==</button>' +
+    '</span>';
+  slot.querySelectorAll('.slot-opt').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      completeRuleSlot(slot, 'op', btn.dataset.val, 'code-kw');
+    });
   });
 }
-
-function completeNameSlot(slot, val) {
-  slot.classList.remove('active', 'pulsing');
-  slot.classList.add('filled');
-  slot.innerHTML = `<span style="color:#a5d6ff; font-weight:600;">${val}</span>`;
-  state.newVar.name = val;
-  const line = slot.closest('.new-line');
-  const valSlot = line.querySelector('.slot-value');
-  if (!valSlot.classList.contains('filled')) valSlot.classList.add('pulsing');
-  checkNewVarComplete();
-}
-
-function openValueSlot(slot) {
-  if (!state.newVar.type || !state.newVar.name) {
-    pushHintBubble("On y va dans l'ordre : TYPE, puis NOM, puis VALEUR 👈");
-    return;
-  }
+function openValueRuleSlot(slot) {
+  if (!state.newRule.variable || !state.newRule.op) { pushHintBubble("Suis l'ordre : VAR, OP, VALEUR 👈"); return; }
   slot.classList.add('active');
-  const suggested = powerSuggestedValue(state.power);
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.inputMode = 'numeric';
-  input.className = 'slot-input';
-  input.value = '';
-  input.placeholder = String(suggested);
-  slot.innerHTML = '';
-  slot.appendChild(input);
-  input.focus();
-
-  function commit() {
-    let v = input.value.trim();
-    if (v === '') v = String(suggested);
-    const parsed = parseInt(v, 10);
-    if (Number.isNaN(parsed)) {
-      pushHintBubble("Faut un chiffre entier ici. Genre 100.");
-      input.focus();
-      return;
-    }
-    if (parsed < 10) {
-      pushHintBubble(`${parsed} c'est un peu faible pour 3 warriors... Vise gros.`);
-      input.focus();
-      return;
-    }
-    completeValueSlot(slot, parsed);
-  }
-
-  input.addEventListener('blur', commit);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') commit();
+  slot.innerHTML = '<span class="slot-picker">' +
+    '<button class="slot-opt" data-val="30">30</button>' +
+    '<button class="slot-opt" data-val="50">50</button>' +
+    '<button class="slot-opt" data-val="100">100</button>' +
+    '</span>';
+  slot.querySelectorAll('.slot-opt').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const num = parseInt(btn.dataset.val, 10);
+      completeRuleSlot(slot, 'value', num, 'code-num');
+      state.newVar.value = num;
+    });
   });
 }
-
-function completeValueSlot(slot, val) {
+function openActionSlot(slot) {
+  if (!state.newRule.variable || !state.newRule.op || state.newRule.value === null) {
+    pushHintBubble("Suis l'ordre : VAR, OP, VALEUR, puis ACTION 👈"); return;
+  }
+  slot.classList.add('active');
+  slot.innerHTML = '<span class="slot-picker">' +
+    '<button class="slot-opt" data-val="eatCookie">eatCookie</button>' +
+    '<button class="slot-opt" data-val="useShield">useShield</button>' +
+    '<button class="slot-opt" data-val="autoDash">autoDash</button>' +
+    '<button class="slot-opt" data-val="autoAttack">autoAttack</button>' +
+    '</span>';
+  slot.querySelectorAll('.slot-opt').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      completeRuleSlot(slot, 'action', btn.dataset.val, 'code-fn');
+    });
+  });
+}
+function completeRuleSlot(slot, key, val, cssClass) {
   slot.classList.remove('active', 'pulsing');
   slot.classList.add('filled');
-  slot.innerHTML = `<span class="code-num">${val}</span>`;
-  state.newVar.value = val;
+  slot.innerHTML = '<span class="' + cssClass + '">' + val + '</span>';
+  state.newRule[key] = val;
+  const line = slot.closest('.new-line');
+  const order = ['variable', 'op', 'value', 'action'];
+  for (const k of order) {
+    const v = state.newRule[k];
+    if (v === null || v === undefined) {
+      const s = line.querySelector('.slot-' + k);
+      if (s && !s.classList.contains('filled')) { s.classList.add('pulsing'); break; }
+    }
+  }
   checkNewVarComplete();
 }
 
 function checkNewVarComplete() {
-  if (state.newVar.type && state.newVar.name && state.newVar.value !== null && state.newVar.value !== undefined) {
+  const r = state.newRule || {};
+  if (r.variable && r.op && r.value !== null && r.value !== undefined && r.action) {
     document.getElementById('btnTest').disabled = false;
     document.getElementById('btnTest').classList.add('pulse');
   }
@@ -3915,41 +4074,46 @@ function init() {
     document.getElementById('btnTest').disabled = true;
     document.getElementById('btnTest').classList.remove('pulse');
 
-    // ===== ACT 3 (idx 2) VALIDATION : health must survive zombie =====
+    // ===== ACT 3 (idx 2) VALIDATION : ruleOp doit etre '<' =====
     if (state.act === 2) {
-      if (state.code.health < 60) {
-        runRetry({
-          hint: `Bro, ${state.code.health} de vie c'est PAS ASSEZ. Le zombie me tape à 30 par coup, j'ai besoin d'au moins 60 pour riposter. Remets 100 comme je disais.`,
-          varName: 'health',
-          scenario: 'retry-zombie',
-        });
+      const op = state.code.ruleOp;
+      if (op !== '<') {
+        const msg = (op === '>') ? "'>' c'est plus grand que. Tu veux SI life PLUS PETITE que 50, alors eat cookie. Re-clique pis tape '<'." :
+                    (op === '==') ? "'==' c'est strict egal. Genre life vaut EXACTEMENT 50. Pour declencher quand vie est BASSE, faut '<'." :
+                    "Tape un signe : <, > ou ==. Le bon est '<' pour 'plus petit que'.";
+        runRetry({ hint: msg, varName: 'ruleOp', scenario: 'retry-zombie' });
         return;
       }
+      state.installedRule = { variable: 'life', op: '<', value: 50, action: state.code.ruleAction || 'eatCookie' };
       goToAct(3);
       return;
     }
 
-    // ===== ACT 6 (idx 5) VALIDATION : strategy value threshold =====
+    // ===== ACT 6 (idx 5) VALIDATION : ruleAction doit matcher le choix =====
     if (state.act === 5) {
-      const thresh = strategyThreshold(state.strategy);
-      if (thresh && state.code[thresh.var] < thresh.min) {
+      const target = state.strategy;
+      const got = state.code.ruleAction;
+      if (got !== target) {
         runRetry({
-          hint: thresh.hint,
-          varName: thresh.var,
+          hint: `T'as choisi ${actionTitle(target)}. Mais dans le code y'a encore '${got}'. Clique la ligne, tape '${target}', pis TESTER.`,
+          varName: 'ruleAction',
           scenario: 'retry-warrior',
         });
         return;
       }
+      state.installedRule = { variable: 'life', op: '<', value: 50, action: target };
       goToAct(6);
       return;
     }
 
-    // ===== ACT 9 (idx 8) VALIDATION : power damage must be enough =====
+    // ===== ACT 9 (idx 8) VALIDATION : regle composee 4 slots remplis =====
     if (state.act === 8) {
-      if ((state.newVar.value || 0) < 40) {
-        runRetryNewVar(`${state.newVar.value} de dégâts c'est pas assez pour wipe 3 warriors. Vise au moins 40, idéalement 80-120. Re-clique sur la valeur.`);
+      const r = state.newRule || {};
+      if (!r.variable || !r.op || r.value === null || r.value === undefined || !r.action) {
+        runRetryNewVar(`Y'a encore des slots vides. Clique chacun pour le remplir.`);
         return;
       }
+      state.installedRule = { variable: r.variable, op: r.op, value: r.value, action: r.action };
       goToAct(9);
       return;
     }
