@@ -193,6 +193,32 @@ function DashboardInner() {
 
 
 
+  // Garde-fou : si on est sur ?realm=family mais l utilisateur n a aucune app
+
+  // Famille (acces retire), bascule automatiquement vers le realm ou il a des
+
+  // apps. Evite l etat fantome "badge Famille mais zero tuile".
+
+  useEffect(() => {
+
+    if (loading || apps.length === 0) return;
+
+    if (filteredApps.length > 0) return;
+
+    const otherRealm: Realm = realm === 'FAMILY' ? 'WORK' : 'FAMILY';
+
+    const otherCount = apps.filter((a) => (a.realm || 'FAMILY') === otherRealm).length;
+
+    if (otherCount > 0) {
+
+      router.replace(`/dashboard?realm=${otherRealm.toLowerCase()}`);
+
+    }
+
+  }, [loading, apps, filteredApps.length, realm, router]);
+
+
+
   // Vibe tokens per realm. Keep class strings literal so Tailwind JIT picks them up.
 
   const isWork = realm === 'WORK';
