@@ -87,6 +87,9 @@
     display: flex; align-items: center; gap: 0.6rem;
     font-size: 0.85rem;
   }
+  .hud-stack { display: flex; flex-direction: column; gap: 0.4rem; }
+  .stat-extra { animation: slideUp 0.3s ease-out; }
+  .stat-extra.hidden { display: none; }
   .hp-label { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; }
   .hp-bar-bg { width: 160px; height: 10px; background: rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden; }
   .hp-bar-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #10b981); transition: width 0.3s; }
@@ -674,10 +677,21 @@
     <div class="game-wrap">
       <canvas id="game" width="960" height="540"></canvas>
       <div class="hud">
-        <div class="hud-bar">
-          <span class="hp-label">HP</span>
-          <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill" style="width:100%;"></div></div>
-          <span class="hp-value" id="hpValue">100/100</span>
+        <div class="hud-stack">
+          <div class="hud-bar">
+            <span class="hp-label">HP</span>
+            <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill" style="width:100%;"></div></div>
+            <span class="hp-value" id="hpValue">100/100</span>
+          </div>
+          <div class="hud-bar stat-extra hidden" id="staminaBar">
+            <span class="hp-label" style="color:#10b981;">STAMINA</span>
+            <div class="hp-bar-bg"><div class="hp-bar-fill" id="staminaFill" style="width:100%; background: linear-gradient(90deg, #10b981, #059669);"></div></div>
+            <span class="hp-value" id="staminaValue">100/100</span>
+          </div>
+        </div>
+        <div class="hud-bar stat-extra hidden" id="zombiesNearBox" style="margin-left:auto; gap:0.4rem;">
+          <span class="hp-label" style="color:#ef4444;">⚠ ZOMBIES NEAR</span>
+          <span class="hp-value" id="zombiesNearValue" style="color:#fca5a5;">0</span>
         </div>
       </div>
       <div class="bottom-inv">
@@ -810,14 +824,21 @@ const state = {
   act: 0,
   beatIndex: 0,
   hp: 100, hpMax: 100,
+  stamina: 100, staminaMax: 100,
+  staminaVisible: false,
+  zombiesNear: 0,
+  zombiesNearVisible: false,
+  shieldActive: false,
+  shieldUntil: 0,  // performance.now() ms
   inv: { cookie: 0, potion: 0, bandage: 0 },
   viewers: 42,
   kazMood: 'neutral',
   typewriterTimer: null,
   beatTimer: null,
-  awaitingInput: null, // 'key:E' | 'click:start' | null
+  awaitingInput: null,
   running: false,
   flash: null,
+  staminaRechargeTimer: null,
 };
 
 // ============ KAZ MOOD ============
@@ -1026,6 +1047,47 @@ function setInv(item, qty) {
   qtyEl.textContent = state.inv[item];
   if (state.inv[item] > 0) slot.classList.remove('empty');
   else slot.classList.add('empty');
+}
+function setStamina(val) {
+  state.stamina = Math.max(0, Math.min(state.staminaMax, val));
+  const pct = (state.stamina / state.staminaMax) * 100;
+  const fill = document.getElementById('staminaFill');
+  if (fill) fill.style.width = pct + '%';
+  const valEl = document.getElementById('staminaValue');
+  if (valEl) valEl.textContent = state.stamina + '/' + state.staminaMax;
+}
+function showStaminaHUD(show=true) {
+  const el = document.getElementById('staminaBar');
+  if (!el) return;
+  state.staminaVisible = show;
+  if (show) el.classList.remove('hidden');
+  else el.classList.add('hidden');
+}
+function setZombiesNear(val) {
+  state.zombiesNear = Math.max(0, val);
+  const el = document.getElementById('zombiesNearValue');
+  if (el) el.textContent = state.zombiesNear;
+}
+function showZombiesNearHUD(show=true) {
+  const el = document.getElementById('zombiesNearBox');
+  if (!el) return;
+  state.zombiesNearVisible = show;
+  if (show) el.classList.remove('hidden');
+  else el.classList.add('hidden');
+}
+function startStaminaRecharge() {
+  if (state.staminaRechargeTimer) return;
+  state.staminaRechargeTimer = setInterval(() => {
+    if (!state.running) return;
+    if (state.stamina < state.staminaMax) {
+      setStamina(state.stamina + 2);
+    }
+  }, 250);
+}
+// Auto-update zombiesNear whenever scene.enemies changes
+function refreshZombiesNear() {
+  const n = scene.enemies.filter(e => e.alive).length;
+  setZombiesNear(n);
 }
 function hintKey(item, on=true) {
   const slot = document.getElementById('slot' + item.charAt(0).toUpperCase() + item.slice(1));
@@ -1362,6 +1424,56 @@ function drawRuleOverlay() {
   gctx.fillText('✓ RULE ACTIVE — ' + txt, canvas.width / 2, y + 18);
 }
 
+// Bulle shield autour du perso actif
+function drawShieldBubble() {
+  if (!state.shieldActive) return;
+  const target = scene.who === 'kaz' ? scene.kaz : scene.jax;
+  const remain = (state.shieldUntil - performance.now()) / 1000;
+  if (remain <= 0) { state.shieldActive = false; return; }
+  const pulse = 1 + Math.sin(scene.tick * 0.18) * 0.06;
+  const r = 36 * pulse;
+  // Outer ring
+  const grad = gctx.createRadialGradient(target.x, target.y - 20, r * 0.6, target.x, target.y - 20, r);
+  grad.addColorStop(0, 'rgba(34, 211, 238, 0.05)');
+  grad.addColorStop(0.7, 'rgba(34, 211, 238, 0.18)');
+  grad.addColorStop(1, 'rgba(34, 211, 238, 0.6)');
+  gctx.fillStyle = grad;
+  gctx.beginPath(); gctx.arc(target.x, target.y - 20, r, 0, Math.PI * 2); gctx.fill();
+  gctx.strokeStyle = 'rgba(125,211,252,0.85)';
+  gctx.lineWidth = 2;
+  gctx.beginPath(); gctx.arc(target.x, target.y - 20, r, 0, Math.PI * 2); gctx.stroke();
+  // Petit timer text
+  gctx.fillStyle = '#7dd3fc';
+  gctx.font = 'bold 10px monospace';
+  gctx.textAlign = 'center';
+  gctx.fillText(`SHIELD ${remain.toFixed(1)}s`, target.x, target.y - 80);
+}
+
+// Splash visuel auto-attack (anim slash sur les zombies in range)
+function spawnAttackSplash(x, y) {
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2;
+    scene.particles.push({
+      x, y,
+      vx: Math.cos(a) * 4, vy: Math.sin(a) * 4 - 0.5,
+      size: Math.random() * 4 + 2,
+      color: `rgba(244,114,182,ALPHA)`,
+      life: 30, maxLife: 50,
+    });
+  }
+  // Cercle expansif
+  for (let i = 0; i < 8; i++) {
+    scene.particles.push({
+      x, y,
+      vx: Math.cos(i / 8 * Math.PI * 2) * 5,
+      vy: Math.sin(i / 8 * Math.PI * 2) * 5,
+      size: 5,
+      color: `rgba(251,191,36,ALPHA)`,
+      life: 20, maxLife: 40,
+    });
+  }
+}
+
 // Flash rouge quand action E refusee par condition
 function drawBlockedFlash() {
   if (scene.blockedFlash <= 0) return;
@@ -1443,6 +1555,7 @@ function renderGame() {
   // Personnage actif (Kaz ou JaX)
   if (scene.who === 'kaz') drawKazInArena();
   else drawJax();
+  drawShieldBubble();
   drawParticles();
   drawRuleOverlay();
   drawBlockedFlash();
@@ -1548,6 +1661,7 @@ async function runGameEvent(beat) {
     case 'zombie_spawn':
       scene.enemies.push({ type: 'zombie', x: 880, y: 400, hp: 30, alive: true });
       sfx('wave_spawn');
+      refreshZombiesNear();
       break;
     case 'zombie_swarm_5':
       // 5 zombies d'un coup, etales sur la droite
@@ -1555,6 +1669,7 @@ async function runGameEvent(beat) {
       for (let i = 0; i < 5; i++) {
         scene.enemies.push({ type: 'zombie', x: 880 + i * 28, y: 400 + (i % 2) * 8, hp: 30, alive: true });
       }
+      refreshZombiesNear();
       break;
     case 'zombie_attack':
       // Zombie marche vers le perso actif (JaX ou Kaz), tape, HP descend
@@ -1574,14 +1689,23 @@ async function runGameEvent(beat) {
             }
             step();
           });
-          const dmg = (beat.dmg !== undefined) ? beat.dmg : 65;
-          if (scene.who === 'kaz') {
-            scene.kaz.hp = Math.max(0, scene.kaz.hp - dmg);
+          let dmg = (beat.dmg !== undefined) ? beat.dmg : 65;
+          // Shield actif = bloque les degats
+          if (state.shieldActive && state.shieldUntil > performance.now()) {
+            dmg = 0;
+            spawnParticles(target.x, target.y - 30, 'rgba(125,211,252,ALPHA)', 12);
+            flash('blue', 150);
           } else {
-            setHP(state.hp - dmg);
+            spawnParticles(target.x, target.y - 30, 'rgba(239,68,68,ALPHA)', 15);
+            flash('red', 200);
           }
-          spawnParticles(target.x, target.y - 30, 'rgba(239,68,68,ALPHA)', 15);
-          flash('red', 200);
+          if (dmg > 0) {
+            if (scene.who === 'kaz') {
+              scene.kaz.hp = Math.max(0, scene.kaz.hp - dmg);
+            } else {
+              setHP(state.hp - dmg);
+            }
+          }
         }
       }
       break;
@@ -1662,6 +1786,62 @@ async function runGameEvent(beat) {
       sfx('click_blocked');
       scene.blockedFlash = 30;
       flash('red', 250);
+      break;
+    // ===== Palier 2 — actions de protection =====
+    case 'shield_activate':
+      sfx('shield_up');
+      state.shieldActive = true;
+      state.shieldUntil = performance.now() + (beat.durationMs || 3000);
+      flash('blue', 200);
+      break;
+    case 'dash_activate':
+      sfx('dash');
+      // Particules de dash sur le sol derriere JaX
+      {
+        const target = scene.who === 'kaz' ? scene.kaz : scene.jax;
+        for (let i = 0; i < 14; i++) {
+          scene.particles.push({
+            x: target.x - i * 4, y: target.y + 35 + Math.random() * 5,
+            vx: -Math.random() * 2 - 1,
+            vy: -Math.random() * 1,
+            size: Math.random() * 4 + 2,
+            color: 'rgba(180,180,200,ALPHA)',
+            life: 25, maxLife: 35,
+          });
+        }
+        // Stamina cost
+        setStamina(state.stamina - (beat.cost || 20));
+      }
+      break;
+    case 'attack_activate':
+      sfx('slash');
+      {
+        const target = scene.who === 'kaz' ? scene.kaz : scene.jax;
+        spawnAttackSplash(target.x + 60, target.y - 20);
+      }
+      // Kill ou damage les zombies in range (3 closest)
+      {
+        const target = scene.who === 'kaz' ? scene.kaz : scene.jax;
+        const inRange = scene.enemies
+          .filter(e => e.alive && Math.abs(e.x - target.x) < 200)
+          .sort((a, b) => Math.abs(a.x - target.x) - Math.abs(b.x - target.x))
+          .slice(0, 3);
+        inRange.forEach(z => { z.alive = false; });
+        refreshZombiesNear();
+        setStamina(state.stamina - (beat.cost || 100));
+      }
+      break;
+    case 'zombies_refresh':
+      refreshZombiesNear();
+      break;
+    case 'show_stamina':
+      showStaminaHUD(true);
+      setStamina(beat.value !== undefined ? beat.value : 100);
+      if (beat.recharge) startStaminaRecharge();
+      break;
+    case 'show_zombiesNear':
+      showZombiesNearHUD(true);
+      refreshZombiesNear();
       break;
   }
 }
@@ -1872,6 +2052,227 @@ const ACT_3 = [
   { type: 'mood', mood: 'teasing' },
   { type: 'bubble', mood: 'teasing',
     text: "On va te montrer plusieurs PROTECTIONS qu'on peut cabler. Pis a la fin tu vas ecrire la TIENNE de zero." },
+];
+
+// ===== ACT 4 — Variation auto-shield (meme if, autre action) =====
+const ACT_4 = [
+  { type: 'mood', mood: 'focused' },
+  { type: 'codePanel', action: 'open' },
+  { type: 'gameEvent', name: 'set_rule', text: null },  // clear ancienne rule
+  { type: 'codeInject', html: '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Variation 1 — meme if, autre action</p><pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op">&lt;</span> <span class="nb">50</span>) {\n    <span class="fn">useShield</span>();   <span class="cm">// bloque les degats 3 sec</span>\n}</pre>' },
+  { type: 'bubble', mood: 'focused',
+    text: "On garde le meme if. Mais l'action change : useShield() au lieu de eatCookie(). Quand HP descend, BULLE BLEUE autour de toi, dommages a zero." },
+  { type: 'bubble', mood: 'happy',
+    text: "C'est le truc cool : la condition reste pareille, t'echanges juste l'ACTION. Comme un menu de protections." },
+  { type: 'quiz',
+    question: 'Si <code>life = 80</code>, est-ce que <em>useShield()</em> se declenche ?',
+    options: [
+      { label: 'Oui', correct: false },
+      { label: 'Non', correct: true },
+      { label: 'Peut-etre', correct: false },
+    ]},
+  { type: 'bubble', mood: 'proud',
+    text: "Exact. 80 c'est PAS plus petit que 50. Condition fausse, action ignoree. Same logic que le cookie." },
+  { type: 'chat', lines: ['javafan: shield > heal', 'pixel_queen: tank build incoming'] },
+  // Install rule + setup arena
+  { type: 'gameEvent', name: 'set_rule', text: 'if (life < 50) useShield()' },
+  { type: 'codePanel', action: 'close' },
+  { type: 'inv', item: 'cookie', delta: 0 },  // pas de cookies — on teste juste shield
+  { type: 'hp', amount: 100 },
+  { type: 'mood', mood: 'hype' },
+  { type: 'bubble', mood: 'hype',
+    text: "Wave 3 — pas de cookies cette fois. Le shield doit te sauver tout seul. Watch." },
+  { type: 'sound', name: 'wave_spawn' },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 250 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 250 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 250 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 600 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 60 },  // HP 100 -> 40
+  { type: 'delay', ms: 200 },
+  // Trigger condition : shield activate
+  { type: 'sound', name: 'if_taken' },
+  { type: 'gameEvent', name: 'shield_activate', durationMs: 3500 },
+  { type: 'mood', mood: 'surprised' },
+  { type: 'bubble', mood: 'surprised',
+    text: "BOUCLIER UP. Les degats vont taper le shield, pas toi. 3 secondes d'invincibilite." },
+  // Pendant le shield, plusieurs hits qui font 0 dmg
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 60 },  // shield up = 0 dmg
+  { type: 'delay', ms: 250 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 60 },
+  { type: 'delay', ms: 250 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 60 },
+  { type: 'delay', ms: 700 },
+  { type: 'mood', mood: 'proud' },
+  { type: 'bubble', mood: 'proud',
+    text: "Same regle, autre OUTCOME. T'as juste change l'action a l'interieur des accolades. C'est ca le pouvoir du if." },
+  { type: 'viewers', delta: 14, reason: 'shield demo' },
+  { type: 'chat', lines: ['speedrun_fr: tank life', 'manon_t: jax shield wall'] },
+];
+
+// ===== ACT 5 — Auto-dash + intro stamina =====
+const ACT_5 = [
+  { type: 'mood', mood: 'thinking' },
+  { type: 'gameEvent', name: 'set_rule', text: null },
+  { type: 'bubble', mood: 'thinking',
+    text: "Nouvelle stat. STAMINA. Quand y'en a assez, tu peux dasher — esquiver d'un coup." },
+  // Show stamina HUD
+  { type: 'gameEvent', name: 'show_stamina', value: 100, recharge: true },
+  { type: 'bubble', mood: 'focused',
+    text: "Regarde la jauge verte sous HP. Recharge passive. Plus t'es full, plus t'es agile." },
+  { type: 'codePanel', action: 'open' },
+  { type: 'codeInject', html: '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Variation 2 — autre signe, autre action</p><pre class="code-block"><span class="kw">if</span> (<span class="var">stamina</span> <span class="op">&gt;</span> <span class="nb">30</span>) {\n    <span class="fn">autoDash</span>();   <span class="cm">// esquive rapide</span>\n}</pre>' },
+  { type: 'bubble', mood: 'focused',
+    text: "Ici c'est pas <  c'est >. Plus GRAND que 30. Le sens du signe depend de ce qui te protege : ASSEZ de stamina = action." },
+  { type: 'quiz',
+    question: 'Avec <code>stamina = 50</code>, le dash se declenche-t-il ?',
+    options: [
+      { label: 'Oui', correct: true },
+      { label: 'Non', correct: false },
+      { label: 'Que si y\'a un zombie', correct: false },
+    ]},
+  { type: 'bubble', mood: 'hype',
+    text: "Bingo. 50 c'est plus grand que 30. Action declenche." },
+  { type: 'gameEvent', name: 'set_rule', text: 'if (stamina > 30) autoDash()' },
+  { type: 'codePanel', action: 'close' },
+  { type: 'mood', mood: 'hype' },
+  { type: 'bubble', mood: 'hype',
+    text: "Wave 4 — stamina full, watch les dash auto." },
+  { type: 'hp', amount: 100 },
+  { type: 'sound', name: 'wave_spawn' },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 200 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 200 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 600 },
+  // Auto-dash trigger
+  { type: 'sound', name: 'if_taken' },
+  { type: 'gameEvent', name: 'dash_activate', cost: 25 },
+  { type: 'mood', mood: 'surprised' },
+  { type: 'bubble', mood: 'surprised',
+    text: "DASH. Tu te decale, les zombies tapent dans le vide. Stamina drop de 25. La regle attendra que ca recharge." },
+  { type: 'delay', ms: 500 },
+  { type: 'gameEvent', name: 'dash_activate', cost: 25 },
+  { type: 'delay', ms: 500 },
+  { type: 'gameEvent', name: 'dash_activate', cost: 25 },
+  { type: 'delay', ms: 600 },
+  { type: 'mood', mood: 'proud' },
+  { type: 'bubble', mood: 'proud',
+    text: "3 dashes consecutifs, zero degats. Le code consomme stamina, recharge fait remonter. Boucle automatique." },
+  { type: 'viewers', delta: 16, reason: 'dash combo' },
+  { type: 'chat', lines: ['javafan: ninja mode', 'cookieandy_90: stamina arc'] },
+];
+
+// ===== ACT 6 — else if (combiner heal + dash) =====
+const ACT_6 = [
+  { type: 'mood', mood: 'focused' },
+  { type: 'gameEvent', name: 'show_zombiesNear' },
+  { type: 'bubble', mood: 'focused',
+    text: "Et si on combinait ? Heal pour life basse, dash pour life ok mais zombies proches." },
+  { type: 'codePanel', action: 'open' },
+  { type: 'codeInject', html: '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Variation 3 — chaine de regles : else if</p><pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op">&lt;</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n} <span class="kw">else if</span> (<span class="var">zombiesNear</span> <span class="op">&gt;</span> <span class="nb">2</span>) {\n    <span class="fn">autoDash</span>();\n}</pre>' },
+  { type: 'bubble', mood: 'focused',
+    text: "else if = SI PAS le if d'avant, MAIS la nouvelle question est vraie. Le code lit ligne par ligne. PREMIERE qui matche gagne." },
+  { type: 'bubble', mood: 'happy',
+    text: "C'est tout. Si life basse → heal. Sinon, si zombies proches → dash. Sinon rien." },
+  { type: 'quiz',
+    question: 'Avec <code>life = 80</code> et <code>zombiesNear = 4</code>, qu\'est-ce qui declenche ?',
+    options: [
+      { label: 'eatCookie()', correct: false },
+      { label: 'autoDash()', correct: true },
+      { label: 'Rien', correct: false },
+    ]},
+  { type: 'bubble', mood: 'hype',
+    text: "Exact. life 80, donc 1er if FAUX. Mais zombiesNear 4 > 2, le else if matche. Dash." },
+  { type: 'chat', lines: ['javafan: order matters', 'qc_dev: clean cascade'] },
+  { type: 'gameEvent', name: 'set_rule', text: 'if (life<50) eatCookie() else if (zombiesNear>2) autoDash()' },
+  { type: 'codePanel', action: 'close' },
+  { type: 'inv', item: 'cookie', delta: 1 },  // 1 cookie disponible
+  { type: 'hp', amount: 100 },
+  { type: 'mood', mood: 'hype' },
+  { type: 'bubble', mood: 'hype',
+    text: "Wave 5 — 5 zombies arrivent. Tu vas voir le code switcher de branche selon l'etat. Watch." },
+  { type: 'sound', name: 'wave_spawn' },
+  { type: 'gameEvent', name: 'zombie_swarm_5' },
+  { type: 'delay', ms: 700 },
+  // life 100, zombiesNear 5 -> branche else if -> dash
+  { type: 'sound', name: 'else_taken' },
+  { type: 'gameEvent', name: 'dash_activate', cost: 25 },
+  { type: 'mood', mood: 'surprised' },
+  { type: 'bubble', mood: 'surprised',
+    text: "1ere branche : life 100, condition fausse. ELSE IF : zombiesNear 5, vrai. DASH." },
+  { type: 'delay', ms: 500 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 60 },  // HP 100->40
+  { type: 'delay', ms: 300 },
+  // Maintenant life 40, on prend la 1ere branche
+  { type: 'sound', name: 'if_taken' },
+  { type: 'flash', color: 'gold', ms: 350 },
+  { type: 'sound', name: 'cookie_eaten' },
+  { type: 'gameEvent', name: 'eat_cookie' },
+  { type: 'inv', item: 'cookie', delta: -1 },
+  { type: 'hp', amount: 70 },
+  { type: 'mood', mood: 'hype' },
+  { type: 'bubble', mood: 'hype',
+    text: "Et la, life tombee a 40 → 1ere branche matche → cookie. Le code a SWITCHE de strategie en live." },
+  { type: 'chat', lines: ['speedrun_fr: dynamic AF', 'pixel_queen: jax adapts'] },
+  { type: 'viewers', delta: 22, reason: 'cascade switch' },
+  { type: 'mood', mood: 'thinking' },
+  { type: 'bubble', mood: 'thinking',
+    text: "Note importante : si on inversait l'ordre (else if en premier), Java ferait toujours dash, jamais heal. L'ORDRE de tes regles compte." },
+];
+
+// ===== ACT 7 — Auto-attack avec == =====
+const ACT_7 = [
+  { type: 'mood', mood: 'teasing' },
+  { type: 'bubble', mood: 'teasing',
+    text: "Et si je voulais pas TANK les zombies, mais les ATTAQUER des que je suis full stamina ?" },
+  { type: 'codePanel', action: 'open' },
+  { type: 'codeInject', html: '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Variation 4 — agressif avec ==</p><pre class="code-block"><span class="kw">if</span> (<span class="var">stamina</span> <span class="op">==</span> <span class="nb">100</span>) {\n    <span class="fn">autoAttack</span>();   <span class="cm">// strike les zombies in range</span>\n}</pre>' },
+  { type: 'bubble', mood: 'focused',
+    text: "== c'est l'EGAL strict. Pas 99, pas 100.5. EXACTEMENT 100. Tu deviens un sniper." },
+  { type: 'quiz',
+    question: 'Avec <code>stamina = 99</code>, est-ce que autoAttack se declenche ?',
+    options: [
+      { label: 'Non', correct: true },
+      { label: 'Oui', correct: false },
+      { label: 'Une fois sur 2', correct: false },
+    ]},
+  { type: 'bubble', mood: 'proud',
+    text: "Exact. 99 != 100. Strict, c'est strict. Plus tard on verra >= (plus grand ou egal) pour assouplir, mais pour le moment on stay strict." },
+  { type: 'chat', lines: ['javafan: == strict mode', 'manon_t: sniper jax'] },
+  { type: 'gameEvent', name: 'set_rule', text: 'if (stamina == 100) autoAttack()' },
+  { type: 'codePanel', action: 'close' },
+  { type: 'hp', amount: 100 },
+  { type: 'gameEvent', name: 'show_stamina', value: 100, recharge: true },
+  { type: 'mood', mood: 'hype' },
+  { type: 'bubble', mood: 'hype',
+    text: "Wave 6 — stamina full, watch les attaques auto." },
+  { type: 'sound', name: 'wave_spawn' },
+  { type: 'gameEvent', name: 'zombie_swarm_5' },
+  { type: 'delay', ms: 600 },
+  // 1er attack - stamina 100
+  { type: 'sound', name: 'if_taken' },
+  { type: 'gameEvent', name: 'attack_activate', cost: 100 },
+  { type: 'mood', mood: 'surprised' },
+  { type: 'bubble', mood: 'surprised',
+    text: "BOOM. 3 zombies dans la range, tous decimes. Stamina retombe a zero — faut recharger." },
+  // Stamina recharge progresse...
+  { type: 'delay', ms: 4000 },
+  { type: 'sound', name: 'if_taken' },
+  { type: 'gameEvent', name: 'attack_activate', cost: 100 },
+  { type: 'delay', ms: 600 },
+  { type: 'mood', mood: 'proud' },
+  { type: 'bubble', mood: 'proud',
+    text: "Cycle attack -> recharge -> attack. Tu fais zero degats subis. Code aggressif, tres efficace." },
+  { type: 'viewers', delta: 20, reason: 'attack combo' },
+  { type: 'chat', lines: ['speedrun_fr: jax raidboss', 'cookieandy_90: glass cannon'] },
+  { type: 'mood', mood: 'thinking' },
+  { type: 'bubble', mood: 'thinking',
+    text: "Tu commences a voir le pattern. Meme structure if-action, infinite combos selon la stat et l'action." },
 ];
 
 // ============ KEYBOARD ============
@@ -2086,12 +2487,16 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   sfx('click');
   startAmbientChat();
   startViewersDrift();
-  // Scenario V2 : Kaz se plante (0+1) -> Concept (2) -> JaX teste fix (3)
+  // Scenario V2 : Kaz se plante (0+1) -> Concept (2) -> JaX teste fix (3) -> Variations (4-7)
   await runAct(ACT_0);
   await runAct(ACT_1);
   await runAct(ACT_2);
   await runAct(ACT_3);
-  await showBubble("(Draft V2 palier 1 — ACT 4 « auto-shield » en construction. Variations de protections + JaX ecrit sa propre condition de zero a la fin.)");
+  await runAct(ACT_4);
+  await runAct(ACT_5);
+  await runAct(ACT_6);
+  await runAct(ACT_7);
+  await showBubble("(Draft V2 palier 2 OK — ACT 8 (bug hunt) + ACT 9 (TU ECRIS TA PROPRE CONDITION) en construction.)");
   setMood('thinking');
 });
 </script>
