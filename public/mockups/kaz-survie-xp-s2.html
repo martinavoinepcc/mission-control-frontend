@@ -2286,23 +2286,23 @@ const ACTS = [
     name: "La Galere Cookie",
     bubbles: [
       "Yo yo yo ! KazGamez_QC en stream ! 🎮 Je continue Survie XP — aujourd'hui on test les cookies.",
-      "Setup : j'ai 2 cookies dans mon inventaire. Chaque cookie soigne 50 HP. Je suis full life 100/100.",
-      "Reflexe humain : je vais pile les manger juste pour voir l'animation. Watch.",
-      "Yo j'ai mange les 2 cookies en 2 clics. J'etais deja a 100 HP. Pure gaspillage. Whatever, tantque je joue bien.",
-      "Wait... un swarm de zombies arrive. Cool je m'en occupe.",
-      "AYOYE ils sont 5 ! Je tape un pis 4 me cognent. Inventaire vide, plus de cookie pour heal.",
-      "JE MEURS. Pas parce que j'savais pas me battre. Parce que j'ai mange les cookies a 100 sans reflechir.",
-      "Bon. C'pas un bug, c'est une erreur de logique HUMAINE. Faut une REGLE qui empeche ca. Faut coder une condition.",
+      "Setup : j'ai 2 cookies dans mon inventaire (regarde le HUD top-left). Chaque cookie soigne 50 HP. Mais la je suis a 60/100 — j'ai pris des coups plus tot.",
+      "Reflexe humain : je clique pour manger un cookie. Vie remonte a 100. Useful !",
+      "Hmm pis je clique encore par habitude. Mais la je suis deja a 100 — le 2e cookie est pure gaspillage. Inventaire vide.",
+      "Wait... 3 zombies arrivent. Cool je m'en occupe.",
+      "Z1 frappe, Z2 frappe, Z3 frappe — je perds 90 HP. J'en kill un mais a 10 HP, sans cookie pour healer...",
+      "Tour 2 : 2 zombies tapent. JE MEURS. Pas par manque de skill. Par manque de HP — j'aurais du garder ce 2e cookie pour MAINTENANT.",
+      "Bon. C'pas un bug, c'est une erreur de logique HUMAINE. Faut une REGLE qui mange un cookie SEULEMENT quand life est basse. Faut coder une condition.",
     ],
     beats: [
-      null,                     // 0 — Yo yo
-      'cookie.appear_inventory',// 1 — Setup
-      'kaz.eat_cookie_double',  // 2 — pile les manger
-      null,                     // 3 — gaspillage
-      'swarm.spawn_5',          // 4 — swarm zombies arrive
-      'swarm.batter_kaz',       // 5 — ils tapent
-      'kaz.dies_swarm',         // 6 — JE MEURS
-      null,                     // 7 — c'pas un bug
+      null,                            // 0 — Yo yo
+      'cookie.appear_inventory',       // 1 — Setup HP 60% + 2 cookies
+      'kaz.eat_cookie_useful',         // 2 — 1er cookie utile (60->100)
+      'kaz.eat_cookie_wasted',         // 3 — 2e cookie gaspille (reste 100)
+      'swarm.spawn_3',                 // 4 — 3 zombies arrivent
+      'combat.act1_turn1',             // 5 — Tour 1 : Z123 frappent + Kaz kill Z1
+      'combat.act1_turn2_dies',        // 6 — Tour 2 : Z23 frappent, Kaz mort par HP=0
+      null,                            // 7 — c'pas un bug
     ],
     onEnter: () => {
       setMood('happy');
@@ -2344,24 +2344,26 @@ const ACTS = [
     },
   },
 
-  // ACT 4 (idx 3) - LE FIX FONCTIONNE - ARENA TEST
+  // ACT 4 (idx 3) - LE FIX FONCTIONNE - ARENA TEST (combat tour-a-tour avec auto-heal)
   {
     name: "Le Fix Marche",
     bubbles: [
-      "AH LET'S GOOOO ! T'as installe la regle.",
-      "Watch — je suis a 100 HP. Le code va checker AVANT que je mange. Je tente de pesser sur E pour manger un cookie.",
-      "Refus ! Le code dit : life pas plus petit que 50, action ignoree. Le code me PROTEGE de mon propre clic random.",
-      "Maintenant les vrais zombies. Wave de 3 — watch ton code travailler.",
-      "Vie tombe a 35 — la condition se declenche TOUTE SEULE — cookie auto-mange, vie remonte. T'as rien fait. Le code l'a faite.",
-      "C'est ca coder. Une regle qu'on ecrit une fois, qui s'applique TOUT le temps tant que la condition matche.",
+      "AH LET'S GOOOO ! T'as installe la regle. Je respawn a 100 HP, et il me reste 1 cookie (le 2e qu'on aurait gaspille tantot).",
+      "Watch — je suis a 100. Le code va checker AVANT que je mange. Je tente E pour voir.",
+      "Refus ! Le code dit : life pas < 50, action ignoree. Le code me PROTEGE de mon propre clic random.",
+      "Maintenant les memes 3 zombies. Wave 3 — watch ton code travailler.",
+      "Tour 1 : Z123 me tapent, vie tombe. A 40 HP la condition matche → cookie AUTO mange → vie remonte a 90. Pendant ce temps je kill Z1.",
+      "Tour 2 : Z23 tapent. Je kill Z2. Tour 3 : Z3 tape, je le finish. Plus de cookie mais tous les zombies down.",
+      "C'est ca coder. Le 2e cookie (gaspille tantot a 100) servait MAINTENANT au bon moment. Pas par chance — par REGLE.",
     ],
     beats: [
-      'arena.respawn_with_rule',  // 0 — t'as installe
-      'kaz.protected_block',       // 1 — Refus du clic
-      null,                        // 2 — explication refus
-      'wave.spawn_3_zombies',      // 3 — vrais zombies
-      'kaz.auto_heal_trigger',     // 4 — auto-heal
-      null,                        // 5 — c'est ca coder
+      'arena.respawn_with_rule',     // 0 — respawn 100% + 1 cookie
+      'kaz.protected_block',          // 1 — Refus du clic E a 100
+      null,                           // 2 — explication refus
+      'wave.spawn_3_zombies',         // 3 — wave 3 zombies
+      'combat.act4_turn1_with_rule',  // 4 — Tour 1 + auto-heal trigger
+      'combat.act4_turns23_finish',   // 5 — Tours 2 et 3 : kill restants
+      null,                           // 6 — c'est ca coder
     ],
     onEnter: () => {
       setMood('hype');
@@ -2890,33 +2892,129 @@ const COMBAT_BEATS = {
   // V2 ADDITIONS — beats specifiques au scenario S2 (cookies/conditions)
   // ============================================================
 
-  // ACT 1 V2 — Kaz part a 60% HP, mange 2 cookies (1er = utile, 2e = gaspille), swarm le tue
+  // ACT 1 V2 — Kaz part a 60% HP, mange 2 cookies (1er = utile, 2e = gaspille), 3 zombies tour-a-tour, mort par HP=0
   'cookie.appear_inventory': () => {
-    // Show inventaire HUD avec 2 cookies
     showInventoryHUD(2);
-    // Setter HP a 60% pour que le 1er cookie ait un effet visible
     setPlayerHpAnimated(60, false);
   },
-  'kaz.eat_cookie_double': () => {
+  // 1er cookie : utile, HP 60 -> 100, inventaire 2 -> 1
+  'kaz.eat_cookie_useful': () => {
     const player = document.getElementById('player');
-    // 1er cookie : flash vert + HP 60 -> 100 (effet visible)
     if (player) {
       player.classList.add('hit');
       spawnSparks(player, '#22c55e');
       setTimeout(() => player.classList.remove('hit'), 400);
     }
     setPlayerHpAnimated(100, true);
-    decrementInventory(false);  // 2 -> 1, anim normale
-    // 2e cookie 600ms plus tard : flash plus pâle, HP reste a 100, anim "gaspille"
+    decrementInventory(false);
+  },
+  // 2e cookie : gaspille, HP reste 100, inventaire 1 -> 0 avec popup WASTED
+  'kaz.eat_cookie_wasted': () => {
+    const player = document.getElementById('player');
+    if (player) {
+      player.classList.add('hit');
+      spawnSparks(player, '#84cc16');
+      setTimeout(() => player.classList.remove('hit'), 400);
+    }
+    // HP reste a 100 (cap), pas d'update
+    decrementInventory(true);
+  },
+  // 3 zombies arrivent (pas 5)
+  'swarm.spawn_3': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    if (player) player.style.left = '15%';
+    [enemy, enemy2, enemy3].forEach((e, i) => {
+      if (!e) return;
+      e.style.display = '';
+      e.style.opacity = '1';
+      e.style.transform = '';
+      e.style.right = (15 + i * 7) + '%';
+      // Reset si jamais c'etait un boss recolore
+      const svg = e.querySelector('svg');
+      if (svg) svg.querySelectorAll('rect').forEach(r => {
+        const f = r.getAttribute('fill');
+        if (f === '#7f1d1d') r.setAttribute('fill', '#65a30d');
+        if (f === '#991b1b') r.setAttribute('fill', '#4d7c0f');
+        if (f === '#b91c1c') r.setAttribute('fill', '#3f6212');
+      });
+    });
+  },
+  // ACT 1 — Tour 1 : Z1 frappe, Z2 frappe, Z3 frappe (HP 100 -> 70 -> 40 -> 10), Kaz kill Z1
+  'combat.act1_turn1': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    let hp = 100;
+    const dmg = 30;
+    function zombieHit(z, delay, newHp) {
+      setTimeout(() => {
+        if (z) { z.style.right = '32%'; z.classList.add('attacking'); }
+        if (player) player.classList.add('hit');
+        showDamage(player, dmg, 'danger');
+        screenShake(8);
+        spawnSparks(player, '#dc2626');
+        setPlayerHpAnimated(newHp, true);
+        setTimeout(() => {
+          if (z) { z.style.right = '15%'; z.classList.remove('attacking'); }
+          if (player) player.classList.remove('hit');
+        }, 380);
+      }, delay);
+    }
+    zombieHit(enemy, 200, 70);
+    zombieHit(enemy2, 800, 40);
+    zombieHit(enemy3, 1400, 10);
+    // Kaz frappe Z1, le kill
     setTimeout(() => {
       if (player) {
-        player.classList.add('hit');
-        spawnSparks(player, '#84cc16');  // vert moins saturé
-        setTimeout(() => player.classList.remove('hit'), 400);
+        player.style.left = '32%';
+        player.classList.add('attacking');
       }
-      // HP reste a 100 (cap), pas d'update HP
-      decrementInventory(true);  // 1 -> 0, anim "wasted"
+      if (enemy) {
+        enemy.classList.add('hit');
+        showDamage(enemy, '50', 'warn');
+        spawnSparks(enemy, '#fbbf24');
+      }
+      setTimeout(() => {
+        if (player) {
+          player.style.left = '15%';
+          player.classList.remove('attacking');
+        }
+        if (enemy) {
+          enemy.classList.remove('hit');
+          enemy.style.opacity = '0.25';
+          enemy.style.transform = 'translateY(20px) rotate(90deg)';
+        }
+      }, 500);
+    }, 2000);
+  },
+  // ACT 1 — Tour 2 : Z2 et Z3 finissent Kaz (HP 10 -> -50, mort par HP=0)
+  'combat.act1_turn2_dies': () => {
+    const player = document.getElementById('player');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    function zombieHit(z, delay, newHp) {
+      setTimeout(() => {
+        if (z) { z.style.right = '32%'; z.classList.add('attacking'); }
+        if (player) player.classList.add('hit');
+        showDamage(player, 30, 'danger');
+        screenShake(10);
+        spawnSparks(player, '#dc2626');
+        setPlayerHpAnimated(Math.max(0, newHp), true);
+        setTimeout(() => {
+          if (z) { z.style.right = '15%'; z.classList.remove('attacking'); }
+          if (player) player.classList.remove('hit');
+        }, 380);
+      }, delay);
+    }
+    zombieHit(enemy2, 200, 0);
+    setTimeout(() => {
+      showStatus('GAME OVER — HP 0', 'danger', 2400);
     }, 700);
+    zombieHit(enemy3, 900, 0);
   },
   'swarm.spawn_5': () => {
     const player = document.getElementById('player');
@@ -2969,7 +3067,6 @@ const COMBAT_BEATS = {
     const enemy = document.getElementById('enemy');
     const enemy2 = document.getElementById('enemy2');
     const enemy3 = document.getElementById('enemy3');
-    const playerHp = document.getElementById('playerHp');
     if (player) { player.style.left = '15%'; player.classList.remove('hit'); }
     [enemy, enemy2, enemy3].forEach(e => {
       if (!e) return;
@@ -2977,8 +3074,10 @@ const COMBAT_BEATS = {
       e.style.opacity = '1';
       e.style.transform = '';
     });
-    if (playerHp) playerHp.style.width = '100%';
-    showStatus('✓ RULE INSTALLED — life<50 → eatCookie()', 'success', 2000);
+    setPlayerHpAnimated(100, true);
+    // Setup inventaire : il reste 1 cookie (le "2e" de tantot, qui sera utilise au bon moment via la regle)
+    showInventoryHUD(1);
+    showStatus('✓ RULE INSTALLED — life<50 → eatCookie() | INVENTAIRE: 1', 'success', 2200);
   },
   'kaz.protected_block': () => {
     const player = document.getElementById('player');
@@ -3004,30 +3103,171 @@ const COMBAT_BEATS = {
     });
     showStatus('WAVE 3 ZOMBIES', 'warn', 1200);
   },
-  'kaz.auto_heal_trigger': () => {
+  // Backward-compat (encore reference par d'anciens code paths) — alias vers le combat tour 1
+  'kaz.auto_heal_trigger': function() { return COMBAT_BEATS['combat.act4_turn1_with_rule'](); },
+
+  // ACT 4 — Tour 1 : Z123 frappent (HP 100->70->40->10 avec auto-heal a 40), Kaz kill Z1
+  'combat.act4_turn1_with_rule': () => {
     const player = document.getElementById('player');
     const enemy = document.getElementById('enemy');
-    const playerHp = document.getElementById('playerHp');
-    // 1) zombie tape Kaz, HP descend a 35
-    if (enemy) { enemy.style.right = '32%'; enemy.classList.add('attacking'); }
-    if (player) player.classList.add('hit');
-    showDamage(player, '65', 'danger');
-    screenShake(10);
-    spawnSparks(player, '#dc2626');
-    if (playerHp) playerHp.style.width = '35%';
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    const dmg = 30;
+
+    // Z1 frappe (100 -> 70)
     setTimeout(() => {
-      if (enemy) { enemy.style.right = '20%'; enemy.classList.remove('attacking'); }
-      if (player) player.classList.remove('hit');
-    }, 500);
-    // 2) Auto-heal : la condition matche, cookie auto-mange
+      if (enemy) { enemy.style.right = '32%'; enemy.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, dmg, 'danger');
+      screenShake(8);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(70, true);
+      setTimeout(() => {
+        if (enemy) { enemy.style.right = '15%'; enemy.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 200);
+
+    // Z2 frappe (70 -> 40)
+    setTimeout(() => {
+      if (enemy2) { enemy2.style.right = '32%'; enemy2.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, dmg, 'danger');
+      screenShake(8);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(40, true);
+      setTimeout(() => {
+        if (enemy2) { enemy2.style.right = '22%'; enemy2.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 900);
+
+    // 40 < 50 → AUTO-HEAL : la regle declenche, cookie mange, +50 HP
     setTimeout(() => {
       if (player) {
         spawnSparks(player, '#22c55e');
         spawnSparks(player, '#22c55e');
       }
+      setPlayerHpAnimated(90, true);
+      decrementInventory(false);
       showStatus('✓ if (life<50) → eatCookie() AUTO', 'success', 1800);
-      if (playerHp) playerHp.style.width = '85%';
-    }, 1100);
+    }, 1500);
+
+    // Z3 frappe (90 -> 60)
+    setTimeout(() => {
+      if (enemy3) { enemy3.style.right = '32%'; enemy3.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, dmg, 'danger');
+      screenShake(8);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(60, true);
+      setTimeout(() => {
+        if (enemy3) { enemy3.style.right = '29%'; enemy3.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 2300);
+
+    // Kaz kill Z1
+    setTimeout(() => {
+      if (player) {
+        player.style.left = '32%';
+        player.classList.add('attacking');
+      }
+      if (enemy) {
+        enemy.classList.add('hit');
+        showDamage(enemy, '50', 'warn');
+        spawnSparks(enemy, '#fbbf24');
+      }
+      setTimeout(() => {
+        if (player) {
+          player.style.left = '15%';
+          player.classList.remove('attacking');
+        }
+        if (enemy) {
+          enemy.classList.remove('hit');
+          enemy.style.opacity = '0.25';
+          enemy.style.transform = 'translateY(20px) rotate(90deg)';
+        }
+      }, 500);
+    }, 3000);
+  },
+
+  // ACT 4 — Tours 2 et 3 : Z2 et Z3 finis. Kaz survit a la fin.
+  'combat.act4_turns23_finish': () => {
+    const player = document.getElementById('player');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    const dmg = 30;
+
+    // Tour 2 : Z2 frappe (60 -> 30), Z3 frappe (30 -> 0... non on s'arrete a 30 ou 10)
+    // Re-equilibrons : Z2 frappe (60->30), Kaz kill Z2 ; Z3 frappe (30->0 mais Kaz a deja kill au moment de Z3)
+    // En realite : Z2 frappe puis Kaz kill Z2 (Z3 attend) puis tour 3 Z3 frappe et Kaz kill Z3
+
+    // Tour 2 : Z2 frappe (60 -> 30)
+    setTimeout(() => {
+      if (enemy2) { enemy2.style.right = '32%'; enemy2.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, dmg, 'danger');
+      screenShake(8);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(30, true);
+      setTimeout(() => {
+        if (enemy2) { enemy2.style.right = '22%'; enemy2.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 200);
+
+    // Kaz kill Z2
+    setTimeout(() => {
+      if (player) { player.style.left = '24%'; player.classList.add('attacking'); }
+      if (enemy2) {
+        enemy2.classList.add('hit');
+        showDamage(enemy2, '50', 'warn');
+        spawnSparks(enemy2, '#fbbf24');
+      }
+      setTimeout(() => {
+        if (player) { player.style.left = '15%'; player.classList.remove('attacking'); }
+        if (enemy2) {
+          enemy2.classList.remove('hit');
+          enemy2.style.opacity = '0.25';
+          enemy2.style.transform = 'translateY(20px) rotate(90deg)';
+        }
+      }, 500);
+    }, 900);
+
+    // Tour 3 : Z3 frappe (30 -> 0... ouch, Kaz survit de justesse parce qu'il n'y a plus rien apres)
+    // En fait pour le narratif "Kaz survit", on baisse Z3 dmg a 20 ou Kaz HP reste a 10
+    setTimeout(() => {
+      if (enemy3) { enemy3.style.right = '32%'; enemy3.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, '20', 'danger');
+      screenShake(8);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(10, true);
+      setTimeout(() => {
+        if (enemy3) { enemy3.style.right = '29%'; enemy3.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 1700);
+
+    // Kaz kill Z3 (final)
+    setTimeout(() => {
+      if (player) { player.style.left = '32%'; player.classList.add('attacking'); }
+      if (enemy3) {
+        enemy3.classList.add('hit');
+        showDamage(enemy3, '50', 'warn');
+        spawnSparks(enemy3, '#fbbf24');
+      }
+      setTimeout(() => {
+        if (player) { player.style.left = '15%'; player.classList.remove('attacking'); }
+        if (enemy3) {
+          enemy3.classList.remove('hit');
+          enemy3.style.opacity = '0.25';
+          enemy3.style.transform = 'translateY(20px) rotate(90deg)';
+        }
+        showStatus('✓ WAVE CLEAR — HP 10, COOKIE 0', 'success', 2200);
+      }, 500);
+    }, 2400);
   },
 
   // ACT 5 V2 — Wave 4, cookies vides, faut une autre action
