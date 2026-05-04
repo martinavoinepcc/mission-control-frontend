@@ -293,13 +293,13 @@ function DashboardInner() {
 
         className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pb-6 sm:pb-10"
 
-        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+        style={{ paddingTop: 'max(1.75rem, env(safe-area-inset-top))' }}
 
       >
 
         {/* Header */}
 
-        <header className="flex items-center justify-between gap-2 mb-8 sm:mb-12 animate-fade-up">
+        <header className="flex items-center justify-between gap-2 mb-6 sm:mb-12 animate-fade-up">
 
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
 
@@ -507,7 +507,7 @@ function DashboardInner() {
 
         {/* Salutation + météo */}
 
-        <section className="mb-10 animate-fade-up">
+        <section className="mb-6 sm:mb-10 animate-fade-up">
 
           <div className="flex items-start justify-between gap-4 flex-wrap">
 
@@ -515,7 +515,7 @@ function DashboardInner() {
 
               <p className="text-white/40 text-sm tracking-wider uppercase mb-2">{vibe.label}</p>
 
-              <h1 className="text-4xl md:text-5xl font-bold font-display">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display">
 
                 {vibe.greeting}, <span className={`bg-gradient-to-r ${vibe.gradient} bg-clip-text text-transparent`}>{user.firstName}</span>
 
@@ -559,7 +559,7 @@ function DashboardInner() {
 
         ) : (
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
 
             {filteredApps.map((app, idx) => (
 
@@ -609,7 +609,7 @@ export default function DashboardPage() {
 
 function AppCard({ app, delay, realm }: { app: App; delay: number; realm: Realm }) {
   // Classes partagees pour le look de la tuile (button ET anchor)
-  const cardClass = "group relative text-left rounded-2xl overflow-hidden glass p-6 transition-all hover:scale-[1.02] hover:shadow-2xl animate-fade-up block";
+  const cardClass = "group relative text-left rounded-2xl overflow-hidden glass p-4 sm:p-6 transition-all hover:scale-[1.02] hover:shadow-2xl animate-fade-up block";
   const cardStyle = { animationDelay: `${delay}ms` } as React.CSSProperties;
 
   // Contenu visuel reutilise dans toutes les variantes
@@ -621,13 +621,13 @@ function AppCard({ app, delay, realm }: { app: App; delay: number; realm: Realm 
       />
       <div className="relative">
         <div
-          className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5 transition-transform group-hover:scale-110"
+          className="inline-flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl mb-3 sm:mb-5 transition-transform group-hover:scale-110"
           style={{ background: `${app.color}20`, border: `1px solid ${app.color}40` }}
         >
-          <FontAwesomeIcon icon={iconForApp(app.icon)} className="text-2xl" style={{ color: app.color }} />
+          <FontAwesomeIcon icon={iconForApp(app.icon)} className="text-lg sm:text-2xl" style={{ color: app.color }} />
         </div>
-        <h3 className="font-display text-xl font-semibold mb-1">{app.name}</h3>
-        {app.description && <p className="text-white/50 text-sm mb-4">{app.description}</p>}
+        <h3 className="font-display text-base sm:text-xl font-semibold mb-0.5 sm:mb-1">{app.name}</h3>
+        {app.description && <p className="text-white/50 text-xs sm:text-sm mb-2 sm:mb-4 line-clamp-2">{app.description}</p>}
         {app.isMockup && (
           <span className="inline-block text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50">
             Bientôt disponible
