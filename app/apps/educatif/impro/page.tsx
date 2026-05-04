@@ -13,7 +13,10 @@ export default function ImproHubPage() {
       <div className="blob bg-rose-500 w-[420px] h-[420px] -top-48 -left-40 animate-pulse-slow opacity-[0.10]" />
       <div className="blob bg-blue-500 w-[340px] h-[340px] -bottom-32 -right-32 animate-pulse-slow opacity-[0.10]" style={{ animationDelay: '2s' }} />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div
+        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-6 sm:pb-10"
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+      >
         <header className="flex items-center justify-between mb-8">
           <button onClick={() => router.push('/apps/educatif')} className="flex items-center gap-2 text-white/70 hover:text-white text-sm">
             <FontAwesomeIcon icon={UI.back} /> Éducatif
