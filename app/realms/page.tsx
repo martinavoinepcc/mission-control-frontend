@@ -42,7 +42,11 @@ export default function RealmsPage() {
   useEffect(() => {
     if (loading) return;
     const accessible = (Object.keys(realmCounts) as Realm[]).filter((r) => realmCounts[r] > 0);
-    if (accessible.length <= 1) {
+    if (accessible.length === 1) {
+      // Un seul realm dispo → redirect direct au bon realm (pas au defaut family)
+      router.replace(`/dashboard?realm=${accessible[0].toLowerCase()}`);
+    } else if (accessible.length === 0) {
+      // Aucun acces → fallback dashboard (montrera l etat vide proprement)
       router.replace('/dashboard');
     }
   }, [loading, realmCounts, router]);
