@@ -12,7 +12,13 @@ export default function KazSurvieXpS1Page() {
 
   return (
     <main className="relative min-h-screen bg-black">
-      <div className="absolute top-3 left-3 z-20">
+      <div
+        className="absolute z-20"
+        style={{
+          top: 'max(0.75rem, env(safe-area-inset-top))',
+          left: 'max(0.75rem, env(safe-area-inset-left))',
+        }}
+      >
         <button
           onClick={() => router.push('/apps/educatif/kaz')}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/70 backdrop-blur-sm text-white/80 hover:text-white text-sm border border-white/10 hover:border-white/30 transition-all"
