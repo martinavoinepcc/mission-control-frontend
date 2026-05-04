@@ -188,7 +188,10 @@ export default function ImproPracticePage() {
       <div className="absolute inset-0 cosmic-grid opacity-60" />
       <div className="blob bg-rose-500 w-[420px] h-[420px] -top-48 -left-40 animate-pulse-slow opacity-[0.10]" />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div
+        className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 pb-6 sm:pb-10"
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+      >
         <header className="flex items-center justify-between mb-6">
           <button onClick={() => (phase === 'FORM' ? router.push('/apps/educatif/impro') : stop())} className="flex items-center gap-2 text-white/70 hover:text-white text-sm">
             <FontAwesomeIcon icon={UI.back} /> {phase === 'FORM' ? 'Impro' : 'Quitter'}
