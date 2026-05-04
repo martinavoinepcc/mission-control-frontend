@@ -3709,6 +3709,27 @@ function updateStats() {
   document.getElementById('followerCount').textContent = state.followers;
 }
 
+// Drift organique du compteur viewers (et un peu followers).
+// Les changements scriptes (state.viewers = 12; updateStats()) restent autoritaires;
+// le drift remplit juste les blancs avec un wobble style Twitch.
+function startViewersDrift() {
+  if (state.viewersDriftTimer) return;
+  function driftTick() {
+    if (state.viewers >= 1) {
+      const delta = Math.floor((Math.random() - 0.42) * 5);
+      if (delta !== 0) {
+        state.viewers = Math.max(1, state.viewers + delta);
+        if (delta > 0 && state.viewers > 5 && Math.random() > 0.78) {
+          state.followers = Math.min(state.followers + 1, state.viewers);
+        }
+        updateStats();
+      }
+    }
+    state.viewersDriftTimer = setTimeout(driftTick, 3500 + Math.random() * 4500);
+  }
+  driftTick();
+}
+
 // ========== VICTORY ==========
 function showVictory() {
   document.getElementById('victoryOverlay').classList.add('active');
@@ -3870,6 +3891,7 @@ function screenShake(intensity) {
 function init() {
   renderCode();
   updateStats();
+  startViewersDrift();
   setMood('stressed');
 
   // Bubble click
