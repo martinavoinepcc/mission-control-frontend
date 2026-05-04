@@ -115,10 +115,10 @@ export default function HeimdallHub() {
 
       <div
         className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10"
-        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+        style={{ paddingTop: 'max(1.75rem, env(safe-area-inset-top))' }}
       >
         {/* Header */}
-        <header className="flex items-center justify-between gap-2 mb-8 sm:mb-10 animate-fade-up">
+        <header className="flex items-center justify-between gap-2 mb-6 sm:mb-10 animate-fade-up">
           <button
             onClick={() => router.push('/dashboard?realm=family')}
             className="w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center sm:gap-2"
@@ -139,9 +139,9 @@ export default function HeimdallHub() {
         </header>
 
         {/* Hero */}
-        <section className="mb-10 animate-fade-up">
+        <section className="mb-6 sm:mb-10 animate-fade-up">
           <p className="text-white/40 text-xs tracking-[0.25em] uppercase mb-3">Layer global</p>
-          <h1 className="text-3xl sm:text-5xl font-bold font-display leading-tight">
+          <h1 className="text-2xl sm:text-5xl font-bold font-display leading-tight">
             <span className="bg-gradient-to-r from-neon-violet to-neon-cyan bg-clip-text text-transparent">
               HEIMDALL
             </span>
@@ -162,7 +162,7 @@ export default function HeimdallHub() {
         </section>
 
         {/* Modules grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
           {modules.map((m, idx) => (
             <ModuleCardView key={m.slug} module={m} delay={idx * 80} router={router} />
           ))}
@@ -200,7 +200,7 @@ function ModuleCardView({
       type="button"
       onClick={onClick}
       disabled={!isLive}
-      className={`group relative text-left rounded-2xl overflow-hidden glass p-5 sm:p-6 transition-all animate-fade-up ${
+      className={`group relative text-left rounded-2xl overflow-hidden glass p-4 sm:p-6 transition-all animate-fade-up ${
         isLive ? 'hover:scale-[1.02] hover:shadow-2xl cursor-pointer' : 'opacity-50 cursor-not-allowed'
       }`}
       style={{ animationDelay: `${delay}ms` }}
@@ -212,10 +212,10 @@ function ModuleCardView({
       <div className="relative flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <div
-            className="inline-flex items-center justify-center w-12 h-12 rounded-xl flex-shrink-0 transition-transform group-hover:scale-110"
+            className="inline-flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 transition-transform group-hover:scale-110"
             style={{ background: '#29D0FE20', border: '1px solid #29D0FE40' }}
           >
-            <FontAwesomeIcon icon={module.icon} className="text-xl text-cyan-300" />
+            <FontAwesomeIcon icon={module.icon} className="text-lg sm:text-xl text-cyan-300" />
           </div>
           {module.liveBadge && (
             <BridgeBadge state={module.liveBadge} />
@@ -227,8 +227,8 @@ function ModuleCardView({
           )}
         </div>
         <div>
-          <h3 className="font-display text-xl font-semibold mb-1">{module.name}</h3>
-          <p className="text-white/50 text-sm">{module.tagline}</p>
+          <h3 className="font-display text-base sm:text-xl font-semibold mb-0.5 sm:mb-1">{module.name}</h3>
+          <p className="text-white/50 text-xs sm:text-sm">{module.tagline}</p>
         </div>
       </div>
     </button>
