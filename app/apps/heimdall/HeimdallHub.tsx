@@ -79,8 +79,8 @@ export default function HeimdallHub() {
       tagline: 'UI Aion UI complète — agents, tâches, cron, logs, skills, secrets, approvals.',
       icon: faEye,
       status: 'live',
-      href: HEIMDALL_COCKPIT_URL,
-      external: true,
+      href: '/apps/heimdall/cockpit/',
+      external: false,
     },
     {
       slug: 'friday-chat',
