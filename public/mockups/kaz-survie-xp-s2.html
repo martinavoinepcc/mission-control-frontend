@@ -217,14 +217,16 @@
   /* ===== RIGHT: Chat + Kaz ===== */
   .stream-right {
     display: grid;
-    grid-template-rows: 1fr 280px;
+    grid-template-rows: minmax(0, 1fr) 280px;
     border-left: 1px solid rgba(255,255,255,0.08);
     background: rgba(10,10,20,0.6);
     position: relative;
+    min-height: 0;
   }
 
-  /* Chat */
+  /* Chat — min-height:0 essentiel pour que le grid 1fr cap la hauteur */
   .chat {
+    min-height: 0;
     overflow-y: auto;
     padding: 0.7rem 1rem 0.5rem;
     display: flex; flex-direction: column; gap: 0.3rem;
@@ -313,7 +315,17 @@
     transition: opacity 0.3s, transform 0.3s;
     pointer-events: none;
   }
-  .bubble.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .bubble.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; cursor: pointer; }
+  /* Hint "Clique ou Espace" quand le texte est fini d'apparaitre */
+  .bubble.ready::before {
+    content: '▶ clic ou espace';
+    position: absolute; bottom: -22px; right: 14px;
+    font-size: 0.62rem; font-family: monospace;
+    color: var(--pink); opacity: 0.6;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    animation: pulseHint 1.6s infinite;
+  }
+  @keyframes pulseHint { 0%,100% { opacity: 0.35; } 50% { opacity: 0.85; } }
   .bubble::after {
     content: ''; position: absolute; right: -10px; bottom: 30px;
     width: 0; height: 0;
@@ -832,25 +844,84 @@ function setMood(mood) {
 Object.values(EMOTIONS).forEach(src => { const i = new Image(); i.src = src; });
 
 // ============ BUBBLE + TYPEWRITER ============
+// click ou espace = avancer. 1er input pendant le typewriter = skip au texte complet.
+// 2eme input (ou 1er si typewriter deja fini) = passer au prochain beat.
 function showBubble(text, options = {}) {
   return new Promise((resolve) => {
     const bubble = document.getElementById('bubble');
     const textEl = document.getElementById('bubbleText');
-    bubble.classList.remove('visible');
+    bubble.classList.remove('visible', 'ready');
+
+    // Cleanup d'un handler precedent au cas ou
+    if (state.bubbleHandler) {
+      window.removeEventListener('keydown', state.bubbleHandler);
+      bubble.removeEventListener('click', state.bubbleHandler);
+      state.bubbleHandler = null;
+    }
+
     setTimeout(() => {
       textEl.textContent = '';
       bubble.classList.add('visible', 'typing');
       const chars = text.split('');
       let i = 0;
       const speed = options.speed || 25;
+      let typewriterDone = false;
+      let resolved = false;
+
+      function finishTypewriter() {
+        if (typewriterDone) return;
+        typewriterDone = true;
+        if (state.typewriterTimer) {
+          clearInterval(state.typewriterTimer);
+          state.typewriterTimer = null;
+        }
+        textEl.textContent = text;
+        bubble.classList.remove('typing');
+        bubble.classList.add('ready');
+      }
+
+      function cleanup() {
+        if (state.bubbleHandler) {
+          window.removeEventListener('keydown', state.bubbleHandler);
+          bubble.removeEventListener('click', state.bubbleHandler);
+          state.bubbleHandler = null;
+        }
+        bubble.classList.remove('ready');
+      }
+
+      function advance() {
+        if (resolved) return;
+        if (!typewriterDone) {
+          finishTypewriter();
+          return;
+        }
+        resolved = true;
+        cleanup();
+        sfx('click');
+        resolve();
+      }
+
+      function onInput(e) {
+        if (e.type === 'keydown') {
+          const tag = (e.target && e.target.tagName ? e.target.tagName : '').toUpperCase();
+          if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+          if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            advance();
+          }
+        } else {
+          advance();
+        }
+      }
+      state.bubbleHandler = onInput;
+      window.addEventListener('keydown', onInput);
+      bubble.addEventListener('click', onInput);
+
       if (state.typewriterTimer) clearInterval(state.typewriterTimer);
       state.typewriterTimer = setInterval(() => {
         if (i >= chars.length) {
-          clearInterval(state.typewriterTimer);
-          state.typewriterTimer = null;
-          bubble.classList.remove('typing');
-          const hold = options.hold || Math.max(1500, text.length * 55);
-          setTimeout(resolve, hold);
+          finishTypewriter();
+          // Plus de hold-timer auto — JaX doit cliquer ou peser espace.
           return;
         }
         textEl.textContent += chars[i++];
@@ -860,12 +931,19 @@ function showBubble(text, options = {}) {
   });
 }
 function hideBubble() {
-  document.getElementById('bubble').classList.remove('visible');
+  const bubble = document.getElementById('bubble');
+  bubble.classList.remove('visible', 'ready');
+  if (state.bubbleHandler) {
+    window.removeEventListener('keydown', state.bubbleHandler);
+    bubble.removeEventListener('click', state.bubbleHandler);
+    state.bubbleHandler = null;
+  }
 }
 
 // ============ CHAT ============
 const CHAT_COLORS = ['u1','u2','u3','u4','u5'];
 let chatIdx = 0;
+const CHAT_MAX_MSGS = 40;
 function addChat(user, text, flavor='normal') {
   const el = document.createElement('div');
   el.className = 'chat-msg';
@@ -873,6 +951,8 @@ function addChat(user, text, flavor='normal') {
   el.innerHTML = `<span class="usr ${cls}">${user}:</span> <span class="txt">${text}</span>`;
   const container = document.getElementById('chatMessages');
   container.appendChild(el);
+  // Cap a CHAT_MAX_MSGS pour pas accumuler indefiniment
+  while (container.children.length > CHAT_MAX_MSGS) container.removeChild(container.firstChild);
   container.parentElement.scrollTop = container.parentElement.scrollHeight;
 }
 
@@ -1007,29 +1087,123 @@ function drawBG() {
     gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(960, y); gctx.stroke();
   }
 }
+// drawJax: pixel art kid-streamer (hoodie violet + casque + sneakers).
+// Style match S1 player. Sprite ~36px x 80px, ancre en bas (les pieds touchent baseY).
 function drawJax() {
   const j = scene.jax;
+  const cx = Math.round(j.x);
+  const baseY = Math.round(j.y + 40);  // ligne du sol
+  const bob = Math.round(Math.sin(scene.tick * 0.05));  // micro-respiration
+  const offsetX = cx - 18;             // sprite 36px de large, centre sur cx
+  const offsetY = baseY - 64 + bob;    // sprite 64 unites de haut
+
+  function rect(x, y, w, h, color) {
+    gctx.fillStyle = color;
+    gctx.fillRect(offsetX + x, offsetY + y, w, h);
+  }
+
   // Shadow
   gctx.fillStyle = 'rgba(0,0,0,0.4)';
-  gctx.beginPath(); gctx.ellipse(j.x, j.y+50, 24, 5, 0, 0, Math.PI*2); gctx.fill();
-  // Body (simple samurai-ish silhouette)
-  gctx.fillStyle = '#e8e8ff';
-  gctx.fillRect(j.x - 12, j.y - 40, 24, 48);  // body
-  // Head
-  gctx.fillStyle = '#f5e6cc';
-  gctx.beginPath(); gctx.arc(j.x, j.y - 50, 11, 0, Math.PI*2); gctx.fill();
-  // Eye
-  gctx.fillStyle = '#000';
-  gctx.fillRect(j.x - 3, j.y - 52, 2, 2);
-  gctx.fillRect(j.x + 2, j.y - 52, 2, 2);
-  // Sword (basic)
-  gctx.strokeStyle = '#c084fc'; gctx.lineWidth = 3;
-  gctx.beginPath(); gctx.moveTo(j.x + 14*j.facing, j.y - 20); gctx.lineTo(j.x + 34*j.facing, j.y - 35); gctx.stroke();
-  // HP label above
-  gctx.fillStyle = j.hp < 35 ? '#ef4444' : (j.hp < 60 ? '#f59e0b' : '#22c55e');
-  gctx.font = 'bold 10px monospace';
+  gctx.beginPath(); gctx.ellipse(cx, baseY + 3, 20, 4, 0, 0, Math.PI * 2); gctx.fill();
+
+  // Hair top + back (dark)
+  rect(10, 0, 18, 3, '#1e1b4b');
+  rect(8, 3, 22, 3, '#2e1065');
+
+  // Head (skin)
+  rect(12, 6, 14, 13, '#fcd9b6');
+  rect(22, 6, 4, 13, '#e8bc94');  // shading droit
+
+  // Cheek blush
+  rect(13, 13, 2, 2, '#f9a8d4');
+  rect(23, 13, 2, 2, '#f9a8d4');
+
+  // Eyes (whites + iris)
+  rect(13, 9, 4, 3, '#ffffff');
+  rect(21, 9, 4, 3, '#ffffff');
+  rect(14, 10, 2, 2, '#0f172a');
+  rect(22, 10, 2, 2, '#0f172a');
+
+  // Brows (focus)
+  rect(13, 7, 4, 1, '#1e1b4b');
+  rect(21, 7, 4, 1, '#1e1b4b');
+
+  // Mouth
+  rect(16, 16, 6, 1, '#8b5a3c');
+
+  // Headset band
+  rect(10, 3, 18, 2, '#9146ff');
+  rect(10, 3, 18, 1, '#a78bfa');
+
+  // Headset ear cups
+  rect(7, 7, 5, 10, '#9146ff');
+  rect(7, 7, 2, 10, '#7c3aed');
+  rect(8, 10, 3, 1, '#c4b5fd');
+  rect(26, 7, 5, 10, '#9146ff');
+  rect(29, 7, 2, 10, '#7c3aed');
+  rect(27, 10, 3, 1, '#c4b5fd');
+
+  // Mic arm + tip pink
+  rect(5, 15, 3, 1, '#9146ff');
+  rect(3, 16, 3, 3, '#9146ff');
+  rect(2, 18, 2, 2, '#ec4899');
+
+  // Neck
+  rect(16, 19, 6, 2, '#e8bc94');
+
+  // Hoodie body
+  rect(6, 21, 24, 22, '#7c3aed');
+  rect(6, 21, 24, 2, '#5b21b6');     // collar shadow
+  rect(6, 22, 2, 20, '#a78bfa');     // left highlight
+  rect(28, 22, 2, 20, '#5b21b6');    // right shadow
+
+  // Zipper centre
+  rect(17, 22, 2, 21, '#1e293b');
+
+  // Drawstrings
+  rect(15, 22, 1, 7, '#e2e8f0');
+  rect(20, 22, 1, 7, '#e2e8f0');
+  rect(14, 28, 3, 2, '#e2e8f0');
+  rect(19, 28, 3, 2, '#e2e8f0');
+
+  // Pouch pocket
+  rect(11, 33, 14, 8, '#6d28d9');
+  rect(11, 33, 14, 1, '#4c1d95');
+
+  // Arms
+  rect(2, 23, 4, 17, '#7c3aed');
+  rect(2, 23, 2, 17, '#5b21b6');
+  rect(30, 23, 4, 17, '#7c3aed');
+  rect(32, 23, 2, 17, '#5b21b6');
+
+  // Cuffs
+  rect(2, 38, 4, 2, '#4c1d95');
+  rect(30, 38, 4, 2, '#4c1d95');
+
+  // Hands
+  rect(2, 40, 4, 4, '#fcd9b6');
+  rect(30, 40, 4, 4, '#fcd9b6');
+
+  // Jeans
+  rect(11, 43, 7, 14, '#1e3a8a');
+  rect(11, 43, 2, 14, '#1e40af');
+  rect(20, 43, 7, 14, '#1e3a8a');
+  rect(20, 43, 2, 14, '#1e40af');
+
+  // Sneakers (red, white sole)
+  rect(9, 57, 10, 3, '#dc2626');
+  rect(9, 57, 10, 1, '#ef4444');
+  rect(9, 60, 10, 1, '#ffffff');
+  rect(19, 57, 10, 3, '#dc2626');
+  rect(19, 57, 10, 1, '#ef4444');
+  rect(19, 60, 10, 1, '#ffffff');
+
+  // HP label "JaX" au-dessus, couleur selon state.hp
+  const hpRef = (typeof state !== 'undefined' && state.hp !== undefined) ? state.hp : 100;
+  gctx.fillStyle = hpRef < 35 ? '#ef4444' : (hpRef < 60 ? '#f59e0b' : '#22c55e');
+  gctx.font = 'bold 11px monospace';
   gctx.textAlign = 'center';
-  gctx.fillText('JaX', j.x, j.y - 68);
+  gctx.fillText('JaX', cx, baseY - 70);
 }
 function drawCookie(x, y) {
   gctx.save();
