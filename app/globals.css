@@ -371,9 +371,14 @@ button, a[role="button"], a[href] {
 /* 4. Padding-top universel — bumpe le minimum a 28px pour couvrir les
       modes webclip iPhone ou env(safe-area-inset-top) peut etre 0.
       Selecteur attribute matche le pattern inline-style applique partout
-      (style="paddingTop: max(1rem, env(safe-area-inset-top))"). */
+      (style="paddingTop: max(1rem, env(safe-area-inset-top))").
+      On matche div / section / header / aside / nav directs sous <main>
+      pour couvrir les pages avec sticky header (Hubitat, Chalet, Messagerie). */
 main > div[style*="env(safe-area-inset-top)"],
-main > section[style*="env(safe-area-inset-top)"] {
+main > section[style*="env(safe-area-inset-top)"],
+main > header[style*="env(safe-area-inset-top)"],
+main > aside[style*="env(safe-area-inset-top)"],
+main > nav[style*="env(safe-area-inset-top)"] {
   padding-top: max(1.75rem, env(safe-area-inset-top)) !important;
 }
 
@@ -381,7 +386,11 @@ main > section[style*="env(safe-area-inset-top)"] {
       de padding pour bien degager les boutons header de la Dynamic Island. */
 @media (display-mode: standalone) {
   main > div[style*="env(safe-area-inset-top)"],
-  main > section[style*="env(safe-area-inset-top)"] {
+  main > section[style*="env(safe-area-inset-top)"],
+  main > header[style*="env(safe-area-inset-top)"],
+  main > aside[style*="env(safe-area-inset-top)"],
+  main > nav[style*="env(safe-area-inset-top)"] {
     padding-top: max(2.75rem, env(safe-area-inset-top)) !important;
   }
 }
+
