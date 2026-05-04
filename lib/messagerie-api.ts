@@ -69,6 +69,12 @@ export type MessageImageMeta = {
   height?: number;
 };
 
+export type MessageAudioMeta = {
+  data: string;     // data:audio/mpeg;base64,...
+  type?: string;    // mime: audio/mpeg, etc.
+  name?: string;    // filename original (pour download)
+};
+
 export type Message = {
   id: number;
   authorId: number;
@@ -77,6 +83,9 @@ export type Message = {
   imageData?: string | null;
   imageWidth?: number | null;
   imageHeight?: number | null;
+  audioData?: string | null;
+  audioType?: string | null;
+  audioName?: string | null;
   createdAt: string;
   editedAt?: string | null;
 };
@@ -112,11 +121,15 @@ export async function listMessages(
 export async function sendMessage(
   conversationId: number,
   body: string,
-  image?: MessageImageMeta
+  image?: MessageImageMeta,
+  audio?: MessageAudioMeta
 ): Promise<Message> {
   const payload: any = { body };
   if (image && image.data) {
     payload.image = { data: image.data, width: image.width, height: image.height };
+  }
+  if (audio && audio.data) {
+    payload.audio = { data: audio.data, type: audio.type, name: audio.name };
   }
   const res = await authFetch(`/conversations/${conversationId}/messages`, {
     method: 'POST',
