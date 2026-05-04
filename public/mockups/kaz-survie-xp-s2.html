@@ -798,6 +798,10 @@ const SFX = {
   boss_drop:   () => { [1200,900,700,550].forEach((f,i)=>tone(f, 400, 'sine', 0.18, i*0.1)); setTimeout(()=>tone(2000, 200, 'triangle', 0.15), 400); },
   wave_spawn:  () => noiseBurst(900, 200, 0.35, 2),
   badge_reveal:() => { [523,659,784].forEach(f=>tone(f, 500, 'triangle', 0.14)); setTimeout(()=>[784,988,1175].forEach(f=>tone(f, 500, 'triangle', 0.14)), 400); setTimeout(()=>[1047,1319,1568].forEach(f=>tone(f, 800, 'triangle', 0.16)), 800); setTimeout(()=>{tone(2093, 200, 'sine', 0.1); tone(2349, 200, 'sine', 0.08, 0.05);}, 1000); },
+  click_blocked:() => { tone(180, 80, 'square', 0.22); tone(120, 120, 'square', 0.18, 0.05); },
+  shield_up:   () => { sweep(400, 1200, 400, 'triangle', 0.18); tone(880, 200, 'sine', 0.12, 0.2); },
+  dash:        () => { sweep(900, 1600, 220, 'sine', 0.14); noiseBurst(120, 4000, 0.12, 1); },
+  slash:       () => { noiseBurst(180, 2500, 0.22, 1); tone(660, 90, 'square', 0.14, 0.04); },
 };
 function sfx(name) { (SFX[name] || (()=>{}))(); }
 
@@ -1045,12 +1049,16 @@ function showWasted() {
 const canvas = document.getElementById('game');
 const gctx = canvas.getContext('2d');
 const scene = {
-  jax: { x: 200, y: 350, vx: 0, hp: 100, facing: 1 },
+  who: 'jax',   // 'jax' ou 'kaz' — qui joue dans l'arene
+  jax: { x: 200, y: 350, vx: 0, hp: 100, facing: 1, dying: false, dead: false },
+  kaz: { x: 200, y: 350, vx: 0, hp: 100, facing: 1, dying: false, dead: false },
   enemies: [],   // { type, x, y, hp, alive }
   items: [],     // { kind, x, y, taken }
   particles: [],
   bgStars: [],
   tick: 0,
+  ruleOverlay: null,  // string a afficher en haut du canvas (ex: "RULE: if (life<50) eatCookie()")
+  blockedFlash: 0,   // tick countdown pour effet refus E
 };
 // Background stars
 for (let i = 0; i < 80; i++) scene.bgStars.push({ x: Math.random()*960, y: Math.random()*400, s: Math.random()*1.5+0.3, p: Math.random()*Math.PI*2 });
@@ -1205,6 +1213,167 @@ function drawJax() {
   gctx.textAlign = 'center';
   gctx.fillText('JaX', cx, baseY - 70);
 }
+
+// drawKazInArena : Kaz adulte in-game, hoodie noir/rouge, casquette, sneakers noires.
+// Differencie visuellement de JaX (qui a casque violet + hoodie violet + sneakers rouges).
+function drawKazInArena() {
+  const k = scene.kaz;
+  const cx = Math.round(k.x);
+  const baseY = Math.round(k.y + 40);
+  const dyingOffset = k.dying ? Math.min(20, scene.tick % 60) : 0;
+  const bob = k.dying ? 0 : Math.round(Math.sin(scene.tick * 0.05));
+  const offsetX = cx - 18;
+  const offsetY = baseY - 64 + bob + dyingOffset;
+
+  // Si mort, on dessine couche au sol
+  if (k.dead) {
+    // Corps allonge au sol
+    gctx.fillStyle = 'rgba(0,0,0,0.4)';
+    gctx.beginPath(); gctx.ellipse(cx, baseY + 3, 28, 5, 0, 0, Math.PI * 2); gctx.fill();
+    // Sprite tombe horizontal (juste suggestion : rectangle rouge couche)
+    gctx.save();
+    gctx.translate(cx, baseY);
+    gctx.rotate(Math.PI / 2);
+    gctx.fillStyle = '#7f1d1d';  // hoodie rouge sombre
+    gctx.fillRect(-25, -6, 50, 12);
+    gctx.fillStyle = '#fcd9b6';  // tete peau
+    gctx.fillRect(-30, -7, 8, 14);
+    gctx.restore();
+    // Texte "KAZ DOWN"
+    gctx.fillStyle = '#dc2626';
+    gctx.font = 'bold 10px monospace';
+    gctx.textAlign = 'center';
+    gctx.fillText('KAZ — DOWN', cx, baseY + 22);
+    return;
+  }
+
+  function rect(x, y, w, h, color) {
+    gctx.fillStyle = color;
+    gctx.fillRect(offsetX + x, offsetY + y, w, h);
+  }
+
+  // Shadow
+  gctx.fillStyle = 'rgba(0,0,0,0.4)';
+  gctx.beginPath(); gctx.ellipse(cx, baseY + 3, 20, 4, 0, 0, Math.PI * 2); gctx.fill();
+
+  // Casquette (cap visor + crown)
+  rect(8, 1, 22, 4, '#0f172a');     // crown
+  rect(8, 5, 22, 2, '#1e293b');     // crown shadow
+  rect(6, 6, 26, 2, '#0f172a');     // visor
+  // Logo casquette (petit point rouge)
+  rect(17, 2, 4, 2, '#dc2626');
+
+  // Tete (skin)
+  rect(11, 7, 16, 12, '#fcd9b6');
+  rect(22, 7, 4, 12, '#e8bc94');
+
+  // Stubble barbe (Kaz adulte)
+  rect(13, 16, 12, 1, '#78350f');
+  rect(13, 18, 2, 1, '#78350f');
+  rect(23, 18, 2, 1, '#78350f');
+
+  // Yeux (focused)
+  rect(13, 10, 4, 3, '#ffffff');
+  rect(21, 10, 4, 3, '#ffffff');
+  rect(14, 11, 2, 2, '#0f172a');
+  rect(22, 11, 2, 2, '#0f172a');
+  rect(13, 9, 4, 1, '#0f172a');
+  rect(21, 9, 4, 1, '#0f172a');
+
+  // Bouche
+  rect(16, 16, 6, 1, '#8b5a3c');
+
+  // Cou
+  rect(16, 19, 6, 2, '#e8bc94');
+
+  // Hoodie body NOIR avec accent ROUGE — pour distinguer de JaX violet
+  rect(6, 21, 24, 22, '#1f2937');
+  rect(6, 21, 24, 2, '#0f172a');
+  rect(6, 22, 2, 20, '#374151');
+  rect(28, 22, 2, 20, '#0f172a');
+
+  // Stripe rouge centrale (brand "Kaz")
+  rect(17, 22, 2, 21, '#dc2626');
+
+  // Drawstrings
+  rect(15, 22, 1, 7, '#e2e8f0');
+  rect(20, 22, 1, 7, '#e2e8f0');
+  rect(14, 28, 3, 2, '#e2e8f0');
+  rect(19, 28, 3, 2, '#e2e8f0');
+
+  // Pouch pocket
+  rect(11, 33, 14, 8, '#111827');
+  rect(11, 33, 14, 1, '#030712');
+
+  // Logo poche (Twitch-style violet)
+  rect(20, 36, 4, 4, '#9146ff');
+
+  // Bras
+  rect(2, 23, 4, 17, '#1f2937');
+  rect(2, 23, 2, 17, '#0f172a');
+  rect(30, 23, 4, 17, '#1f2937');
+  rect(32, 23, 2, 17, '#0f172a');
+
+  // Cuffs rouges
+  rect(2, 38, 4, 2, '#7f1d1d');
+  rect(30, 38, 4, 2, '#7f1d1d');
+
+  // Mains
+  rect(2, 40, 4, 4, '#fcd9b6');
+  rect(30, 40, 4, 4, '#fcd9b6');
+
+  // Jeans noir
+  rect(11, 43, 7, 14, '#111827');
+  rect(11, 43, 2, 14, '#1f2937');
+  rect(20, 43, 7, 14, '#111827');
+  rect(20, 43, 2, 14, '#1f2937');
+
+  // Sneakers blanches
+  rect(9, 57, 10, 3, '#f3f4f6');
+  rect(9, 57, 10, 1, '#ffffff');
+  rect(9, 60, 10, 1, '#9ca3af');
+  rect(19, 57, 10, 3, '#f3f4f6');
+  rect(19, 57, 10, 1, '#ffffff');
+  rect(19, 60, 10, 1, '#9ca3af');
+
+  // HP label "Kaz"
+  const hpRef = k.hp;
+  gctx.fillStyle = hpRef < 35 ? '#ef4444' : (hpRef < 60 ? '#f59e0b' : '#22c55e');
+  gctx.font = 'bold 11px monospace';
+  gctx.textAlign = 'center';
+  gctx.fillText('Kaz', cx, baseY - 70);
+}
+
+// Overlay "RULE ACTIVE" en haut du canvas (visible quand scene.ruleOverlay set)
+function drawRuleOverlay() {
+  if (!scene.ruleOverlay) return;
+  const txt = scene.ruleOverlay;
+  const w = Math.min(560, txt.length * 9 + 60);
+  const x = (canvas.width - w) / 2;
+  const y = 16;
+  gctx.fillStyle = 'rgba(16,185,129,0.18)';
+  gctx.strokeStyle = 'rgba(16,185,129,0.7)';
+  gctx.lineWidth = 1;
+  gctx.fillRect(x, y, w, 28);
+  gctx.strokeRect(x + 0.5, y + 0.5, w, 28);
+  gctx.fillStyle = '#6ee7b7';
+  gctx.font = 'bold 12px "JetBrains Mono", monospace';
+  gctx.textAlign = 'center';
+  gctx.fillText('✓ RULE ACTIVE — ' + txt, canvas.width / 2, y + 18);
+}
+
+// Flash rouge quand action E refusee par condition
+function drawBlockedFlash() {
+  if (scene.blockedFlash <= 0) return;
+  const alpha = Math.min(0.5, scene.blockedFlash / 30);
+  gctx.fillStyle = `rgba(239,68,68,${alpha})`;
+  gctx.fillRect(0, 0, canvas.width, canvas.height);
+  gctx.fillStyle = `rgba(255,255,255,${Math.min(1, scene.blockedFlash/15)})`;
+  gctx.font = 'bold 28px Impact, sans-serif';
+  gctx.textAlign = 'center';
+  gctx.fillText('BLOCKED — life pas < 50', canvas.width / 2, canvas.height / 2);
+  scene.blockedFlash--;
+}
 function drawCookie(x, y) {
   gctx.save();
   gctx.translate(x, y);
@@ -1271,9 +1440,38 @@ function renderGame() {
   scene.items.forEach(it => { if (!it.taken) drawCookie(it.x, it.y); });
   // Enemies
   scene.enemies.forEach(z => { if (z.alive) drawZombie(z); });
-  drawJax();
+  // Personnage actif (Kaz ou JaX)
+  if (scene.who === 'kaz') drawKazInArena();
+  else drawJax();
   drawParticles();
+  drawRuleOverlay();
+  drawBlockedFlash();
+  drawKeyOverlay();
   requestAnimationFrame(renderGame);
+}
+
+// Petite overlay clavier qui flash la touche E (ACT 1 demo Kaz qui spamme E)
+function drawKeyOverlay() {
+  if (!scene.keyFlash || scene.keyFlash.until < scene.tick) return;
+  const k = scene.keyFlash.key;
+  const x = canvas.width / 2 - 24;
+  const y = canvas.height - 70;
+  // Touche carree
+  gctx.fillStyle = 'rgba(245,158,11,0.92)';
+  gctx.fillRect(x, y, 48, 48);
+  gctx.fillStyle = '#0f172a';
+  gctx.font = 'bold 28px monospace';
+  gctx.textAlign = 'center';
+  gctx.textBaseline = 'middle';
+  gctx.fillText(k, x + 24, y + 24);
+  gctx.textBaseline = 'alphabetic';
+  // Petit texte sous
+  gctx.fillStyle = '#fbbf24';
+  gctx.font = 'bold 10px monospace';
+  gctx.fillText('PRESS', x + 24, y - 6);
+}
+function flashKey(key, durationFrames=18) {
+  scene.keyFlash = { key, until: scene.tick + durationFrames };
 }
 
 // ============ BEAT SYSTEM ============
@@ -1351,9 +1549,18 @@ async function runGameEvent(beat) {
       scene.enemies.push({ type: 'zombie', x: 880, y: 400, hp: 30, alive: true });
       sfx('wave_spawn');
       break;
+    case 'zombie_swarm_5':
+      // 5 zombies d'un coup, etales sur la droite
+      sfx('wave_spawn');
+      for (let i = 0; i < 5; i++) {
+        scene.enemies.push({ type: 'zombie', x: 880 + i * 28, y: 400 + (i % 2) * 8, hp: 30, alive: true });
+      }
+      break;
     case 'zombie_attack':
-      // Simple animation: zombie moves toward JaX, JaX HP drops
+      // Zombie marche vers le perso actif (JaX ou Kaz), tape, HP descend
       {
+        const target = scene.who === 'kaz' ? scene.kaz : scene.jax;
+        const targetState = scene.who === 'kaz' ? scene.kaz : state;  // state.hp pour JaX, scene.kaz.hp pour Kaz
         const z = scene.enemies.find(e => e.alive);
         if (z) {
           const startX = z.x;
@@ -1362,21 +1569,99 @@ async function runGameEvent(beat) {
           await new Promise(res => {
             function step() {
               const p = Math.min(1, (performance.now() - t0) / moveDur);
-              z.x = startX + (scene.jax.x + 30 - startX) * p;
+              z.x = startX + (target.x + 30 - startX) * p;
               if (p < 1) requestAnimationFrame(step); else res();
             }
             step();
           });
-          setHP(state.hp - 65);
-          spawnParticles(scene.jax.x, scene.jax.y - 30, 'rgba(239,68,68,ALPHA)', 15);
+          const dmg = (beat.dmg !== undefined) ? beat.dmg : 65;
+          if (scene.who === 'kaz') {
+            scene.kaz.hp = Math.max(0, scene.kaz.hp - dmg);
+          } else {
+            setHP(state.hp - dmg);
+          }
+          spawnParticles(target.x, target.y - 30, 'rgba(239,68,68,ALPHA)', 15);
           flash('red', 200);
         }
       }
       break;
     case 'eat_cookie':
+      // Mange un cookie de l'inventaire courant (JaX par defaut)
       sfx('cookie_eaten');
-      spawnParticles(scene.jax.x, scene.jax.y - 30, 'rgba(34,197,94,ALPHA)', 20);
+      {
+        const target = scene.who === 'kaz' ? scene.kaz : scene.jax;
+        spawnParticles(target.x, target.y - 30, 'rgba(34,197,94,ALPHA)', 20);
+      }
       flash('green', 200);
+      break;
+    // ===== NOUVEAUX EVENTS V2 =====
+    case 'kaz_appears_in_arena':
+      // Transition : Kaz prend la place de JaX dans le canvas
+      scene.who = 'kaz';
+      scene.kaz.x = scene.jax.x;
+      scene.kaz.y = scene.jax.y;
+      scene.kaz.hp = 100;
+      scene.kaz.dying = false;
+      scene.kaz.dead = false;
+      scene.enemies = [];
+      scene.items = [];
+      sfx('click');
+      break;
+    case 'kaz_eats_cookie_double':
+      // Kaz pese E 2 fois rapide a 100% HP — gaspillage demo
+      flashKey('E', 14);
+      sfx('cookie_eaten');
+      spawnParticles(scene.kaz.x, scene.kaz.y - 30, 'rgba(34,197,94,ALPHA)', 18);
+      flash('green', 150);
+      await new Promise(r => setTimeout(r, 350));
+      flashKey('E', 14);
+      sfx('cookie_eaten');
+      spawnParticles(scene.kaz.x, scene.kaz.y - 30, 'rgba(34,197,94,ALPHA)', 18);
+      flash('green', 150);
+      // HP reste a 100, mais inventaire sera vide
+      setInv('cookie', 0);
+      break;
+    case 'kaz_dies':
+      scene.kaz.dying = true;
+      sfx('wasted');
+      flash('red', 400);
+      await new Promise(r => setTimeout(r, 800));
+      scene.kaz.dead = true;
+      showWasted();
+      await new Promise(r => setTimeout(r, 1600));
+      break;
+    case 'jax_takes_over':
+      // Transition Kaz -> JaX. Reset arene.
+      scene.who = 'jax';
+      scene.jax.x = 200;
+      scene.jax.y = 350;
+      scene.jax.dying = false;
+      scene.jax.dead = false;
+      scene.enemies = [];
+      scene.items = [];
+      sfx('click');
+      // Pose la rule overlay
+      scene.ruleOverlay = beat.rule || 'if (life < 50) eatCookie()';
+      break;
+    case 'kaz_fights':
+      // Kaz se bat un peu pour montrer qu'il sait jouer (puis on le swarm)
+      flashKey('SPACE', 16);
+      sfx('slash');
+      await new Promise(r => setTimeout(r, 350));
+      flashKey('SPACE', 16);
+      sfx('slash');
+      break;
+    case 'set_rule':
+      scene.ruleOverlay = beat.text || null;
+      break;
+    case 'clear_rule':
+      scene.ruleOverlay = null;
+      break;
+    case 'show_blocked':
+      // Animation refus : flash rouge + son
+      sfx('click_blocked');
+      scene.blockedFlash = 30;
+      flash('red', 250);
       break;
   }
 }
@@ -1432,70 +1717,71 @@ async function runAct(beats) {
   }
 }
 
-// ============ ACT DEFINITIONS ============
+// ============ ACT DEFINITIONS V2 (refonte 2026-05-04) ============
+// Pivot pedagogique: Kaz fait l'erreur, JaX observe, puis JaX teste le fix qui le PROTEGE.
+
 const ACT_0 = [
   { type: 'mood', mood: 'neutral' },
-  { type: 'delay', ms: 600 },
-  { type: 'bubble', mood: 'happy',
-    text: "Yo JaX ! T'es revenu. Heille, t'sais le cookie que tu voyais traîner dans l'arène la dernière fois ? Bah on va s'en servir aujourd'hui.",
-    hold: 2500 },
-  { type: 'chat', lines: ['cookieandy_90: cookie op', 'marie_code: enfin on mange'] },
-  { type: 'viewers', delta: 12, reason: 'raid ami' },
-  { type: 'bubble', mood: 'focused',
-    text: "Sauf que… je te préviens : si tu le manges n'importe quand, tu vas te faire planter. Viens voir.",
-    hold: 1800 },
-  { type: 'delay', ms: 600 },
-];
-const ACT_1 = [
-  { type: 'mood', mood: 'focused' },
-  { type: 'gameEvent', name: 'cookie_spawn' },
-  { type: 'inv', item: 'cookie', delta: 1, hint: true },
-  { type: 'bubble', mood: 'focused',
-    text: "Pèse E pour manger le cookie. Vas-y.", hold: 1200 },
-  { type: 'waitKey', key: 'E' },
-  // User pressed E at 100HP → wasted
-  { type: 'sound', name: 'cookie_eaten' },
-  { type: 'gameEvent', name: 'eat_cookie' },
-  { type: 'inv', item: 'cookie', delta: -1 },
   { type: 'delay', ms: 500 },
-  { type: 'wasted' },
-  { type: 'delay', ms: 800 },
-  { type: 'bubble', mood: 'stressed',
-    text: "Tsé là ? T'étais à 100 HP. T'as gaspillé ton cookie. Maintenant y t'en reste plus… et v'là le zombie.",
-    hold: 2500 },
-  { type: 'gameEvent', name: 'zombie_spawn' },
-  { type: 'chat', lines: ['gamergirl22: ayoye', 'speedrun_fr: RIP le cookie lol'] },
-  { type: 'delay', ms: 400 },
-  { type: 'gameEvent', name: 'zombie_attack' },
-  { type: 'delay', ms: 600 },
-  { type: 'bubble', mood: 'focused',
-    text: "Faut apprendre à vérifier AVANT de manger. C'est ça qu'on appelle une condition.",
-    hold: 2000 },
-  { type: 'chat', lines: ['pixel_queen: condition cest la clé', 'qc_dev: next step — on code ca'] },
   { type: 'bubble', mood: 'happy',
-    text: "On va écrire ça en code. Ouvre le panneau — on y va ensemble.",
-    hold: 1500 },
+    text: "Yo JaX. Regarde-moi 2 secondes. J'va te montrer pourquoi je me suis fait planter hier. Tu vas comprendre tout suite." },
+  { type: 'chat', lines: ['cookieandy_90: oh non Kaz va re-mourir', 'marie_code: le replay tragique'] },
+  { type: 'viewers', delta: 9, reason: 'replay drama' },
+  { type: 'bubble', mood: 'focused',
+    text: "Setup : j'ai 2 cookies dans mon inventaire. Chaque cookie soigne 50 HP. J'suis à 100/100, full life. Watch." },
+];
+
+const ACT_1 = [
+  // Kaz prend la place de JaX dans l'arene
+  { type: 'gameEvent', name: 'kaz_appears_in_arena' },
+  { type: 'inv', item: 'cookie', delta: 2 },
+  { type: 'mood', mood: 'teasing' },
+  { type: 'bubble', mood: 'teasing',
+    text: "OK regarde bien. J'ai 2 cookies. J'suis full life. Chaque touche E = mange un cookie." },
+  // Kaz fait l'erreur : double-clic E a 100%
+  { type: 'gameEvent', name: 'kaz_eats_cookie_double' },
+  { type: 'delay', ms: 400 },
+  { type: 'mood', mood: 'laughing' },
+  { type: 'bubble', mood: 'laughing',
+    text: "YO j'ai mange les 2 cookies en 2 clics. J'etais deja a 100. Pure gaspillage." },
+  { type: 'chat', lines: ['speedrun_fr: classic Kaz', 'pixel_queen: noooo', 'gamergirl22: ayoye'] },
+  { type: 'viewers', delta: 8, reason: 'cringe' },
+  { type: 'mood', mood: 'focused' },
+  { type: 'bubble', mood: 'focused',
+    text: "Inventaire vide. Now watch what happens when les zombies arrivent." },
+  // Swarm de 5 zombies
+  { type: 'gameEvent', name: 'zombie_swarm_5' },
+  { type: 'delay', ms: 600 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 35 },  // 100 -> 65
+  { type: 'delay', ms: 300 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 35 },  // 65 -> 30
+  { type: 'delay', ms: 300 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 35 },  // 30 -> 0
+  { type: 'gameEvent', name: 'kaz_dies' },
+  { type: 'mood', mood: 'stressed' },
+  { type: 'bubble', mood: 'stressed',
+    text: "Pis voila. Mort. Pas parce que j'savais pas me battre. Parce que j'ai mange les cookies a 100." },
+  { type: 'chat', lines: ['qc_dev: F', 'manon_t: kaz pourquoi', 'cookieandy_90: rip cookies'] },
+  { type: 'mood', mood: 'thinking' },
+  { type: 'bubble', mood: 'thinking',
+    text: "Le probleme : moi humain, j'ai pese E sans reflechir. Faut une REGLE qui empeche ca. Une protection automatique." },
 ];
 
 const ACT_2 = [
   { type: 'mood', mood: 'focused' },
-  { type: 'delay', ms: 400 },
+  { type: 'delay', ms: 300 },
   { type: 'codePanel', action: 'open' },
-  { type: 'codeInject', html: '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Condition en Java</p><pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op">&lt;</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n}</pre>' },
+  { type: 'codeInject', html: '<p style="color: var(--emerald); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// La REGLE qui aurait sauve Kaz</p><pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op">&lt;</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n}</pre>' },
   { type: 'bubble', mood: 'focused',
-    text: "En code, une condition ça ressemble à ça. Lis avec moi : if life plus petit que 50, then eat cookie. En Java, on écrit ça comme du français mais plus compact.",
-    hold: 2800 },
+    text: "Ce bout de code = un GARDE. Il check d'abord : life en bas de 50 ? Si oui, manger. Si non, rien." },
   { type: 'bubble', mood: 'focused',
-    text: "if, ça veut dire « si ». Entre parenthèses tu mets ta question. Ici : est-ce que ma vie est en dessous de 50 ? Si oui, Java exécute ce qui est entre les accolades. Si non, y saute par-dessus.",
-    hold: 3600 },
+    text: "if = SI. Entre parentheses, la question. Entre accolades, l'action si la reponse est oui." },
   { type: 'bubble', mood: 'happy',
-    text: "Le < c'est « plus petit que ». > c'est « plus grand que ». == c'est « égal à » — deux signes égaux, pas un. Pas pareil qu'en maths. Fais gaffe.",
-    hold: 3400 },
-  { type: 'chat', lines: ['javafan: double egal = compare, un egal = assign', 'marie_code: GG le rappel'] },
-  { type: 'delay', ms: 500 },
+    text: "Le < c'est plus petit que. > c'est plus grand que. == c'est egal a (deux signes egaux, pas un). Pas pareil qu'en maths." },
+  { type: 'chat', lines: ['javafan: so simple but huge', 'qc_dev: ca aurait sauve kaz'] },
+  { type: 'delay', ms: 300 },
   { type: 'bubble', mood: 'focused',
-    text: "Mini-test flash. Laquelle est vraie quand life vaut 30 ? Check les options sous le code.",
-    hold: 1800 },
+    text: "Mini-test flash. Laquelle est VRAIE quand life vaut 30 ? Check les options sous le code." },
   { type: 'quiz',
     question: 'Laquelle est <em>vraie</em> quand <code>life = 30</code> ?',
     options: [
@@ -1504,116 +1790,88 @@ const ACT_2 = [
       { label: 'life == 100', correct: false },
     ]},
   { type: 'bubble', mood: 'hype',
-    text: "Exactement. 30 c'est plus petit que 50, donc la condition est vraie. Let's go.",
-    hold: 2200 },
-  { type: 'chat', lines: ['javafan: nice nice', 'pixel_queen: clean', 'cookieandy_90: PogChamp'] },
-  { type: 'delay', ms: 500 },
-  { type: 'bubble', mood: 'focused',
-    text: "OK. Maintenant à toi. Prochaine étape : tu vas écrire ta première condition toi-même.",
-    hold: 2200 },
+    text: "Exact. 30 c'est plus petit que 50, donc la condition est vraie. Now let's installer la regle pour de vrai." },
+  { type: 'chat', lines: ['pixel_queen: clean', 'cookieandy_90: install pls', 'manon_t: jax tu prends la place'] },
 ];
 
 const ACT_3 = [
-  { type: 'mood', mood: 'focused' },
-  { type: 'codePanel', action: 'open' },
-  { type: 'delay', ms: 400 },
-  { type: 'bubble', mood: 'focused',
-    text: "OK JaX, là c'est à toi. Lis le code en bas. Y manque un signe entre life pis 50. Lequel?",
-    hold: 2400 },
-  { type: 'codeInject', html:
-    '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Ton tour : remplis le signe</p>' +
-    '<pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op" style="background: rgba(245,158,11,0.18); border: 1px dashed rgba(245,158,11,0.7); padding: 0 8px; border-radius: 4px;">?</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n}</pre>'
-  },
-  { type: 'quiz',
-    question: 'Quel signe veut dire <em>« vie plus petite que 50 »</em> ?',
-    options: [
-      { label: '<', correct: true },
-      { label: '>', correct: false },
-      { label: '==', correct: false },
-    ]},
-  { type: 'codeInject', html:
-    '<p style="color: var(--emerald); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// ✓ Code complet — to toi de jouer</p>' +
-    '<pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op">&lt;</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n}</pre>'
-  },
-  { type: 'bubble', mood: 'proud',
-    text: "Solide. T'as ta première condition pour vrai. Watch ce qui s'passe quand un zombie débarque pis ta vie chute.",
-    hold: 2800 },
-  { type: 'viewers', delta: 8, reason: 'tour de JaX' },
-  { type: 'chat', lines: ['javafan: GG le kid', 'pixel_queen: y suit ca pro', 'cookieandy_90: Pog'] },
-  { type: 'delay', ms: 600 },
-  // Reset arena: full HP, give 2 cookies
-  { type: 'hp', amount: 100 },
-  { type: 'inv', item: 'cookie', delta: 2 },
-  { type: 'mood', mood: 'hype' },
+  // Transition Kaz mort -> JaX prend la place. Rule overlay s'affiche.
+  { type: 'gameEvent', name: 'jax_takes_over', rule: 'if (life < 50) eatCookie()' },
   { type: 'codePanel', action: 'close' },
-  { type: 'bubble', mood: 'hype',
-    text: "Vague de zombies dans 3, 2, 1...",
-    hold: 1400 },
+  { type: 'inv', item: 'cookie', delta: 2 },  // JaX recoit 2 cookies
+  { type: 'hp', amount: 100 },
+  { type: 'mood', mood: 'proud' },
+  { type: 'bubble', mood: 'proud',
+    text: "OK JaX. La regle est installee — tu la vois en haut. Le code va checker AVANT chaque cookie. Essaie de manger un cookie LA, a 100. Pese E." },
+  { type: 'inv', item: 'cookie', delta: 0, hint: true },  // hint flash sur la touche E
+  { type: 'waitKey', key: 'E' },
+  // JaX a presse E a 100% — refus
+  { type: 'gameEvent', name: 'show_blocked' },
+  { type: 'delay', ms: 800 },
+  { type: 'mood', mood: 'laughing' },
+  { type: 'bubble', mood: 'laughing',
+    text: "YO. Le code a refuse. T'es a 100, condition pas vraie, action ignoree. Le code te PROTEGE de ton propre clic random." },
+  { type: 'chat', lines: ['cookieandy_90: holy shield', 'pixel_queen: jax = future safe streamer', 'speedrun_fr: code > human'] },
+  { type: 'viewers', delta: 12, reason: 'protection demo' },
+  { type: 'mood', mood: 'focused' },
+  { type: 'bubble', mood: 'focused',
+    text: "Maintenant viens voir, on va le tester EN COMBAT. Watch ton code travailler tout seul." },
+  // Wave 1 : 3 zombies, regarde la condition se declencher
   { type: 'sound', name: 'wave_spawn' },
   { type: 'gameEvent', name: 'zombie_spawn' },
-  { type: 'delay', ms: 350 },
+  { type: 'delay', ms: 250 },
   { type: 'gameEvent', name: 'zombie_spawn' },
-  { type: 'delay', ms: 700 },
-  // Zombie hits — HP drops below 50
-  { type: 'gameEvent', name: 'zombie_attack' },
-  { type: 'delay', ms: 400 },
-  // Condition triggers!
+  { type: 'delay', ms: 250 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 600 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 65 },  // HP 100 -> 35
+  { type: 'delay', ms: 300 },
+  // Auto-trigger : condition vraie, le code mange le cookie tout seul
   { type: 'sound', name: 'if_taken' },
   { type: 'flash', color: 'gold', ms: 350 },
-  { type: 'bubble', mood: 'surprised',
-    text: "BOOM. Vie en bas de 50 → ton if a déclenché tout seul → cookie mangé.",
-    hold: 2400 },
   { type: 'sound', name: 'cookie_eaten' },
   { type: 'gameEvent', name: 'eat_cookie' },
   { type: 'inv', item: 'cookie', delta: -1 },
   { type: 'hp', amount: 75 },
-  { type: 'delay', ms: 600 },
+  { type: 'delay', ms: 400 },
   { type: 'mood', mood: 'hype' },
   { type: 'bubble', mood: 'hype',
-    text: "YOOOO. T'as rien fait. T'as juste ÉCRIT la règle, pis le code l'a faite pour toi. C'est ÇA coder.",
-    hold: 3000 },
-  { type: 'viewers', delta: 18, reason: 'JaX score' },
-  { type: 'chat', lines: ['speedrun_fr: AUTO HEAL is goated', 'qc_dev: clean clean', 'manon_t: jax CODE'] },
-  { type: 'delay', ms: 700 },
-  // Wave 2 — passive watch, code does the job
+    text: "YOOOO. T'as rien fait. Ta regle a check, condition vraie, action declenchee. AUTO." },
+  { type: 'viewers', delta: 18, reason: 'auto heal' },
+  { type: 'chat', lines: ['speedrun_fr: AUTO HEAL is goated', 'manon_t: jax > kaz', 'qc_dev: clean code'] },
+  { type: 'delay', ms: 600 },
+  // Wave 2 : renforcement
   { type: 'mood', mood: 'focused' },
   { type: 'bubble', mood: 'focused',
-    text: "Watch encore. Wave 2 — regarde ton code travailler.",
-    hold: 1600 },
+    text: "Encore. Pour que tu vois c'est fiable. Wave 2." },
   { type: 'sound', name: 'wave_spawn' },
   { type: 'gameEvent', name: 'zombie_spawn' },
-  { type: 'delay', ms: 300 },
+  { type: 'delay', ms: 250 },
   { type: 'gameEvent', name: 'zombie_spawn' },
-  { type: 'delay', ms: 300 },
+  { type: 'delay', ms: 250 },
   { type: 'gameEvent', name: 'zombie_spawn' },
-  { type: 'delay', ms: 700 },
-  { type: 'gameEvent', name: 'zombie_attack' },
-  { type: 'delay', ms: 400 },
+  { type: 'delay', ms: 600 },
+  { type: 'gameEvent', name: 'zombie_attack', dmg: 60 },  // HP 75 -> 15
+  { type: 'delay', ms: 300 },
   { type: 'sound', name: 'if_taken' },
   { type: 'flash', color: 'gold', ms: 300 },
   { type: 'sound', name: 'cookie_eaten' },
   { type: 'gameEvent', name: 'eat_cookie' },
   { type: 'inv', item: 'cookie', delta: -1 },
-  { type: 'hp', amount: 70 },
-  { type: 'delay', ms: 600 },
+  { type: 'hp', amount: 65 },
+  { type: 'delay', ms: 500 },
+  { type: 'mood', mood: 'proud' },
   { type: 'bubble', mood: 'proud',
-    text: "Yes. Deuxième fois pareil. Le code répète tant que la condition matche. C'est là que ça devient puissant.",
-    hold: 2800 },
-  { type: 'chat', lines: ['javafan: auto pilot mode', 'pixel_queen: jax build different', 'cookieandy_90: cookie diet pro'] },
-  { type: 'delay', ms: 700 },
-  // Setup ACT 4 (cliffhanger sur cookies = 0)
+    text: "Deux fois, deux survies. Le code repete la regle TANT QUE la condition se declenche. C'est ca qui rend ca puissant." },
+  { type: 'chat', lines: ['javafan: auto pilot mode', 'pixel_queen: jax build different'] },
+  { type: 'delay', ms: 600 },
+  // Cliffhanger ACT 4
   { type: 'mood', mood: 'thinking' },
   { type: 'bubble', mood: 'thinking',
-    text: "Mais wait. T'as combien de cookies dans ta poche, là ?",
-    hold: 2000 },
+    text: "Mais attends. Et si on changeait la regle ? Si je voulais pas auto-heal mais auto-shield, ou auto-dash ?" },
   { type: 'mood', mood: 'teasing' },
   { type: 'bubble', mood: 'teasing',
-    text: "Pis si y s'finissent ? Ton if va clic-clic-clic dans le vide. On a un problème.",
-    hold: 2700 },
-  { type: 'mood', mood: 'focused' },
-  { type: 'bubble', mood: 'focused',
-    text: "Prochaine étape : on va te montrer le SINON. Ça s'appelle else en Java.",
-    hold: 2400 },
+    text: "On va te montrer plusieurs PROTECTIONS qu'on peut cabler. Pis a la fin tu vas ecrire la TIENNE de zero." },
 ];
 
 // ============ KEYBOARD ============
@@ -1827,14 +2085,13 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   renderGame();
   sfx('click');
   startAmbientChat();
-  startViewersDrift();  // viewers fluctuent en organique tout au long du stream
-  // Run the scenario
+  startViewersDrift();
+  // Scenario V2 : Kaz se plante (0+1) -> Concept (2) -> JaX teste fix (3)
   await runAct(ACT_0);
   await runAct(ACT_1);
   await runAct(ACT_2);
   await runAct(ACT_3);
-  // End of v3 — ACT 4-9 a venir
-  await showBubble("(Draft v3 — ACT 4 « le else qui sauve » en construction. Tu vas voir comment éviter le clic-dans-le-vide.)", { hold: 8000 });
+  await showBubble("(Draft V2 palier 1 — ACT 4 « auto-shield » en construction. Variations de protections + JaX ecrit sa propre condition de zero a la fin.)");
   setMood('thinking');
 });
 </script>
