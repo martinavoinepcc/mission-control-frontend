@@ -70,11 +70,22 @@ export default function HeimdallHub() {
     ? 'connected'
     : 'idle';
 
+  const HEIMDALL_COCKPIT_URL = process.env.NEXT_PUBLIC_HEIMDALL_COCKPIT_URL || 'https://mission-control-heimdall.onrender.com';
+
   const modules: ModuleCard[] = [
     {
+      slug: 'cockpit',
+      name: 'Cockpit complet',
+      tagline: 'UI Aion UI complète — agents, tâches, cron, logs, skills, secrets, approvals.',
+      icon: faEye,
+      status: 'live',
+      href: HEIMDALL_COCKPIT_URL,
+      external: true,
+    },
+    {
       slug: 'friday-chat',
-      name: 'FRIDAY',
-      tagline: 'Chat direct avec ton agent Hermes domestique.',
+      name: 'FRIDAY (chat rapide)',
+      tagline: 'Chat minimaliste avec ton agent Hermes — pour les questions rapides.',
       icon: faComments,
       status: 'live',
       href: '/apps/friday/',
@@ -92,13 +103,6 @@ export default function HeimdallHub() {
       name: 'Monitoring',
       tagline: 'Dashboards systèmes, métriques, état des intégrations.',
       icon: faChartLine,
-      status: 'soon',
-    },
-    {
-      slug: 'integrations',
-      name: 'Intégrations',
-      tagline: 'Connecteurs vers Hubitat, Hermes, sous-projets, etc.',
-      icon: faPlug,
       status: 'soon',
     },
   ];
