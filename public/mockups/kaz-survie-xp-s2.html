@@ -610,16 +610,37 @@
     animation: pulse 1.2s infinite;
   }
 
+  /* Draft badge (script texte; HeyGen VO a venir) */
+  .draft-badge {
+    position: fixed; top: 8px; right: 8px; z-index: 200;
+    background: rgba(251, 191, 36, 0.12);
+    backdrop-filter: blur(6px);
+    border: 1px dashed rgba(251,191,36,0.5);
+    border-radius: 6px;
+    padding: 0.28rem 0.6rem;
+    color: #fbbf24;
+    font-family: monospace; font-size: 0.62rem;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    pointer-events: none; opacity: 0.78;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+
   /* Mobile */
   @media (max-width: 768px) {
     .app { grid-template-columns: 1fr; grid-template-rows: 1fr 40vh; }
     .stream-right { grid-template-rows: 110px 1fr; border-left: none; border-top: 1px solid rgba(255,255,255,0.08); }
     .bubble { right: 14px; bottom: auto; top: 120px; width: auto; left: 14px; max-width: none; }
     .bubble::after { display: none; }
+    .draft-badge { font-size: 0.55rem; padding: 0.2rem 0.45rem; }
   }
 </style>
 </head>
 <body>
+
+<!-- Draft badge: script-only, HeyGen VO a venir -->
+<div class="draft-badge" id="draftBadge">
+  <span>📝</span><span>Draft — voix Kaz textuelle (HeyGen à venir)</span>
+</div>
 
 <!-- Start gate (audio autoplay permission) -->
 <div class="start-gate" id="startGate">
@@ -886,6 +907,21 @@ function bumpViewers(delta, reason=null) {
   if (reason && delta > 5) {
     addChat('🎉 stream alert', `+${delta} viewers — ${reason}`, 'mod');
   }
+}
+
+// Drift organique du compteur viewers — fait fluctuer ±2-3 toutes les 3-8s
+// Style Twitch: ça monte un peu plus souvent que ça descend, mais ça respire.
+function startViewersDrift() {
+  if (state.viewersDriftTimer) return;
+  function driftTick() {
+    if (state.running && Math.random() > 0.18) {
+      // Biais legerement positif: -2 a +3 typiquement
+      const delta = Math.floor((Math.random() - 0.42) * 6);
+      if (delta !== 0) bumpViewers(delta);
+    }
+    state.viewersDriftTimer = setTimeout(driftTick, 3500 + Math.random() * 4500);
+  }
+  driftTick();
 }
 
 // ============ HP + INVENTORY ============
@@ -1303,6 +1339,109 @@ const ACT_2 = [
     hold: 2200 },
 ];
 
+const ACT_3 = [
+  { type: 'mood', mood: 'focused' },
+  { type: 'codePanel', action: 'open' },
+  { type: 'delay', ms: 400 },
+  { type: 'bubble', mood: 'focused',
+    text: "OK JaX, là c'est à toi. Lis le code en bas. Y manque un signe entre life pis 50. Lequel?",
+    hold: 2400 },
+  { type: 'codeInject', html:
+    '<p style="color: var(--text-faint); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// Ton tour : remplis le signe</p>' +
+    '<pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op" style="background: rgba(245,158,11,0.18); border: 1px dashed rgba(245,158,11,0.7); padding: 0 8px; border-radius: 4px;">?</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n}</pre>'
+  },
+  { type: 'quiz',
+    question: 'Quel signe veut dire <em>« vie plus petite que 50 »</em> ?',
+    options: [
+      { label: '<', correct: true },
+      { label: '>', correct: false },
+      { label: '==', correct: false },
+    ]},
+  { type: 'codeInject', html:
+    '<p style="color: var(--emerald); margin-bottom: 0.8rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em;">// ✓ Code complet — to toi de jouer</p>' +
+    '<pre class="code-block"><span class="kw">if</span> (<span class="var">life</span> <span class="op">&lt;</span> <span class="nb">50</span>) {\n    <span class="fn">eatCookie</span>();\n}</pre>'
+  },
+  { type: 'bubble', mood: 'proud',
+    text: "Solide. T'as ta première condition pour vrai. Watch ce qui s'passe quand un zombie débarque pis ta vie chute.",
+    hold: 2800 },
+  { type: 'viewers', delta: 8, reason: 'tour de JaX' },
+  { type: 'chat', lines: ['javafan: GG le kid', 'pixel_queen: y suit ca pro', 'cookieandy_90: Pog'] },
+  { type: 'delay', ms: 600 },
+  // Reset arena: full HP, give 2 cookies
+  { type: 'hp', amount: 100 },
+  { type: 'inv', item: 'cookie', delta: 2 },
+  { type: 'mood', mood: 'hype' },
+  { type: 'codePanel', action: 'close' },
+  { type: 'bubble', mood: 'hype',
+    text: "Vague de zombies dans 3, 2, 1...",
+    hold: 1400 },
+  { type: 'sound', name: 'wave_spawn' },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 350 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 700 },
+  // Zombie hits — HP drops below 50
+  { type: 'gameEvent', name: 'zombie_attack' },
+  { type: 'delay', ms: 400 },
+  // Condition triggers!
+  { type: 'sound', name: 'if_taken' },
+  { type: 'flash', color: 'gold', ms: 350 },
+  { type: 'bubble', mood: 'surprised',
+    text: "BOOM. Vie en bas de 50 → ton if a déclenché tout seul → cookie mangé.",
+    hold: 2400 },
+  { type: 'sound', name: 'cookie_eaten' },
+  { type: 'gameEvent', name: 'eat_cookie' },
+  { type: 'inv', item: 'cookie', delta: -1 },
+  { type: 'hp', amount: 75 },
+  { type: 'delay', ms: 600 },
+  { type: 'mood', mood: 'hype' },
+  { type: 'bubble', mood: 'hype',
+    text: "YOOOO. T'as rien fait. T'as juste ÉCRIT la règle, pis le code l'a faite pour toi. C'est ÇA coder.",
+    hold: 3000 },
+  { type: 'viewers', delta: 18, reason: 'JaX score' },
+  { type: 'chat', lines: ['speedrun_fr: AUTO HEAL is goated', 'qc_dev: clean clean', 'manon_t: jax CODE'] },
+  { type: 'delay', ms: 700 },
+  // Wave 2 — passive watch, code does the job
+  { type: 'mood', mood: 'focused' },
+  { type: 'bubble', mood: 'focused',
+    text: "Watch encore. Wave 2 — regarde ton code travailler.",
+    hold: 1600 },
+  { type: 'sound', name: 'wave_spawn' },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 300 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 300 },
+  { type: 'gameEvent', name: 'zombie_spawn' },
+  { type: 'delay', ms: 700 },
+  { type: 'gameEvent', name: 'zombie_attack' },
+  { type: 'delay', ms: 400 },
+  { type: 'sound', name: 'if_taken' },
+  { type: 'flash', color: 'gold', ms: 300 },
+  { type: 'sound', name: 'cookie_eaten' },
+  { type: 'gameEvent', name: 'eat_cookie' },
+  { type: 'inv', item: 'cookie', delta: -1 },
+  { type: 'hp', amount: 70 },
+  { type: 'delay', ms: 600 },
+  { type: 'bubble', mood: 'proud',
+    text: "Yes. Deuxième fois pareil. Le code répète tant que la condition matche. C'est là que ça devient puissant.",
+    hold: 2800 },
+  { type: 'chat', lines: ['javafan: auto pilot mode', 'pixel_queen: jax build different', 'cookieandy_90: cookie diet pro'] },
+  { type: 'delay', ms: 700 },
+  // Setup ACT 4 (cliffhanger sur cookies = 0)
+  { type: 'mood', mood: 'thinking' },
+  { type: 'bubble', mood: 'thinking',
+    text: "Mais wait. T'as combien de cookies dans ta poche, là ?",
+    hold: 2000 },
+  { type: 'mood', mood: 'teasing' },
+  { type: 'bubble', mood: 'teasing',
+    text: "Pis si y s'finissent ? Ton if va clic-clic-clic dans le vide. On a un problème.",
+    hold: 2700 },
+  { type: 'mood', mood: 'focused' },
+  { type: 'bubble', mood: 'focused',
+    text: "Prochaine étape : on va te montrer le SINON. Ça s'appelle else en Java.",
+    hold: 2400 },
+];
+
 // ============ KEYBOARD ============
 document.addEventListener('keydown', (e) => {
   if (!state.running) return;
@@ -1514,12 +1653,14 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   renderGame();
   sfx('click');
   startAmbientChat();
+  startViewersDrift();  // viewers fluctuent en organique tout au long du stream
   // Run the scenario
   await runAct(ACT_0);
   await runAct(ACT_1);
   await runAct(ACT_2);
-  // End of prototype v2 — ACT 3-9 à venir
-  await showBubble("(Prototype v2 — suite en construction. ACT 3 : à toi d'écrire ta première condition en direct.)", { hold: 8000 });
+  await runAct(ACT_3);
+  // End of v3 — ACT 4-9 a venir
+  await showBubble("(Draft v3 — ACT 4 « le else qui sauve » en construction. Tu vas voir comment éviter le clic-dans-le-vide.)", { hold: 8000 });
   setMood('thinking');
 });
 </script>
