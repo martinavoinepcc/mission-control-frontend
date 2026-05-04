@@ -81,6 +81,7 @@ export const APP_ICONS: Record<string, IconDefinition> = {
   'chart-line': faChartLine,
   'masks-theater': faMasksTheater,
   'comments': faComments,
+  'eye': faEye,
 };
 
 // Fallback si le slug n'est pas mappé
