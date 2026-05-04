@@ -102,6 +102,14 @@ export default function Thread() {
   } | null>(null);
   const [attaching, setAttaching] = useState(false);
 
+  // Audio attachment state (mp3, m4a, wav, etc.)
+  const [audioAttach, setAudioAttach] = useState<{
+    dataUrl: string;
+    type: string;
+    name: string;
+    bytes: number;
+  } | null>(null);
+
   // Lightbox (tap image to zoom)
   const [lightbox, setLightbox] = useState<string | null>(null);
 
@@ -211,31 +219,60 @@ export default function Thread() {
     ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
   }, [draft]);
 
-  async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     e.target.value = '';
-    if (!file.type.startsWith('image/')) {
-      setError('Fichier non supporté (image requise).');
+    setError(null);
+    // Audio (mp3, m4a, wav, webm, ogg, etc.)
+    if (file.type.startsWith('audio/')) {
+      // Limite cote client : ~5 MB raw (avant base64). Cap a 5*1024*1024 pour matcher le backend (~6.7MB base64).
+      if (file.size > 5 * 1024 * 1024) {
+        setError(`Audio trop volumineux (${humanBytes(file.size)}). Max 5 MB.`);
+        return;
+      }
+      setAttaching(true);
+      try {
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => reject(new Error('Lecture du fichier echouee'));
+          r.readAsDataURL(file);
+        });
+        setAudioAttach({
+          dataUrl,
+          type: file.type || 'audio/mpeg',
+          name: file.name || 'audio.mp3',
+          bytes: file.size,
+        });
+      } catch (err: any) {
+        setError(err?.message || 'Erreur lecture audio');
+      } finally {
+        setAttaching(false);
+      }
       return;
     }
-    setAttaching(true);
-    setError(null);
-    try {
-      const c = await compressImage(file, { maxDim: 1600, maxBytes: 600 * 1024 });
-      setAttachPreview({ dataUrl: c.dataUrl, width: c.width, height: c.height, bytes: c.bytes });
-    } catch (err: any) {
-      setError(err?.message || 'Erreur de compression');
-    } finally {
-      setAttaching(false);
+    // Image (compresse pour reduire la taille)
+    if (file.type.startsWith('image/')) {
+      setAttaching(true);
+      try {
+        const c = await compressImage(file, { maxDim: 1600, maxBytes: 600 * 1024 });
+        setAttachPreview({ dataUrl: c.dataUrl, width: c.width, height: c.height, bytes: c.bytes });
+      } catch (err: any) {
+        setError(err?.message || 'Erreur de compression');
+      } finally {
+        setAttaching(false);
+      }
+      return;
     }
+    setError('Fichier non supporte (image ou audio uniquement).');
   }
 
   async function onSend(e?: React.FormEvent) {
     if (e) e.preventDefault();
     const body = draft.trim();
     if (!validId || sending) return;
-    if (!body && !attachPreview) return;
+    if (!body && !attachPreview && !audioAttach) return;
     setSending(true);
     setError(null);
     try {
@@ -248,11 +285,19 @@ export default function Thread() {
               width: attachPreview.width,
               height: attachPreview.height,
             }
+          : undefined,
+        audioAttach
+          ? {
+              data: audioAttach.dataUrl,
+              type: audioAttach.type,
+              name: audioAttach.name,
+            }
           : undefined
       );
       setMessages((prev) => [...prev, msg]);
       setDraft('');
       setAttachPreview(null);
+      setAudioAttach(null);
       window.setTimeout(() => scrollToBottom('smooth'), 30);
     } catch (e: any) {
       setError(e?.message || "Erreur d'envoi");
@@ -417,31 +462,57 @@ export default function Thread() {
                         </span>
                       )}
                       {m.imageData && (
-                        <button
-                          type="button"
-                          onClick={() => setLightbox(m.imageData!)}
-                          className={`mb-1 max-w-full overflow-hidden rounded-2xl ${
-                            mine ? 'self-end' : 'self-start'
-                          }`}
-                          aria-label="Voir l'image"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={m.imageData}
-                            alt=""
-                            width={m.imageWidth || undefined}
-                            height={m.imageHeight || undefined}
-                            style={{
-                              maxHeight: 360,
-                              maxWidth: '100%',
-                              width: 'auto',
-                              height: 'auto',
-                              display: 'block',
-                            }}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </button>
+                        <div className={`mb-1 flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}`}>
+                          <button
+                            type="button"
+                            onClick={() => setLightbox(m.imageData!)}
+                            className="max-w-full overflow-hidden rounded-2xl"
+                            aria-label="Voir l'image"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={m.imageData}
+                              alt=""
+                              width={m.imageWidth || undefined}
+                              height={m.imageHeight || undefined}
+                              style={{
+                                maxHeight: 360,
+                                maxWidth: '100%',
+                                width: 'auto',
+                                height: 'auto',
+                                display: 'block',
+                              }}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </button>
+                          <a
+                            href={m.imageData}
+                            download={`image-${m.id}.webp`}
+                            className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
+                          >
+                            ⬇ Télécharger l'image
+                          </a>
+                        </div>
+                      )}
+                      {m.audioData && (
+                        <div className={`mb-1 flex flex-col gap-1 max-w-[280px] ${mine ? 'items-end' : 'items-start'}`}>
+                          <audio
+                            controls
+                            src={m.audioData}
+                            preload="metadata"
+                            style={{ maxWidth: '100%', height: 40 }}
+                          >
+                            Ton navigateur supporte pas la balise audio.
+                          </audio>
+                          <a
+                            href={m.audioData}
+                            download={m.audioName || `audio-${m.id}.mp3`}
+                            className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
+                          >
+                            ⬇ {m.audioName || `audio-${m.id}.mp3`}
+                          </a>
+                        </div>
                       )}
                       {m.body && (
                         <div
@@ -517,6 +588,27 @@ export default function Thread() {
         </div>
       )}
 
+      {/* Preview audio avant envoi */}
+      {audioAttach && (
+        <div className="border-t border-white/5 bg-slate-900/60 px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-3">
+            <div className="h-16 w-16 rounded-lg bg-slate-800 flex items-center justify-center text-2xl">🎵</div>
+            <div className="min-w-0 flex-1 text-xs text-slate-300">
+              <p className="truncate">{audioAttach.name}</p>
+              <p className="text-slate-500">{humanBytes(audioAttach.bytes)} — {audioAttach.type}</p>
+              <audio src={audioAttach.dataUrl} controls preload="metadata" style={{ height: 28, marginTop: 4, maxWidth: '100%' }} />
+            </div>
+            <button
+              onClick={() => setAudioAttach(null)}
+              className="h-8 w-8 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center"
+              aria-label="Retirer"
+            >
+              <FontAwesomeIcon icon={UI.close} className="text-xs" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* INPUT */}
       <form
         onSubmit={onSend}
@@ -527,7 +619,7 @@ export default function Thread() {
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={attaching || sending}
-          aria-label="Joindre une image"
+          aria-label="Joindre une image ou un audio"
           className="h-11 w-11 flex-shrink-0 rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center disabled:opacity-50"
         >
           <FontAwesomeIcon icon={UI.plus} />
@@ -535,9 +627,9 @@ export default function Thread() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,audio/*"
           className="hidden"
-          onChange={onPickImage}
+          onChange={onPickFile}
         />
         <div className="flex flex-1 items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 pl-4 pr-2 py-1 focus-within:border-sky-500/60">
           <textarea
@@ -550,14 +642,14 @@ export default function Thread() {
                 onSend();
               }
             }}
-            placeholder={attachPreview ? "Ajoute un message (optionnel)…" : "Écris un message…"}
+            placeholder={(attachPreview || audioAttach) ? "Ajoute un message (optionnel)…" : "Écris un message…"}
             rows={1}
             className="flex-1 resize-none bg-transparent py-2 text-[16px] text-white placeholder:text-slate-500 focus:outline-none"
             style={{ maxHeight: 140 }}
           />
           <button
             type="submit"
-            disabled={sending || attaching || (!draft.trim() && !attachPreview)}
+            disabled={sending || attaching || (!draft.trim() && !attachPreview && !audioAttach)}
             aria-label="Envoyer"
             className="my-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-sky-500 text-white transition hover:bg-sky-400 disabled:opacity-30"
           >
@@ -630,6 +722,16 @@ export default function Thread() {
             className="max-h-full max-w-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+          <a
+            href={lightbox}
+            download="image.webp"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Télécharger l'image"
+            className="absolute top-4 left-4 h-11 px-3 rounded-full bg-white/20 text-white hover:bg-white/30 flex items-center justify-center text-sm"
+            style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+          >
+            ⬇ Télécharger
+          </a>
           <button
             onClick={() => setLightbox(null)}
             aria-label="Fermer"
