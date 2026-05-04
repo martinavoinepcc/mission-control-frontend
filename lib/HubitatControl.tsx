@@ -133,7 +133,10 @@ export function HubitatControl({ location, dashboardUrl, title, subtitle, accent
     <main className="relative min-h-screen flex flex-col bg-[#0a0a14] text-white">
       {/* Top bar — toujours visible sauf en fullscreen */}
       {!fullscreen && (
-        <header className="flex items-center justify-between px-3 sm:px-5 py-2 border-b border-white/10 bg-black/40 backdrop-blur z-20">
+        <header
+          className="flex items-center justify-between px-3 sm:px-5 pb-2 border-b border-white/10 bg-black/40 backdrop-blur z-20"
+          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+        >
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => router.push('/dashboard')}
