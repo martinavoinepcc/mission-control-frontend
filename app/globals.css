@@ -334,3 +334,54 @@ select optgroup {
   60% { filter: blur(0); }
   100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
+
+/* ============================================================
+   FIX MOBILE 2026-05-04 — touch/scroll/safe-area/hover-scale
+   ============================================================ */
+
+/* 1. Empeche le rebond/bounce iOS sur PWA installee + scroll restoration. */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
+/* 2. Permet le scroll vertical a travers les buttons cliquables.
+      Sans ca, sur iPhone le button intercepte le swipe en mode "drag". */
+button, a[role="button"], a[href] {
+  touch-action: manipulation;
+}
+
+/* 3. Sur devices touch (pas de vrai hover), desactive les transforms scale
+      au hover qui causent un layout shift quand on essaie de scroller —
+      c est la cause principale du "rebond" mid-page sur iPhone. */
+@media (hover: none), (pointer: coarse) {
+  .group:hover,
+  .glass:hover {
+    transform: none !important;
+  }
+  .group:hover .group-hover\:scale-110 {
+    transform: none !important;
+  }
+  /* Tailwind hover:scale-* compile en .hover\:scale-X:hover { transform: scale(X) }
+     On force explicitement aucun transform pour neutraliser sur touch. */
+  [class*="hover:scale-"]:hover {
+    transform: none !important;
+  }
+}
+
+/* 4. Padding-top universel — bumpe le minimum a 28px pour couvrir les
+      modes webclip iPhone ou env(safe-area-inset-top) peut etre 0.
+      Selecteur attribute matche le pattern inline-style applique partout
+      (style="paddingTop: max(1rem, env(safe-area-inset-top))"). */
+main > div[style*="env(safe-area-inset-top)"],
+main > section[style*="env(safe-area-inset-top)"] {
+  padding-top: max(1.75rem, env(safe-area-inset-top)) !important;
+}
+
+/* 5. En mode PWA standalone (raccourci home screen iPhone), encore plus
+      de padding pour bien degager les boutons header de la Dynamic Island. */
+@media (display-mode: standalone) {
+  main > div[style*="env(safe-area-inset-top)"],
+  main > section[style*="env(safe-area-inset-top)"] {
+    padding-top: max(2.75rem, env(safe-area-inset-top)) !important;
+  }
+}
