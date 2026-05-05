@@ -2288,21 +2288,21 @@ const ACTS = [
       "Yo yo yo ! KazGamez_QC en stream ! 🎮 Je continue Survie XP — aujourd'hui on test les cookies.",
       "Setup : j'ai 2 cookies dans mon inventaire (regarde le HUD top-left). Chaque cookie soigne 50 HP. Mais la je suis a 60/100 — j'ai pris des coups plus tot.",
       "Reflexe humain : je clique pour manger un cookie. Vie remonte a 100. Useful !",
-      "Hmm pis je clique encore par habitude. Mais la je suis deja a 100 — le 2e cookie est pure gaspillage. Inventaire vide.",
+      "Hmm pis je clique encore par habitude. Mais la je suis deja a 100 — le 2e cookie passe DANS le vide. Pure gaspillage. Inventaire vide.",
       "Wait... 3 zombies arrivent. Cool je m'en occupe.",
       "Z1 frappe, Z2 frappe, Z3 frappe — je perds 90 HP. J'en kill un mais a 10 HP, sans cookie pour healer...",
       "Tour 2 : 2 zombies tapent. JE MEURS. Pas par manque de skill. Par manque de HP — j'aurais du garder ce 2e cookie pour MAINTENANT.",
-      "Bon. C'pas un bug, c'est une erreur de logique HUMAINE. Faut une REGLE qui mange un cookie SEULEMENT quand life est basse. Faut coder une condition.",
+      "Bon. C'pas un bug, c'est une erreur de logique HUMAINE. Faut une REGLE qui m'empeche de manger quand je suis DEJA PLEIN. Faut coder une condition.",
     ],
     beats: [
-      null,                            // 0 — Yo yo
-      'cookie.appear_inventory',       // 1 — Setup HP 60% + 2 cookies
-      'kaz.eat_cookie_useful',         // 2 — 1er cookie utile (60->100)
-      'kaz.eat_cookie_wasted',         // 3 — 2e cookie gaspille (reste 100)
-      'swarm.spawn_3',                 // 4 — 3 zombies arrivent
-      'combat.act1_turn1',             // 5 — Tour 1 : Z123 frappent + Kaz kill Z1
-      'combat.act1_turn2_dies',        // 6 — Tour 2 : Z23 frappent, Kaz mort par HP=0
-      null,                            // 7 — c'pas un bug
+      () => setMood('happy'),          // 0 — Yo yo
+      () => { setMood('focused'); fireBeat('cookie.appear_inventory'); }, // 1 — Setup
+      () => { setMood('happy'); fireBeat('kaz.eat_cookie_useful'); },     // 2 — 1er utile
+      () => { setMood('teasing'); fireBeat('kaz.eat_cookie_wasted'); },   // 3 — 2e gaspille
+      () => { setMood('surprised'); fireBeat('swarm.spawn_3'); },         // 4 — zombies
+      () => { setMood('stressed'); fireBeat('combat.act1_turn1'); },      // 5 — Tour 1
+      () => { setMood('stressed'); fireBeat('combat.act1_turn2_dies'); }, // 6 — Mort
+      () => setMood('thinking'),       // 7 — pas un bug
     ],
     onEnter: () => {
       setMood('happy');
@@ -2318,7 +2318,13 @@ const ACTS = [
       "Attends... j'ai un viewer dans le chat !",
       "Yo JaxPlayz ! T'es la 1ere personne a watcher ce stream. Bro tu vas m'aider ?",
       "Mes mains sont sur la manette. Toi t'as ton clavier. T'es mon Guy in the Chair.",
-      "Regarde a droite — KazMod.java. Le code qui fait tourner le jeu. On va y ajouter une REGLE qui m'empeche de manger pour rien.",
+      "Regarde a droite — KazMod.java. Le code qui fait tourner le jeu. On va y ajouter une REGLE qui m'empeche de manger un cookie quand je suis DEJA PLEIN (life = 100).",
+    ],
+    beats: [
+      () => setMood('surprised'),
+      () => setMood('happy'),
+      () => setMood('focused'),
+      () => setMood('focused'),
     ],
     onEnter: () => {
       setMood('focused');
@@ -2332,10 +2338,16 @@ const ACTS = [
   {
     name: "Ta 1re Condition",
     bubbles: [
-      "Regarde la ligne `if (life ? 50)` — y'a un slot en jaune entre `life` et `50`. C'est l'OPERATEUR qui manque.",
-      "Une condition `if`, c'est : SI question vraie, ALORS action. Ici on veut « SI ma vie EST PLUS PETITE que 50, manger un cookie ».",
+      "Regarde la ligne `if (life ? 100)` — y'a un slot en jaune entre `life` et `100`. C'est l'OPERATEUR qui manque.",
+      "Une condition `if`, c'est : SI question vraie, ALORS action. Ici on veut : « SI ma vie est PLUS PETITE que 100 (donc PAS plein), manger un cookie ».",
       "Les operateurs : `<` plus petit que. `>` plus grand que. `==` egal a (deux signes egaux, pas un).",
       "Clique sur le `?` jaune pis tape le bon signe. Apres, gros bouton vert TESTER.",
+    ],
+    beats: [
+      () => setMood('focused'),
+      () => setMood('focused'),
+      () => setMood('happy'),
+      () => setMood('teasing'),
     ],
     onEnter: () => {
       setMood('focused');
@@ -2344,26 +2356,28 @@ const ACTS = [
     },
   },
 
-  // ACT 4 (idx 3) - LE FIX FONCTIONNE - ARENA TEST (combat tour-a-tour avec auto-heal)
+  // ACT 4 (idx 3) - LE FIX FONCTIONNE - ARENA TEST (combat tour-a-tour avec auto-heal a chaque hit)
   {
     name: "Le Fix Marche",
     bubbles: [
-      "AH LET'S GOOOO ! T'as installe la regle. Je respawn a 100 HP, et il me reste 1 cookie (le 2e qu'on aurait gaspille tantot).",
+      "AH LET'S GOOOO ! T'as installe la regle. Je respawn a 100 HP, et j'ai 3 cookies fresh.",
       "Watch — je suis a 100. Le code va checker AVANT que je mange. Je tente E pour voir.",
-      "Refus ! Le code dit : life pas < 50, action ignoree. Le code me PROTEGE de mon propre clic random.",
-      "Maintenant les memes 3 zombies. Wave 3 — watch ton code travailler.",
-      "Tour 1 : Z123 me tapent, vie tombe. A 40 HP la condition matche → cookie AUTO mange → vie remonte a 90. Pendant ce temps je kill Z1.",
-      "Tour 2 : Z23 tapent. Je kill Z2. Tour 3 : Z3 tape, je le finish. Plus de cookie mais tous les zombies down.",
-      "C'est ca coder. Le 2e cookie (gaspille tantot a 100) servait MAINTENANT au bon moment. Pas par chance — par REGLE.",
+      "Refus ! Le code dit : life PAS < 100, action ignoree. Le code me PROTEGE de mon propre clic random a 100.",
+      "Maintenant les memes 3 zombies. Wave 3 — watch ton code travailler a chaque coup.",
+      "Tour 1 : Z1 me tape (100→70). Boom — life < 100 → cookie AUTO. Retour a 100, cookie -1. Pareil pour Z2 et Z3 : trois hits, trois cookies utilises au bon moment.",
+      "Tour 2 : 2 zombies restent. Plus de cookie, mais Kaz a 100 HP de buffer. Je kill Z2.",
+      "Tour 3 : Je finish Z3. SURVIE.",
+      "C'est ca coder. Sans la regle j'aurais gaspille un cookie a 100 (comme tantot). Avec la regle, CHAQUE cookie est mange au moment ou ma vie a baisse — zero gaspillage.",
     ],
     beats: [
-      'arena.respawn_with_rule',     // 0 — respawn 100% + 1 cookie
-      'kaz.protected_block',          // 1 — Refus du clic E a 100
-      null,                           // 2 — explication refus
-      'wave.spawn_3_zombies',         // 3 — wave 3 zombies
-      'combat.act4_turn1_with_rule',  // 4 — Tour 1 + auto-heal trigger
-      'combat.act4_turns23_finish',   // 5 — Tours 2 et 3 : kill restants
-      null,                           // 6 — c'est ca coder
+      () => { setMood('hype'); fireBeat('arena.respawn_with_rule_v2'); },  // 0 — respawn 100% + 3 cookies
+      () => { setMood('focused'); fireBeat('kaz.protected_block'); },       // 1 — Refus du clic
+      () => setMood('happy'),                                                // 2 — explication
+      () => { setMood('focused'); fireBeat('wave.spawn_3_zombies'); },      // 3 — wave 3 zombies
+      () => { setMood('surprised'); fireBeat('combat.act4_turn1_with_rule_v2'); }, // 4 — Tour 1 (3 hits + 3 triggers)
+      () => { setMood('focused'); fireBeat('combat.act4_turn2'); },         // 5 — Tour 2
+      () => { setMood('hype'); fireBeat('combat.act4_turn3_kill'); },       // 6 — Tour 3 + kill Z3
+      () => setMood('proud'),                                                // 7 — c'est ca coder
     ],
     onEnter: () => {
       setMood('hype');
@@ -2529,7 +2543,7 @@ const CODE_LINES = [
   { num: 7, html: '' },
   { num: 8, html: '  <span class="code-cm">// Regle de protection auto</span>' },
   { num: 9, html: '  <span class="code-kw">public void</span> <span class="code-fn">onTick</span>() {' },
-  { num: 10, html: '    <span class="code-kw">if</span> (life <span class="editable" data-var="ruleOp">__V__</span> <span class="code-num">50</span>) {', hasEdit: true, var: 'ruleOp' },
+  { num: 10, html: '    <span class="code-kw">if</span> (life <span class="editable" data-var="ruleOp">__V__</span> <span class="code-num">100</span>) {  <span class="code-cm">// pas plein</span>', hasEdit: true, var: 'ruleOp' },
   { num: 11, html: '      <span class="editable" data-var="ruleAction">__V__</span>();', hasEdit: true, var: 'ruleAction' },
   { num: 12, html: '    }' },
   { num: 13, html: '  }' },
@@ -3063,6 +3077,7 @@ const COMBAT_BEATS = {
 
   // ACT 4 V2 — JaxPlayz a installe la regle, Kaz teste
   'arena.respawn_with_rule': () => {
+    // Legacy v1 (ancien scenario). Garde pour compat.
     const player = document.getElementById('player');
     const enemy = document.getElementById('enemy');
     const enemy2 = document.getElementById('enemy2');
@@ -3075,9 +3090,176 @@ const COMBAT_BEATS = {
       e.style.transform = '';
     });
     setPlayerHpAnimated(100, true);
-    // Setup inventaire : il reste 1 cookie (le "2e" de tantot, qui sera utilise au bon moment via la regle)
     showInventoryHUD(1);
-    showStatus('✓ RULE INSTALLED — life<50 → eatCookie() | INVENTAIRE: 1', 'success', 2200);
+    showStatus('✓ RULE INSTALLED — life<100 → eatCookie() | INVENTAIRE: 1', 'success', 2200);
+  },
+  // V2 : 3 cookies au respawn (la regle va les manger un par un au tour 1)
+  'arena.respawn_with_rule_v2': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    if (player) { player.style.left = '15%'; player.classList.remove('hit'); }
+    [enemy, enemy2, enemy3].forEach(e => {
+      if (!e) return;
+      e.style.display = 'none';
+      e.style.opacity = '1';
+      e.style.transform = '';
+    });
+    setPlayerHpAnimated(100, true);
+    showInventoryHUD(3);
+    showStatus('✓ RULE INSTALLED — life<100 → eatCookie() | INVENTAIRE: 3', 'success', 2200);
+  },
+  // V2 — Tour 1 : 3 hits, 3 auto-heal triggers (chaque cookie consomme), kill Z1
+  'combat.act4_turn1_with_rule_v2': () => {
+    const player = document.getElementById('player');
+    const enemy = document.getElementById('enemy');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    const dmg = 30;
+
+    function zombieHitWithAutoHeal(z, delay) {
+      // Zombie tape (HP descend de 30) puis regle declenche (cookie + heal cap 100)
+      setTimeout(() => {
+        if (z) { z.style.right = '32%'; z.classList.add('attacking'); }
+        if (player) player.classList.add('hit');
+        showDamage(player, dmg, 'danger');
+        screenShake(8);
+        spawnSparks(player, '#dc2626');
+        setPlayerHpAnimated(70, true);
+        setTimeout(() => {
+          if (z) { z.style.right = '15%'; z.classList.remove('attacking'); }
+          if (player) player.classList.remove('hit');
+        }, 380);
+      }, delay);
+      // Auto-heal trigger 380ms apres le hit
+      setTimeout(() => {
+        if (player) {
+          spawnSparks(player, '#22c55e');
+          spawnSparks(player, '#22c55e');
+        }
+        setPlayerHpAnimated(100, true);
+        decrementInventory(false);
+        showStatus('✓ if (life<100) → eatCookie() AUTO', 'success', 1100);
+      }, delay + 500);
+    }
+    zombieHitWithAutoHeal(enemy, 200);
+    zombieHitWithAutoHeal(enemy2, 1300);
+    zombieHitWithAutoHeal(enemy3, 2400);
+    // Kaz kill Z1 a la fin
+    setTimeout(() => {
+      if (player) {
+        player.style.left = '32%';
+        player.classList.add('attacking');
+      }
+      if (enemy) {
+        enemy.classList.add('hit');
+        showDamage(enemy, '50', 'warn');
+        spawnSparks(enemy, '#fbbf24');
+      }
+      setTimeout(() => {
+        if (player) {
+          player.style.left = '15%';
+          player.classList.remove('attacking');
+        }
+        if (enemy) {
+          enemy.classList.remove('hit');
+          enemy.style.opacity = '0.25';
+          enemy.style.transform = 'translateY(20px) rotate(90deg)';
+        }
+      }, 500);
+    }, 3500);
+  },
+  // V2 — Tour 2 : Z2+Z3 frappent, plus de cookie donc pas de heal. Kaz kill Z2.
+  'combat.act4_turn2': () => {
+    const player = document.getElementById('player');
+    const enemy2 = document.getElementById('enemy2');
+    const enemy3 = document.getElementById('enemy3');
+    const dmg = 30;
+
+    // Z2 frappe (100 -> 70)
+    setTimeout(() => {
+      if (enemy2) { enemy2.style.right = '32%'; enemy2.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, dmg, 'danger');
+      screenShake(8);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(70, true);
+      setTimeout(() => {
+        if (enemy2) { enemy2.style.right = '22%'; enemy2.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 200);
+
+    // Z3 frappe (70 -> 40)
+    setTimeout(() => {
+      if (enemy3) { enemy3.style.right = '32%'; enemy3.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, dmg, 'danger');
+      screenShake(8);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(40, true);
+      setTimeout(() => {
+        if (enemy3) { enemy3.style.right = '29%'; enemy3.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 1100);
+
+    // Kaz kill Z2
+    setTimeout(() => {
+      if (player) { player.style.left = '24%'; player.classList.add('attacking'); }
+      if (enemy2) {
+        enemy2.classList.add('hit');
+        showDamage(enemy2, '50', 'warn');
+        spawnSparks(enemy2, '#fbbf24');
+      }
+      setTimeout(() => {
+        if (player) { player.style.left = '15%'; player.classList.remove('attacking'); }
+        if (enemy2) {
+          enemy2.classList.remove('hit');
+          enemy2.style.opacity = '0.25';
+          enemy2.style.transform = 'translateY(20px) rotate(90deg)';
+        }
+      }, 500);
+    }, 2000);
+  },
+  // V2 — Tour 3 : Z3 frappe une derniere fois, Kaz le finish. SURVIE.
+  'combat.act4_turn3_kill': () => {
+    const player = document.getElementById('player');
+    const enemy3 = document.getElementById('enemy3');
+
+    // Z3 frappe (40 -> 10)
+    setTimeout(() => {
+      if (enemy3) { enemy3.style.right = '32%'; enemy3.classList.add('attacking'); }
+      if (player) player.classList.add('hit');
+      showDamage(player, '30', 'danger');
+      screenShake(10);
+      spawnSparks(player, '#dc2626');
+      setPlayerHpAnimated(10, true);
+      setTimeout(() => {
+        if (enemy3) { enemy3.style.right = '29%'; enemy3.classList.remove('attacking'); }
+        if (player) player.classList.remove('hit');
+      }, 380);
+    }, 200);
+
+    // Kaz kill Z3 (final)
+    setTimeout(() => {
+      if (player) { player.style.left = '32%'; player.classList.add('attacking'); }
+      if (enemy3) {
+        enemy3.classList.add('hit');
+        showDamage(enemy3, '50', 'warn');
+        spawnSparks(enemy3, '#fbbf24');
+      }
+      setTimeout(() => {
+        if (player) { player.style.left = '15%'; player.classList.remove('attacking'); }
+        if (enemy3) {
+          enemy3.classList.remove('hit');
+          enemy3.style.opacity = '0.25';
+          enemy3.style.transform = 'translateY(20px) rotate(90deg)';
+        }
+        showStatus('✓ WAVE CLEAR — HP 10, COOKIES 0', 'success', 2200);
+      }, 500);
+    }, 1100);
   },
   'kaz.protected_block': () => {
     const player = document.getElementById('player');
@@ -3088,7 +3270,7 @@ const COMBAT_BEATS = {
       setTimeout(() => player.classList.remove('hit'), 400);
     }
     screenShake(4);
-    showStatus('⛔ BLOCKED — life pas < 50', 'danger', 1800);
+    showStatus('⛔ BLOCKED — life=100, pas < 100', 'danger', 1800);
   },
   'wave.spawn_3_zombies': () => {
     const enemy = document.getElementById('enemy');
@@ -3990,14 +4172,44 @@ function showStatus(text, type, duration) {
 
 
 // ========== AVATAR MOOD ==========
-// Applique une classe mood-* sur la cam Kaz. Null-safe si l'élément n'existe pas.
+// 10 emotions disponibles (kaz-emotions/*.png deja sur le repo).
+// Switch de src d'image avec fade transition, + classes mood-* en bonus pour les filtres CSS legacy.
+const KAZ_EMOTIONS = {
+  neutral:   '/mockups/kaz-emotions/kaz-neutral.png',
+  focused:   '/mockups/kaz-emotions/kaz-focused.png',
+  happy:     '/mockups/kaz-emotions/kaz-happy.png',
+  hype:      '/mockups/kaz-emotions/kaz-hype.png',
+  laughing:  '/mockups/kaz-emotions/kaz-laughing.png',
+  proud:     '/mockups/kaz-emotions/kaz-proud.png',
+  stressed:  '/mockups/kaz-emotions/kaz-stressed.png',
+  surprised: '/mockups/kaz-emotions/kaz-surprised.png',
+  teasing:   '/mockups/kaz-emotions/kaz-teasing.png',
+  thinking:  '/mockups/kaz-emotions/kaz-thinking.png',
+};
+// Preload images pour eviter flash blanc
+Object.values(KAZ_EMOTIONS).forEach(src => { const i = new Image(); i.src = src; });
+
 function setMood(mood) {
   const cam = document.getElementById('kazAvatar');
   if (!cam) return;
+  // Classes legacy (3 moods originaux S1) pour compat des filtres CSS
   cam.classList.remove('mood-stressed', 'mood-focused', 'mood-happy');
   if (mood === 'stressed' || mood === 'focused' || mood === 'happy') {
     cam.classList.add('mood-' + mood);
   }
+  // Switch d'image avec fade rapide
+  const img = cam.querySelector('.cam-photo');
+  if (!img) return;
+  const src = KAZ_EMOTIONS[mood] || KAZ_EMOTIONS.neutral;
+  // Si deja la bonne, skip
+  if (img.getAttribute('data-mood') === mood) return;
+  img.style.transition = 'opacity 0.2s ease-out';
+  img.style.opacity = '0.4';
+  setTimeout(() => {
+    img.src = src;
+    img.setAttribute('data-mood', mood);
+    img.style.opacity = '1';
+  }, 130);
 }
 
 // ========== CHOICES ==========
@@ -4469,13 +4681,13 @@ function init() {
     if (state.act === 2) {
       const op = state.code.ruleOp;
       if (op !== '<') {
-        const msg = (op === '>') ? "'>' c'est plus grand que. Tu veux SI life PLUS PETITE que 50, alors eat cookie. Re-clique pis tape '<'." :
-                    (op === '==') ? "'==' c'est strict egal. Genre life vaut EXACTEMENT 50. Pour declencher quand vie est BASSE, faut '<'." :
-                    "Tape un signe : <, > ou ==. Le bon est '<' pour 'plus petit que'.";
+        const msg = (op === '>') ? "'>' c'est plus grand que. Tu veux SI life PLUS PETITE que 100 (donc PAS plein), eat cookie. Re-clique pis tape '<'." :
+                    (op === '==') ? "'==' c'est strict egal a 100. Genre life vaut EXACTEMENT 100 (= plein). Pour declencher quand on est PAS plein, faut '<'." :
+                    "Tape un signe : <, > ou ==. Le bon est '<' pour 'plus petit que' (= pas plein).";
         runRetry({ hint: msg, varName: 'ruleOp', scenario: 'retry-zombie' });
         return;
       }
-      state.installedRule = { variable: 'life', op: '<', value: 50, action: state.code.ruleAction || 'eatCookie' };
+      state.installedRule = { variable: 'life', op: '<', value: 100, action: state.code.ruleAction || 'eatCookie' };
       goToAct(3);
       return;
     }
@@ -4492,7 +4704,7 @@ function init() {
         });
         return;
       }
-      state.installedRule = { variable: 'life', op: '<', value: 50, action: target };
+      state.installedRule = { variable: 'life', op: '<', value: 100, action: target };
       goToAct(6);
       return;
     }
