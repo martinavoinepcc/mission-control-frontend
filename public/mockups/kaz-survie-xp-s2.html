@@ -2318,7 +2318,7 @@ const ACTS = [
       "Attends... j'ai un viewer dans le chat !",
       "Yo JaxPlayz ! T'es la 1ere personne a watcher ce stream. Bro tu vas m'aider ?",
       "Mes mains sont sur la manette. Toi t'as ton clavier. T'es mon Guy in the Chair.",
-      "Regarde a droite — KazMod.java. Le code qui fait tourner le jeu. On va y ajouter une REGLE qui m'empeche de manger un cookie quand je suis DEJA PLEIN (life = 100).",
+      "Regarde a droite — KazMod.java. On va coder une REGLE simple : un cookie heal +50 HP. Donc faut le manger SEULEMENT quand ma vie est BASSE — disons sous 50. Comme ca, +50 me ramene pile a 100, zero gaspille.",
     ],
     beats: [
       () => setMood('surprised'),
@@ -2338,10 +2338,10 @@ const ACTS = [
   {
     name: "Ta 1re Condition",
     bubbles: [
-      "Regarde la ligne `if (life ? 100)` — y'a un slot en jaune entre `life` et `100`. C'est l'OPERATEUR qui manque.",
-      "Une condition `if`, c'est : SI question vraie, ALORS action. Ici on veut : « SI ma vie est PLUS PETITE que 100 (donc PAS plein), manger un cookie ».",
+      "Regarde la ligne `if (life ? 50)` — y'a un slot en jaune entre `life` et `50`. C'est l'OPERATEUR qui manque.",
+      "Une condition `if`, c'est : SI question vraie, ALORS action. Ici on veut : « SI ma vie est en bas de 50 (= dans le rouge), mange un cookie ».",
       "Les operateurs : `<` plus petit que. `>` plus grand que. `==` egal a (deux signes egaux, pas un).",
-      "Clique sur le `?` jaune pis tape le bon signe. Apres, gros bouton vert TESTER.",
+      "Le bon signe c'est celui qui dit « life en BAS de 50 ». Clique le `?` jaune, tape ton signe, pis TESTER.",
     ],
     beats: [
       () => setMood('focused'),
@@ -2356,27 +2356,27 @@ const ACTS = [
     },
   },
 
-  // ACT 4 (idx 3) - LE FIX FONCTIONNE - ARENA TEST (combat tour-a-tour avec auto-heal a chaque hit)
+  // ACT 4 (idx 3) - LE FIX FONCTIONNE - ARENA TEST (combat tour-a-tour, auto-heal au moment critique)
   {
     name: "Le Fix Marche",
     bubbles: [
-      "AH LET'S GOOOO ! T'as installe la regle. Je respawn a 100 HP, et j'ai 3 cookies fresh.",
-      "Watch — je suis a 100. Le code va checker AVANT que je mange. Je tente E pour voir.",
-      "Refus ! Le code dit : life PAS < 100, action ignoree. Le code me PROTEGE de mon propre clic random a 100.",
-      "Maintenant les memes 3 zombies. Wave 3 — watch ton code travailler a chaque coup.",
-      "Tour 1 : Z1 me tape (100→70). Boom — life < 100 → cookie AUTO. Retour a 100, cookie -1. Pareil pour Z2 et Z3 : trois hits, trois cookies utilises au bon moment.",
-      "Tour 2 : 2 zombies restent. Plus de cookie, mais Kaz a 100 HP de buffer. Je kill Z2.",
-      "Tour 3 : Je finish Z3. SURVIE.",
-      "C'est ca coder. Sans la regle j'aurais gaspille un cookie a 100 (comme tantot). Avec la regle, CHAQUE cookie est mange au moment ou ma vie a baisse — zero gaspillage.",
+      "AH LET'S GOOOO ! T'as installe la regle. Je respawn a 100 HP, et il me reste 1 cookie (le 2e qu'on aurait gaspille tantot).",
+      "Watch — je suis a 100. Je tente E pour voir si la regle me laisse manger.",
+      "Refus ! Le code dit : life PAS < 50, action ignoree. Pas de gaspillage — la regle me protege de mon propre clic.",
+      "Maintenant les memes 3 zombies. Wave 3 — watch ton code travailler.",
+      "Tour 1 : Z1 me frappe (100→70). Z2 frappe (70→40). DES que life passe sous 50, BOOM la regle declenche → cookie auto-mange → 90 HP. Z3 frappe (90→60). Pendant ce temps je kill Z1.",
+      "Tour 2 : 2 zombies restent. Plus de cookie mais Kaz a 60 HP de buffer. Z2 frappe (60→30). Kaz kill Z2.",
+      "Tour 3 : Z3 frappe (30→10). Kaz kill Z3. SURVIE de justesse a 10 HP.",
+      "C'est ca coder. Sans la regle j'avais gaspille les 2 cookies a 100. Avec la regle, le cookie restant est mange PILE quand ma vie tombe critique. Pas par chance — par REGLE.",
     ],
     beats: [
-      () => { setMood('hype'); fireBeat('arena.respawn_with_rule_v2'); },  // 0 — respawn 100% + 3 cookies
-      () => { setMood('focused'); fireBeat('kaz.protected_block'); },       // 1 — Refus du clic
+      () => { setMood('hype'); fireBeat('arena.respawn_with_rule'); },     // 0 — respawn 100% + 1 cookie
+      () => { setMood('focused'); fireBeat('kaz.protected_block'); },       // 1 — Refus E a 100
       () => setMood('happy'),                                                // 2 — explication
       () => { setMood('focused'); fireBeat('wave.spawn_3_zombies'); },      // 3 — wave 3 zombies
-      () => { setMood('surprised'); fireBeat('combat.act4_turn1_with_rule_v2'); }, // 4 — Tour 1 (3 hits + 3 triggers)
-      () => { setMood('focused'); fireBeat('combat.act4_turn2'); },         // 5 — Tour 2
-      () => { setMood('hype'); fireBeat('combat.act4_turn3_kill'); },       // 6 — Tour 3 + kill Z3
+      () => { setMood('surprised'); fireBeat('combat.act4_turn1_with_rule'); }, // 4 — Tour 1 + trigger
+      () => { setMood('focused'); fireBeat('combat.act4_turns23_finish'); },// 5 — Tours 2+3 (consolide)
+      () => setMood('hype'),                                                 // 6 — Tour 3 SURVIE (deja anime au beat 5)
       () => setMood('proud'),                                                // 7 — c'est ca coder
     ],
     onEnter: () => {
@@ -2543,7 +2543,7 @@ const CODE_LINES = [
   { num: 7, html: '' },
   { num: 8, html: '  <span class="code-cm">// Regle de protection auto</span>' },
   { num: 9, html: '  <span class="code-kw">public void</span> <span class="code-fn">onTick</span>() {' },
-  { num: 10, html: '    <span class="code-kw">if</span> (life <span class="editable" data-var="ruleOp">__V__</span> <span class="code-num">100</span>) {  <span class="code-cm">// pas plein</span>', hasEdit: true, var: 'ruleOp' },
+  { num: 10, html: '    <span class="code-kw">if</span> (life <span class="editable" data-var="ruleOp">__V__</span> <span class="code-num">50</span>) {  <span class="code-cm">// vie vraiment basse</span>', hasEdit: true, var: 'ruleOp' },
   { num: 11, html: '      <span class="editable" data-var="ruleAction">__V__</span>();', hasEdit: true, var: 'ruleAction' },
   { num: 12, html: '    }' },
   { num: 13, html: '  }' },
@@ -3270,7 +3270,7 @@ const COMBAT_BEATS = {
       setTimeout(() => player.classList.remove('hit'), 400);
     }
     screenShake(4);
-    showStatus('⛔ BLOCKED — life=100, pas < 100', 'danger', 1800);
+    showStatus('⛔ BLOCKED — life=100, pas < 50', 'danger', 1800);
   },
   'wave.spawn_3_zombies': () => {
     const enemy = document.getElementById('enemy');
@@ -4681,13 +4681,13 @@ function init() {
     if (state.act === 2) {
       const op = state.code.ruleOp;
       if (op !== '<') {
-        const msg = (op === '>') ? "'>' c'est plus grand que. Tu veux SI life PLUS PETITE que 100 (donc PAS plein), eat cookie. Re-clique pis tape '<'." :
-                    (op === '==') ? "'==' c'est strict egal a 100. Genre life vaut EXACTEMENT 100 (= plein). Pour declencher quand on est PAS plein, faut '<'." :
-                    "Tape un signe : <, > ou ==. Le bon est '<' pour 'plus petit que' (= pas plein).";
+        const msg = (op === '>') ? "'>' c'est plus grand que. La tu dis « SI vie PLUS GRANDE que 50, mange » — c'est l'inverse. On veut manger quand vie BASSE. Tape '<'." :
+                    (op === '==') ? "'==' c'est exactement egal a 50. Trop strict — on veut declencher des que vie tombe SOUS 50, pas juste a 50 pile. Tape '<'." :
+                    "Tape un signe : <, > ou ==. Le bon c'est '<' (plus petit que) pour 'vie en bas de 50'.";
         runRetry({ hint: msg, varName: 'ruleOp', scenario: 'retry-zombie' });
         return;
       }
-      state.installedRule = { variable: 'life', op: '<', value: 100, action: state.code.ruleAction || 'eatCookie' };
+      state.installedRule = { variable: 'life', op: '<', value: 50, action: state.code.ruleAction || 'eatCookie' };
       goToAct(3);
       return;
     }
@@ -4704,7 +4704,7 @@ function init() {
         });
         return;
       }
-      state.installedRule = { variable: 'life', op: '<', value: 100, action: target };
+      state.installedRule = { variable: 'life', op: '<', value: 50, action: target };
       goToAct(6);
       return;
     }
