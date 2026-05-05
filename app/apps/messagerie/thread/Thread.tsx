@@ -17,9 +17,13 @@ import {
   formatDateSeparator,
   isSameCalendarDay,
   participantAvatarSrc,
+  toggleReaction,
+  REACTION_EMOJIS,
   type ConversationDetails,
   type Message,
   type MsgAuthor,
+  type MessageReaction,
+  type MessageReplyPreview,
 } from '@/lib/messagerie-api';
 import Avatar from '@/components/Avatar';
 import { compressImage, humanBytes } from '@/lib/image-utils';
@@ -131,6 +135,14 @@ export default function Thread() {
     name: string;
     bytes: number;
   } | null>(null);
+
+  // Reply state : si set, le prochain envoi sera une reponse a ce message
+  const [replyingTo, setReplyingTo] = useState<MessageReplyPreview | null>(null);
+
+  // Active message menu (pour Copy / React / Reply). messageId ou null.
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [showReactPicker, setShowReactPicker] = useState<number | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<number | null>(null);
 
   // Lightbox (tap image to zoom)
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -290,6 +302,52 @@ export default function Thread() {
     setError('Fichier non supporte (image ou audio uniquement).');
   }
 
+  // Copy texte du message (ou indication si pas de body)
+  async function handleCopy(m: Message) {
+    const txt = m.body || '(sans texte)';
+    try {
+      await navigator.clipboard.writeText(txt);
+    } catch {
+      // Fallback pour vieux navigateurs
+      const ta = document.createElement('textarea');
+      ta.value = txt;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch { /* noop */ }
+      document.body.removeChild(ta);
+    }
+    setCopyFeedback(m.id);
+    setActiveMenu(null);
+    setTimeout(() => setCopyFeedback((cur) => (cur === m.id ? null : cur)), 1400);
+  }
+
+  // Set le contexte de reply : le composer affiche un bandeau et le prochain envoi inclut replyToId
+  function handleReply(m: Message) {
+    setReplyingTo({
+      id: m.id,
+      body: m.body || '',
+      authorId: m.authorId,
+      authorFirstName: m.authorFirstName,
+      hasImage: !!m.imageData,
+      hasAudio: !!m.audioData,
+      audioName: m.audioName || null,
+    });
+    setActiveMenu(null);
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }
+
+  // Toggle reaction sur un message + update local
+  async function handleReact(messageId: number, emoji: string) {
+    setShowReactPicker(null);
+    setActiveMenu(null);
+    try {
+      const result = await toggleReaction(conversationId, messageId, emoji);
+      setMessages((prev) => prev.map((mm) => (mm.id === messageId ? { ...mm, reactions: result.reactions } : mm)));
+    } catch (e: any) {
+      setError(e?.message || 'Erreur reaction');
+    }
+  }
+
   // Toolbar formatage : wrap la selection avec un marker (ou insere les 2 markers autour du curseur)
   function insertWrap(marker: string, placeholder = 'texte') {
     const ta = textareaRef.current;
@@ -335,12 +393,14 @@ export default function Thread() {
               type: audioAttach.type,
               name: audioAttach.name,
             }
-          : undefined
+          : undefined,
+        replyingTo ? replyingTo.id : null
       );
       setMessages((prev) => [...prev, msg]);
       setDraft('');
       setAttachPreview(null);
       setAudioAttach(null);
+      setReplyingTo(null);
       window.setTimeout(() => scrollToBottom('smooth'), 30);
     } catch (e: any) {
       setError(e?.message || "Erreur d'envoi");
@@ -498,11 +558,72 @@ export default function Thread() {
                         ) : null}
                       </div>
                     )}
-                    <div className={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                    <div className={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'} group/msg relative`}>
                       {firstOfGroup && !mine && (
                         <span className="mb-0.5 px-1 text-[11px] text-slate-400">
                           {m.authorFirstName}
                         </span>
+                      )}
+                      {/* Bouton actions message (Copy / Reply / React) — visible au hover desktop, tap pour ouvrir mobile */}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === m.id ? null : m.id); setShowReactPicker(null); }}
+                        aria-label="Actions message"
+                        className={`absolute -top-2 ${mine ? '-left-7' : '-right-7'} h-7 w-7 rounded-full bg-slate-800/80 text-slate-300 hover:bg-slate-700 transition flex items-center justify-center text-sm opacity-0 group-hover/msg:opacity-100 focus:opacity-100 z-10`}
+                      >
+                        ⋯
+                      </button>
+                      {activeMenu === m.id && (
+                        <>
+                          <div className="fixed inset-0 z-20" onClick={() => { setActiveMenu(null); setShowReactPicker(null); }} aria-hidden="true" />
+                          <div
+                            className={`absolute -top-10 ${mine ? 'right-0' : 'left-0'} z-30 flex gap-1 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-2xl`}
+                          >
+                            <button type="button" onClick={(e) => { e.stopPropagation(); handleCopy(m); }} title="Copier" className="h-8 w-8 rounded-md text-slate-300 hover:bg-white/10 flex items-center justify-center text-sm">
+                              {copyFeedback === m.id ? '✓' : '⧉'}
+                            </button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} title="Repondre" className="h-8 w-8 rounded-md text-slate-300 hover:bg-white/10 flex items-center justify-center text-sm">
+                              ↩
+                            </button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setShowReactPicker(showReactPicker === m.id ? null : m.id); }} title="Reagir" className="h-8 w-8 rounded-md text-slate-300 hover:bg-white/10 flex items-center justify-center text-sm">
+                              😊
+                            </button>
+                          </div>
+                          {showReactPicker === m.id && (
+                            <div
+                              className={`absolute -top-20 ${mine ? 'right-0' : 'left-0'} z-30 flex gap-0.5 rounded-full border border-white/10 bg-slate-900 px-2 py-1 shadow-2xl`}
+                            >
+                              {REACTION_EMOJIS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleReact(m.id, emoji); }}
+                                  className="h-9 w-9 rounded-full text-xl hover:bg-white/10 transition flex items-center justify-center"
+                                  aria-label={`Reagir ${emoji}`}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {/* Reply preview (citation du message original au-dessus de la bulle) */}
+                      {m.replyTo && (
+                        <div
+                          className={`mb-0.5 max-w-full rounded-lg border-l-2 px-2.5 py-1 text-[12px] ${
+                            mine ? 'border-sky-300/70 bg-sky-500/10 text-sky-100' : 'border-slate-500 bg-slate-800/60 text-slate-300'
+                          }`}
+                        >
+                          <div className="font-semibold opacity-80">↩ {m.replyTo.authorFirstName || 'Quelqu\'un'}</div>
+                          <div className="truncate opacity-90">
+                            {m.replyTo.hasAudio ? '🎵 ' : ''}
+                            {m.replyTo.hasImage ? '📷 ' : ''}
+                            {m.replyTo.body
+                              ? (m.replyTo.body.length > 100 ? m.replyTo.body.slice(0, 97) + '…' : m.replyTo.body)
+                              : (m.replyTo.hasAudio ? (m.replyTo.audioName || 'Audio') : (m.replyTo.hasImage ? 'Photo' : '...'))}
+                          </div>
+                        </div>
                       )}
                       {m.imageData && (
                         <div className={`mb-1 flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}`}>
@@ -571,6 +692,27 @@ export default function Thread() {
                           dangerouslySetInnerHTML={{ __html: renderMessageBody(m.body) }}
                         />
                       )}
+                      {/* Reactions pills (sous la bulle, cliquable pour toggle) */}
+                      {m.reactions && m.reactions.length > 0 && (
+                        <div className={`mt-1 flex flex-wrap gap-1 ${mine ? 'self-end' : 'self-start'}`}>
+                          {m.reactions.map((r) => (
+                            <button
+                              key={r.emoji}
+                              type="button"
+                              onClick={() => handleReact(m.id, r.emoji)}
+                              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition ${
+                                r.mine
+                                  ? 'border-sky-400/60 bg-sky-500/20 text-sky-100'
+                                  : 'border-white/10 bg-slate-800/70 text-slate-300 hover:bg-slate-700'
+                              }`}
+                              title={`${r.count} reaction${r.count > 1 ? 's' : ''}`}
+                            >
+                              <span>{r.emoji}</span>
+                              <span className="font-medium">{r.count}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {lastOfGroup && (
                         <span className={`mt-0.5 px-1 text-[10px] text-slate-500 ${mine ? 'self-end' : 'self-start'}`}>
                           {formatTime(m.createdAt)}
@@ -600,6 +742,32 @@ export default function Thread() {
       {error && (
         <div className="border-t border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">
           {error}
+        </div>
+      )}
+
+      {/* Bandeau reply (en cours de reponse a un message) */}
+      {replyingTo && (
+        <div className="border-t border-sky-400/30 bg-sky-500/10 px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-2">
+            <div className="flex-shrink-0 text-sky-300">↩</div>
+            <div className="min-w-0 flex-1 text-xs">
+              <p className="font-semibold text-sky-200">Réponse à {replyingTo.authorFirstName || 'Quelqu\'un'}</p>
+              <p className="truncate text-sky-100/70">
+                {replyingTo.hasAudio ? '🎵 ' : ''}
+                {replyingTo.hasImage ? '📷 ' : ''}
+                {replyingTo.body
+                  ? (replyingTo.body.length > 80 ? replyingTo.body.slice(0, 77) + '…' : replyingTo.body)
+                  : (replyingTo.hasAudio ? (replyingTo.audioName || 'Audio') : (replyingTo.hasImage ? 'Photo' : '...'))}
+              </p>
+            </div>
+            <button
+              onClick={() => setReplyingTo(null)}
+              className="h-8 w-8 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center"
+              aria-label="Annuler la reponse"
+            >
+              <FontAwesomeIcon icon={UI.close} className="text-xs" />
+            </button>
+          </div>
         </div>
       )}
 
