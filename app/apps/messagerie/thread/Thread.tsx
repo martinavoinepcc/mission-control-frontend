@@ -66,6 +66,28 @@ function StackedAvatars({
   );
 }
 
+// ----- Markdown light pour les messages -----
+// Supporte : **gras**, *italique*, ~~barre~~, `code`, retours a la ligne.
+// Escape HTML d'abord pour que le user ne puisse pas injecter de balises.
+function renderMessageBody(text: string): string {
+  if (!text) return '';
+  let h = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // Code inline en premier (pour pas parser le markdown a l'interieur)
+  h = h.replace(/`([^`\n]+)`/g, '<code class="msg-code">$1</code>');
+  // Bold avant italique (sinon le ** est mange par italic)
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  // Italique (single *)
+  h = h.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  // Strikethrough
+  h = h.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+  // Newlines
+  h = h.replace(/\n/g, '<br>');
+  return h;
+}
+
 function DateSeparator({ iso }: { iso: string }) {
   return (
     <li className="my-3 flex items-center justify-center">
@@ -266,6 +288,27 @@ export default function Thread() {
       return;
     }
     setError('Fichier non supporte (image ou audio uniquement).');
+  }
+
+  // Toolbar formatage : wrap la selection avec un marker (ou insere les 2 markers autour du curseur)
+  function insertWrap(marker: string, placeholder = 'texte') {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart || 0;
+    const end = ta.selectionEnd || 0;
+    const before = draft.slice(0, start);
+    const sel = draft.slice(start, end);
+    const after = draft.slice(end);
+    const inner = sel || placeholder;
+    const newText = before + marker + inner + marker + after;
+    setDraft(newText);
+    setTimeout(() => {
+      ta.focus();
+      // Place caret au milieu (sans selection) ou apres le wrap (avec selection)
+      const innerStart = start + marker.length;
+      const innerEnd = innerStart + inner.length;
+      ta.setSelectionRange(innerStart, innerEnd);
+    }, 0);
   }
 
   async function onSend(e?: React.FormEvent) {
@@ -516,7 +559,7 @@ export default function Thread() {
                       )}
                       {m.body && (
                         <div
-                          className={`px-3.5 py-2 text-[15px] leading-snug ${
+                          className={`px-3.5 py-2 text-[15px] leading-snug msg-body ${
                             mine ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-100'
                           }`}
                           style={{
@@ -525,9 +568,8 @@ export default function Thread() {
                             borderBottomRightRadius: mine && lastOfGroup ? 6 : 18,
                             borderBottomLeftRadius: !mine && lastOfGroup ? 6 : 18,
                           }}
-                        >
-                          {m.body}
-                        </div>
+                          dangerouslySetInnerHTML={{ __html: renderMessageBody(m.body) }}
+                        />
                       )}
                       {lastOfGroup && (
                         <span className={`mt-0.5 px-1 text-[10px] text-slate-500 ${mine ? 'self-end' : 'self-start'}`}>
@@ -631,30 +673,46 @@ export default function Thread() {
           className="hidden"
           onChange={onPickFile}
         />
-        <div className="flex flex-1 items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 pl-4 pr-2 py-1 focus-within:border-sky-500/60">
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                onSend();
-              }
-            }}
-            placeholder={(attachPreview || audioAttach) ? "Ajoute un message (optionnel)…" : "Écris un message…"}
-            rows={1}
-            className="flex-1 resize-none bg-transparent py-2 text-[16px] text-white placeholder:text-slate-500 focus:outline-none"
-            style={{ maxHeight: 140 }}
-          />
-          <button
-            type="submit"
-            disabled={sending || attaching || (!draft.trim() && !attachPreview && !audioAttach)}
-            aria-label="Envoyer"
-            className="my-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-sky-500 text-white transition hover:bg-sky-400 disabled:opacity-30"
-          >
-            <FontAwesomeIcon icon={UI.send} className="text-sm" />
-          </button>
+        <div className="flex flex-1 flex-col rounded-3xl border border-white/10 bg-slate-900 px-2 py-1 focus-within:border-sky-500/60">
+          {/* Toolbar formatage (mini) */}
+          <div className="flex items-center gap-0.5 px-1 pt-1 pb-0.5">
+            <button type="button" onClick={() => insertWrap('**')} title="Gras (Cmd/Ctrl+B)" className="h-7 w-7 rounded-md text-xs font-bold text-slate-300 hover:bg-white/10 transition">B</button>
+            <button type="button" onClick={() => insertWrap('*')} title="Italique" className="h-7 w-7 rounded-md text-xs italic text-slate-300 hover:bg-white/10 transition">I</button>
+            <button type="button" onClick={() => insertWrap('~~')} title="Barre" className="h-7 w-7 rounded-md text-xs text-slate-300 hover:bg-white/10 transition" style={{ textDecoration: 'line-through' }}>S</button>
+            <button type="button" onClick={() => insertWrap('`', 'code')} title="Code" className="h-7 w-7 rounded-md text-xs font-mono text-slate-300 hover:bg-white/10 transition">{'<>'}</button>
+            <span className="ml-auto text-[10px] text-slate-500 hidden sm:inline pr-1">⌘↵ envoyer</span>
+          </div>
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // Cmd/Ctrl + Enter = envoi (raccourci desktop). Enter seul = nouvelle ligne.
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  onSend();
+                }
+                // Cmd/Ctrl + B / I = bold / italic shortcut
+                if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+                  if (e.key === 'b' || e.key === 'B') { e.preventDefault(); insertWrap('**'); }
+                  else if (e.key === 'i' || e.key === 'I') { e.preventDefault(); insertWrap('*'); }
+                }
+              }}
+              placeholder={(attachPreview || audioAttach) ? "Ajoute un message (optionnel)…" : "Écris un message… (Entrée = nouvelle ligne)"}
+              rows={1}
+              className="flex-1 resize-none bg-transparent pl-2 py-2 text-[16px] text-white placeholder:text-slate-500 focus:outline-none"
+              style={{ maxHeight: 140 }}
+            />
+            <button
+              type="submit"
+              disabled={sending || attaching || (!draft.trim() && !attachPreview && !audioAttach)}
+              aria-label="Envoyer"
+              className="my-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-sky-500 text-white transition hover:bg-sky-400 disabled:opacity-30"
+            >
+              <FontAwesomeIcon icon={UI.send} className="text-sm" />
+            </button>
+          </div>
         </div>
       </form>
 
@@ -708,6 +766,21 @@ export default function Thread() {
           </div>
         </div>
       )}
+
+      {/* Styles markdown light pour messages */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .msg-body strong { font-weight: 700; }
+        .msg-body em { font-style: italic; }
+        .msg-body del { text-decoration: line-through; opacity: 0.75; }
+        .msg-body .msg-code, .msg-body code {
+          background: rgba(0, 0, 0, 0.32);
+          padding: 1px 5px;
+          border-radius: 4px;
+          font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+          font-size: 0.9em;
+        }
+        .msg-body br { line-height: 1.5; }
+      ` }} />
 
       {/* Lightbox (image plein écran) */}
       {lightbox && (
