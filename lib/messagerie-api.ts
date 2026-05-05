@@ -75,6 +75,23 @@ export type MessageAudioMeta = {
   name?: string;    // filename original (pour download)
 };
 
+export type MessageReaction = {
+  emoji: string;
+  count: number;
+  mine: boolean;
+  userIds: number[];
+};
+
+export type MessageReplyPreview = {
+  id: number;
+  body: string;
+  authorId: number;
+  authorFirstName: string | null;
+  hasImage?: boolean;
+  hasAudio?: boolean;
+  audioName?: string | null;
+};
+
 export type Message = {
   id: number;
   authorId: number;
@@ -86,9 +103,14 @@ export type Message = {
   audioData?: string | null;
   audioType?: string | null;
   audioName?: string | null;
+  replyTo?: MessageReplyPreview | null;
+  reactions?: MessageReaction[];
   createdAt: string;
   editedAt?: string | null;
 };
+
+// Liste fixe d'emojis autorises (doit matcher le backend ALLOWED_REACTION_EMOJIS).
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 // ---- API calls ----
 
@@ -122,7 +144,8 @@ export async function sendMessage(
   conversationId: number,
   body: string,
   image?: MessageImageMeta,
-  audio?: MessageAudioMeta
+  audio?: MessageAudioMeta,
+  replyToId?: number | null
 ): Promise<Message> {
   const payload: any = { body };
   if (image && image.data) {
@@ -131,12 +154,27 @@ export async function sendMessage(
   if (audio && audio.data) {
     payload.audio = { data: audio.data, type: audio.type, name: audio.name };
   }
+  if (replyToId) payload.replyToId = replyToId;
   const res = await authFetch(`/conversations/${conversationId}/messages`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
   return (await res.json()) as Message;
+}
+
+// Toggle reaction emoji sur un message. Retourne la nouvelle liste agregee.
+export async function toggleReaction(
+  conversationId: number,
+  messageId: number,
+  emoji: string
+): Promise<{ messageId: number; reactions: MessageReaction[] }> {
+  const res = await authFetch(`/conversations/${conversationId}/messages/${messageId}/reactions`, {
+    method: 'POST',
+    body: JSON.stringify({ emoji }),
+  });
+  if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
+  return (await res.json()) as { messageId: number; reactions: MessageReaction[] };
 }
 
 export async function markConversationRead(conversationId: number): Promise<void> {
