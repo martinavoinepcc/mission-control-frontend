@@ -14,8 +14,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.my-mission-contr
 
 export default function DropWrapper() {
   const router = useRouter();
-  const params = useParams<{ slug: string }>();
-  const slug = params?.slug || '';
+  const params = useParams() as Record<string, string | string[]> | null;
+  const rawSlug = params?.slug;
+  const slug: string = Array.isArray(rawSlug) ? (rawSlug[0] || '') : (rawSlug || '');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState<{ title: string; iconEmoji: string } | null>(null);
