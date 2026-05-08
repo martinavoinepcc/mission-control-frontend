@@ -1,20 +1,15 @@
-import { Suspense } from 'react';
-import HeimdallHub from './HeimdallHub';
+// BIFROST — pont vers HEIMDALL.
+// L'ancienne page hub HEIMDALL a 4 cards a disparu (2026-05-08) :
+// l'utilisateur arrive directement dans le cockpit (HEIMDALL). Ce page.tsx
+// fait juste la redirection. Le slug DB reste 'assistant', le tile dashboard
+// s'appelle BIFROST, la destination s'appelle HEIMDALL.
+
+import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'HEIMDALL — Mission Control',
-  description: 'Holistic Environmental Intelligence & Monitoring, Decision And Link Layer.',
+  title: 'BIFROST → HEIMDALL — Mission Control',
 };
 
-export default function HeimdallPage() {
-  return (
-    <Suspense fallback={
-      <main className="relative flex items-center justify-center" style={{ height: '100dvh' }}>
-        <div className="absolute inset-0 cosmic-grid" />
-        <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
-      </main>
-    }>
-      <HeimdallHub />
-    </Suspense>
-  );
+export default function BifrostRedirect() {
+  redirect('/apps/heimdall/cockpit/');
 }
