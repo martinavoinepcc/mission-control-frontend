@@ -3,13 +3,18 @@
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faRotateRight, faUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
+import {
+  faArrowLeft,
+  faRotateRight,
+  faUpRightFromSquare,
+  faBoxArchive,
+} from '@fortawesome/free-solid-svg-icons';
 
 const COCKPIT_URL =
   process.env.NEXT_PUBLIC_HEIMDALL_COCKPIT_URL ||
   'https://mission-control-heimdall.onrender.com';
 
-export default function CockpitPage() {
+export default function HeimdallCockpit() {
   const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
@@ -25,16 +30,24 @@ export default function CockpitPage() {
         style={{ paddingTop: 'max(1.75rem, env(safe-area-inset-top))' }}
       >
         <button
-          onClick={() => router.push('/apps/heimdall/')}
+          onClick={() => router.push('/dashboard?realm=family')}
           className="w-10 h-10 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center flex-shrink-0"
-          aria-label="Retour HEIMDALL"
+          aria-label="Retour dashboard"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="text-sm" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[9px] uppercase tracking-[0.25em] text-white/40 leading-tight">HEIMDALL</p>
-          <p className="font-display font-semibold text-sm text-white truncate leading-tight">Cockpit Aion UI</p>
+          <p className="text-[9px] uppercase tracking-[0.25em] text-white/40 leading-tight">BIFROST</p>
+          <p className="font-display font-semibold text-sm text-white truncate leading-tight">HEIMDALL</p>
         </div>
+        <button
+          onClick={() => router.push('/apps/heimdall/drops/')}
+          className="w-10 h-10 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center flex-shrink-0"
+          aria-label="Drops FRIDAY"
+          title="Drops FRIDAY (modules entrants)"
+        >
+          <FontAwesomeIcon icon={faBoxArchive} className="text-sm" />
+        </button>
         <button
           onClick={() => {
             if (iframeRef.current) {
@@ -45,7 +58,7 @@ export default function CockpitPage() {
           }}
           className="w-10 h-10 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center flex-shrink-0"
           aria-label="Rafraichir"
-          title="Rafraichir le cockpit"
+          title="Rafraichir HEIMDALL"
         >
           <FontAwesomeIcon icon={faRotateRight} className="text-sm" />
         </button>
@@ -53,19 +66,19 @@ export default function CockpitPage() {
           onClick={() => window.open(COCKPIT_URL, '_blank', 'noopener,noreferrer')}
           className="w-10 h-10 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition flex items-center justify-center flex-shrink-0"
           aria-label="Ouvrir dans Safari"
-          title="Ouvrir en plein dans Safari"
+          title="Ouvrir HEIMDALL en plein dans Safari"
         >
           <FontAwesomeIcon icon={faUpRightFromSquare} className="text-sm" />
         </button>
       </header>
 
-      {/* Iframe Aion UI */}
+      {/* Iframe Aion UI = HEIMDALL */}
       <div className="relative flex-1 w-full">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-cosmos-950 z-10 pointer-events-none">
             <div className="flex flex-col items-center gap-3">
               <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Connexion au cockpit</p>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Connexion à HEIMDALL</p>
             </div>
           </div>
         )}
@@ -73,7 +86,7 @@ export default function CockpitPage() {
           ref={iframeRef}
           src={COCKPIT_URL}
           className="absolute inset-0 w-full h-full border-0 bg-cosmos-950"
-          title="Aion UI - Cockpit complet"
+          title="HEIMDALL — cockpit Aion UI"
           allow="clipboard-read; clipboard-write; fullscreen"
           onLoad={() => setLoading(false)}
         />
