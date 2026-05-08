@@ -195,7 +195,7 @@ export default function EducatifHubPage() {
               {drops.map((d) => (
                 <button
                   key={d.id}
-                  onClick={() => router.push(`/apps/drops/${encodeURIComponent(d.slug)}`)}
+                  onClick={() => router.push(`/apps/drops?slug=${encodeURIComponent(d.slug)}`)}
                   className="group relative text-left rounded-xl overflow-hidden glass p-5 border border-cyan-500/30 hover:border-cyan-400/60 transition-all hover:scale-[1.005] animate-fade-up"
                 >
                   <div className="flex items-center gap-4">
