@@ -14,11 +14,23 @@ import {
 } from '@/lib/api';
 import { UI } from '@/lib/icons';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.my-mission-control.com';
+
+type DropCard = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  iconEmoji: string | null;
+  realm: string;
+};
+
 export default function EducatifHubPage() {
   const router = useRouter();
   const [stats, setStats] = useState<EduMeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drops, setDrops] = useState<DropCard[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -35,6 +47,19 @@ export default function EducatifHubPage() {
       } finally {
         setLoading(false);
       }
+    })();
+    // Fetch drops accessibles a l'user (silencieux : si erreur, juste pas de section)
+    (async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('mc_token') : null;
+        if (!token) return;
+        const res = await fetch(`${API_URL}/heimdall/me/drops`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setDrops((data.drops || []).filter((d: DropCard) => d.realm === 'EDUCATIF' || d.realm === 'FAMILY'));
+      } catch { /* silent */ }
     })();
   }, [router]);
 
@@ -160,6 +185,34 @@ export default function EducatifHubPage() {
             </div>
           </button>
         </section>
+
+        {/* DROPS FRIDAY — modules pousses par FRIDAY (visible si l'user a des accès) */}
+        {drops.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xs tracking-[0.3em] uppercase text-white/40 mb-3 font-mono">📦 Modules de FRIDAY</h2>
+            <p className="text-white/50 text-sm mb-4">Outils sur mesure créés pour toi.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {drops.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => router.push(`/apps/drops/${encodeURIComponent(d.slug)}`)}
+                  className="group relative text-left rounded-xl overflow-hidden glass p-5 border border-cyan-500/30 hover:border-cyan-400/60 transition-all hover:scale-[1.005] animate-fade-up"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/20 flex-shrink-0">
+                      {d.iconEmoji || '📦'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display font-bold mb-0.5 truncate">{d.title}</h3>
+                      {d.description && <p className="text-white/55 text-xs line-clamp-2">{d.description}</p>}
+                    </div>
+                    <div className="text-cyan-300 font-mono text-xs">▶</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
