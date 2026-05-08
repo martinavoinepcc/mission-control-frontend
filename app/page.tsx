@@ -105,7 +105,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden flex items-center justify-center px-6 py-12">
+    <main className="relative min-h-screen overflow-x-hidden flex items-center justify-center px-6 py-12">
       {/* Canvas particules */}
       <canvas ref={canvasRef} className="absolute inset-0" style={{ opacity: 0.6 }} />
 

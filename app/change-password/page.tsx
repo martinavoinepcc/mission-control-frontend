@@ -31,7 +31,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden flex items-center justify-center px-6 py-12">
+    <main className="relative min-h-screen overflow-x-hidden flex items-center justify-center px-6 py-12">
       <div className="absolute inset-0 cosmic-grid" />
       <div className="blob bg-neon-violet w-[480px] h-[480px] -top-32 -left-24 animate-pulse-slow" />
       <div className="blob bg-neon-cyan w-[380px] h-[380px] -bottom-24 -right-24 animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
