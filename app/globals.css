@@ -17,9 +17,14 @@ html, body {
   color: #E5E7EB;
   font-family: Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* Jamais de scroll horizontal sur mobile — les blobs absolute-positioned débordent sinon. */
-  overflow-x: hidden;
-  max-width: 100vw;
+  /* Jamais de scroll horizontal sur mobile — les blobs absolute-positioned débordent sinon.
+     overflow-x: clip clippe SANS creer un conteneur de scroll (contrairement a hidden),
+     ce qui evite le bounce-back iOS Safari ou body intercepte le touch puis ne scroll pas
+     verticalement. Supporte Safari 16+, Chrome 90+, Firefox 81+ — fallback hidden ci-dessous. */
+  overflow-x: clip;
+}
+@supports not (overflow: clip) {
+  html, body { overflow-x: hidden; }
 }
 html {
   -webkit-tap-highlight-color: transparent;
