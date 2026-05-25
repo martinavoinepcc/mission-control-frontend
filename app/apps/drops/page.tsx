@@ -145,6 +145,26 @@ function DropWrapperInner() {
     } catch {/* ignore */}
   }, []);
 
+  // ----- proxy fetch authenticated pour les scores -----
+  const proxyFetch = useCallback(async (path: string, init: RequestInit = {}) => {
+    const tok = typeof window !== 'undefined' ? localStorage.getItem('mc_token') : null;
+    const res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
+        ...(init.headers || {}),
+      },
+    });
+    const text = await res.text();
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+    if (!res.ok) {
+      return { ok: false, status: res.status, error: (json && json.erreur) || `HTTP ${res.status}` };
+    }
+    return json && typeof json === 'object' ? json : { ok: true };
+  }, []);
+
   // ----- ecoute des messages du drop -----
   useEffect(() => {
     if (!user || !slug) return;
@@ -233,12 +253,45 @@ function DropWrapperInner() {
           router.back();
           break;
         }
+        case 'submitScore': {
+          const reqId = d.requestId;
+          const payload = (d.payload && typeof d.payload === 'object') ? d.payload : {};
+          (async () => {
+            const result = await proxyFetch('/heimdall/drops/scores', {
+              method: 'POST',
+              body: JSON.stringify({ ...payload, slug }),
+            });
+            postToDrop('submitScore-result', { requestId: reqId, result });
+          })();
+          break;
+        }
+        case 'getMyBest': {
+          const reqId = d.requestId;
+          const q = d.mode ? `?mode=${encodeURIComponent(d.mode)}` : '';
+          (async () => {
+            const result = await proxyFetch(`/heimdall/drops/${encodeURIComponent(slug)}/scores/me${q}`);
+            postToDrop('getMyBest-result', { requestId: reqId, result });
+          })();
+          break;
+        }
+        case 'getLeaderboard': {
+          const reqId = d.requestId;
+          const params: string[] = [];
+          if (d.mode) params.push(`mode=${encodeURIComponent(d.mode)}`);
+          if (d.limit) params.push(`limit=${encodeURIComponent(d.limit)}`);
+          const qs = params.length ? `?${params.join('&')}` : '';
+          (async () => {
+            const result = await proxyFetch(`/heimdall/drops/${encodeURIComponent(slug)}/scores/leaderboard${qs}`);
+            postToDrop('getLeaderboard-result', { requestId: reqId, result });
+          })();
+          break;
+        }
         default: /* ignore unknown */ break;
       }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [user, slug, postToDrop, flashXp, playSound, pushToast, router]);
+  }, [user, slug, postToDrop, flashXp, playSound, pushToast, router, proxyFetch]);
 
   useEffect(() => {
     if (!showCompanion) postToDrop('resume');
