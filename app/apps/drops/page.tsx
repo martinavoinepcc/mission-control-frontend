@@ -11,6 +11,9 @@
 // - Le wrapper repond aussi aux requetes du drop (loadState resolu via localStorage, profile
 //   kid envoye sur 'ready').
 // - Storage J1 : localStorage cote client. J2 (futur) : modele DropProgress en DB.
+//
+// PALETTE (2026-05-25, drop violet/pink) : arcade lime + cyan + amber + emerald.
+// Cf. memory/feedback_palette_no_purple.md.
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -19,11 +22,12 @@ import {
   faArrowLeft,
   faRotateRight,
   faBolt,
-  faComments,
+  faCircleQuestion,
   faXmark,
   faTrophy,
   faVolumeXmark,
   faVolumeHigh,
+  faRobot,
 } from '@fortawesome/free-solid-svg-icons';
 import { getStoredUser } from '@/lib/api';
 
@@ -99,6 +103,7 @@ function DropWrapperInner() {
         click: { freqs: [1200], dur: 0.04, type: 'square', gain: 0.10 },
         fail:  { freqs: [196, 165], dur: 0.28, type: 'sawtooth', gain: 0.14 },
         bell:  { freqs: [1568, 2093], dur: 0.6, type: 'sine', gain: 0.12 },
+        combo: { freqs: [659, 880, 1175, 1568], dur: 0.14, type: 'square', gain: 0.13 },
       };
       const p = presets[name] || presets.click;
       p.freqs.forEach((freq, i) => {
@@ -148,13 +153,10 @@ function DropWrapperInner() {
       const d = e.data as any;
       const mc = d.mc;
       if (typeof mc !== 'string' || !mc) return;
-      // origine : on accepte le contentWindow de l'iframe (les drops sont servis depuis API_URL,
-      // origin different — la validation par source est plus fiable que par origin string).
       if (iframeRef.current && e.source !== iframeRef.current.contentWindow) return;
 
       switch (mc) {
         case 'ready': {
-          // Envoie le profil kid au drop
           postToDrop('profile', {
             kid: {
               id: user.id,
@@ -172,7 +174,6 @@ function DropWrapperInner() {
             setSessionXp((x) => x + amt);
             flashXp(amt, d.reason || null);
             playSound('ding');
-            // cumulative cote client (J1)
             try {
               const key = `mc_drop_xp_${user.id}`;
               const cur = parseInt(localStorage.getItem(key) || '0', 10) || 0;
@@ -239,7 +240,6 @@ function DropWrapperInner() {
     return () => window.removeEventListener('message', onMessage);
   }, [user, slug, postToDrop, flashXp, playSound, pushToast, router]);
 
-  // companion close -> resume au drop
   useEffect(() => {
     if (!showCompanion) postToDrop('resume');
   }, [showCompanion, postToDrop]);
@@ -258,6 +258,12 @@ function DropWrapperInner() {
     : '';
 
   const companionUrl = useMemo(() => '/apps/friday/', []);
+
+  // Progress en segments arcade (10 chunks)
+  const segments = useMemo(() => {
+    const filled = Math.round(progress / 10);
+    return Array.from({ length: 10 }, (_, i) => i < filled);
+  }, [progress]);
 
   if (error) {
     return (
@@ -279,7 +285,7 @@ function DropWrapperInner() {
     <main className="fixed inset-0 flex flex-col bg-cosmos-950 z-0" style={{ height: '100dvh' }}>
       {/* HEADER */}
       <header
-        className="relative flex items-center gap-2 px-3 pb-2 border-b border-white/10 bg-cosmos-950/85 backdrop-blur-md flex-shrink-0"
+        className="relative flex items-center gap-2 px-3 pb-2 border-b border-lime-400/15 bg-cosmos-950/85 backdrop-blur-md flex-shrink-0"
         style={{ paddingTop: 'max(1.75rem, env(safe-area-inset-top))' }}
       >
         <button
@@ -293,29 +299,32 @@ function DropWrapperInner() {
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <span className="text-xl">{meta?.iconEmoji || '📦'}</span>
           <div className="min-w-0">
-            <p className="text-[9px] uppercase tracking-[0.25em] text-white/40 leading-tight">
+            <p className="text-[9px] uppercase tracking-[0.25em] text-lime-300/70 leading-tight font-mono">
               DROP {completed && <span className="text-emerald-300">· COMPLÉTÉ</span>}
             </p>
             <p className="font-semibold text-sm text-white truncate leading-tight">{meta?.title || slug}</p>
           </div>
         </div>
 
-        {/* XP session */}
+        {/* XP session — LCD style */}
         <div
-          className="hidden sm:flex items-center gap-1.5 px-2.5 h-9 rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-200 text-xs font-mono"
+          className="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded-lg border border-amber-400/40 bg-amber-400/5 text-amber-200 text-sm font-mono tabular-nums"
           title="XP gagné cette session"
+          style={{ boxShadow: '0 0 18px -8px rgba(245, 158, 11, 0.55) inset' }}
         >
-          <FontAwesomeIcon icon={faBolt} className="text-cyan-300" />
-          <span>+{sessionXp}</span>
+          <FontAwesomeIcon icon={faBolt} className="text-amber-300 text-xs" />
+          <span className="font-bold tracking-wider">{String(sessionXp).padStart(4, '0')}</span>
+          <span className="text-amber-300/50 text-[10px] tracking-[0.2em]">XP</span>
         </div>
 
-        {/* Companion */}
+        {/* Companion (lime) */}
         <button
           onClick={() => setShowCompanion(true)}
-          className="w-10 h-10 rounded-xl border border-violet-400/30 bg-violet-400/10 text-violet-200 hover:bg-violet-400/20 transition flex items-center justify-center flex-shrink-0"
-          aria-label="Demander à FRIDAY/Kaz"
+          className="relative w-10 h-10 rounded-xl border border-lime-400/50 bg-lime-400/10 text-lime-200 hover:bg-lime-400/20 transition flex items-center justify-center flex-shrink-0"
+          aria-label="Demander de l'aide"
+          title="Demander de l'aide"
         >
-          <FontAwesomeIcon icon={faComments} className="text-sm" />
+          <FontAwesomeIcon icon={faCircleQuestion} className="text-base" />
         </button>
 
         {/* Mute */}
@@ -344,12 +353,20 @@ function DropWrapperInner() {
         </button>
       </header>
 
-      {/* Progress bar */}
-      <div className="h-1 bg-white/5 flex-shrink-0">
-        <div
-          className="h-full bg-gradient-to-r from-cyan-400 via-violet-400 to-pink-400 transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
+      {/* Progress bar segmente (arcade) */}
+      <div className="h-2 bg-black/40 flex items-center gap-[2px] px-[2px] flex-shrink-0">
+        {segments.map((on, i) => (
+          <div
+            key={i}
+            className="flex-1 h-full rounded-[2px] transition-colors duration-300"
+            style={{
+              background: on
+                ? `linear-gradient(180deg, #a3e635 0%, #65a30d 100%)`
+                : 'rgba(255,255,255,0.04)',
+              boxShadow: on ? '0 0 6px rgba(163, 230, 53, 0.45)' : 'none',
+            }}
+          />
+        ))}
       </div>
 
       {/* IFRAME */}
@@ -368,27 +385,33 @@ function DropWrapperInner() {
           onLoad={() => setLoading(false)}
         />
 
-        {/* XP burst */}
+        {/* XP burst — style tampon arcade */}
         {xpBurst && (
           <div
             key={xpBurst.id}
             className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 z-20 select-none"
-            style={{ animation: 'xpburst 1.3s ease-out forwards' }}
+            style={{ animation: 'xpburst 1.3s cubic-bezier(.16,1,.3,1) forwards' }}
           >
-            <div className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-display font-bold text-2xl shadow-2xl shadow-cyan-500/40 flex items-center gap-2">
+            <div
+              className="px-5 py-2.5 rounded-2xl text-cosmos-950 font-display font-extrabold text-2xl shadow-2xl flex items-center gap-2"
+              style={{
+                background: 'linear-gradient(90deg, #a3e635, #fbbf24)',
+                boxShadow: '0 12px 40px -10px rgba(163, 230, 53, 0.6), 0 0 0 3px rgba(10,10,20,0.6) inset',
+              }}
+            >
               <FontAwesomeIcon icon={faBolt} /> +{xpBurst.amount} XP
             </div>
             {xpBurst.reason && (
-              <p className="text-center text-cyan-200 text-xs mt-1.5">{xpBurst.reason}</p>
+              <p className="text-center text-lime-200 text-xs mt-1.5 font-mono">{xpBurst.reason}</p>
             )}
           </div>
         )}
 
-        {/* Completion confetti */}
+        {/* Completion badge */}
         {completed && progress === 100 && (
           <div className="pointer-events-none absolute inset-x-0 top-10 flex justify-center z-20">
-            <div className="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-200 text-xs font-mono flex items-center gap-2 backdrop-blur-md">
-              <FontAwesomeIcon icon={faTrophy} /> Mission complétée
+            <div className="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-200 text-xs font-mono flex items-center gap-2 backdrop-blur-md tracking-wider">
+              <FontAwesomeIcon icon={faTrophy} /> MISSION COMPLÉTÉE
             </div>
           </div>
         )}
@@ -400,7 +423,7 @@ function DropWrapperInner() {
           <div
             key={t.id}
             className={[
-              'px-3.5 py-2 rounded-xl text-sm shadow-lg backdrop-blur-md border max-w-[80vw] sm:max-w-sm',
+              'px-3.5 py-2 rounded-xl text-sm shadow-lg backdrop-blur-md border max-w-[80vw] sm:max-w-sm font-mono',
               t.kind === 'win' && 'bg-emerald-500/25 border-emerald-400/50 text-emerald-100',
               t.kind === 'warn' && 'bg-amber-500/25 border-amber-400/50 text-amber-100',
               t.kind === 'info' && 'bg-cyan-500/20 border-cyan-400/40 text-cyan-100',
@@ -412,14 +435,16 @@ function DropWrapperInner() {
         ))}
       </div>
 
-      {/* Companion overlay */}
+      {/* Companion overlay (lime accent) */}
       {showCompanion && (
         <div className="fixed inset-0 z-40 flex flex-col bg-cosmos-950/95 backdrop-blur-md" style={{ animation: 'fadeIn 0.2s ease-out' }}>
-          <header className="flex items-center gap-2 px-3 py-2 border-b border-violet-400/30 bg-cosmos-950/90 flex-shrink-0">
+          <header className="flex items-center gap-2 px-3 py-2 border-b border-lime-400/40 bg-cosmos-950/90 flex-shrink-0">
             <div className="flex-1 flex items-center gap-2">
-              <span className="text-xl">🤖</span>
+              <div className="w-9 h-9 rounded-xl bg-lime-400/15 border border-lime-400/40 flex items-center justify-center">
+                <FontAwesomeIcon icon={faRobot} className="text-lime-300 text-sm" />
+              </div>
               <div>
-                <p className="text-[9px] uppercase tracking-[0.25em] text-violet-300/70 leading-tight">COMPANION</p>
+                <p className="text-[9px] uppercase tracking-[0.25em] text-lime-300/70 leading-tight font-mono">COMPANION</p>
                 <p className="font-semibold text-sm text-white leading-tight">FRIDAY</p>
               </div>
             </div>
@@ -442,10 +467,11 @@ function DropWrapperInner() {
       {/* Keyframes */}
       <style jsx>{`
         @keyframes xpburst {
-          0%   { transform: translate(-50%, 10px) scale(0.6); opacity: 0; }
-          15%  { transform: translate(-50%, 0)    scale(1.1); opacity: 1; }
-          70%  { transform: translate(-50%, -8px) scale(1.0); opacity: 1; }
-          100% { transform: translate(-50%, -40px) scale(0.95); opacity: 0; }
+          0%   { transform: translate(-50%, 10px) scale(0.5) rotate(-6deg); opacity: 0; }
+          18%  { transform: translate(-50%, 0)    scale(1.15) rotate(-2deg); opacity: 1; }
+          40%  { transform: translate(-50%, 0)    scale(1.0) rotate(1deg); opacity: 1; }
+          80%  { transform: translate(-50%, -10px) scale(1.0) rotate(0); opacity: 1; }
+          100% { transform: translate(-50%, -42px) scale(0.92) rotate(0); opacity: 0; }
         }
         @keyframes toastIn {
           from { opacity: 0; transform: translateY(8px); }
