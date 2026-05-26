@@ -17,9 +17,18 @@ html, body {
   color: #E5E7EB;
   font-family: Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* Jamais de scroll horizontal sur mobile — les blobs absolute-positioned débordent sinon. */
-  overflow-x: hidden;
+}
+/* Fix double-scrollbar : overflow-x sur html UNIQUEMENT, et `clip` au lieu de
+   `hidden` parce que `hidden` cree un nouveau contexte de scroll qui se cumule
+   avec celui du body sur Windows desktop. `clip` clippe sans creer de contexte. */
+html {
+  overflow-x: clip;
   max-width: 100vw;
+}
+body {
+  /* Pas d'overflow-x ici. La regle `min-h-screen` Tailwind est OK, mais on
+     evite tout ce qui pourrait creer une deuxieme scrollbar verticale. */
+  min-height: 100dvh;
 }
 html {
   -webkit-tap-highlight-color: transparent;
