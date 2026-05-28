@@ -12,6 +12,7 @@ import {
   sendMessage,
   markConversationRead,
   deleteConversation,
+  leaveConversation,
   conversationDisplayName,
   formatTime,
   formatDateSeparator,
@@ -167,10 +168,12 @@ export default function Thread() {
   // Lightbox (tap image to zoom). On stocke {url, downloadUrl} pour pouvoir telecharger.
   const [lightbox, setLightbox] = useState<{ url: string; downloadUrl: string } | null>(null);
 
-  // Menu ••• (delete)
+  // Menu ••• (delete + leave)
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -551,17 +554,31 @@ export default function Thread() {
                   onClick={() => setMenuOpen(false)}
                   aria-hidden="true"
                 />
-                <div className="absolute right-0 top-full z-40 mt-1 w-56 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-2xl">
+                <div className="absolute right-0 top-full z-40 mt-1 w-64 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-2xl">
+                  {/* V1.4 : Supprimer reserve a l'admin OU au createur. */}
+                  {(user.role === 'ADMIN' || (convo && convo.createdById === user.id)) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setConfirmDelete(true);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-rose-300 hover:bg-rose-500/10"
+                    >
+                      <FontAwesomeIcon icon={UI.trash} className="text-xs" />
+                      Supprimer la conversation
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
                       setMenuOpen(false);
-                      setConfirmDelete(true);
+                      setConfirmLeave(true);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-rose-300 hover:bg-rose-500/10"
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-amber-200 hover:bg-amber-500/10"
                   >
-                    <FontAwesomeIcon icon={UI.trash} className="text-xs" />
-                    Supprimer la conversation
+                    <FontAwesomeIcon icon={UI.back} className="text-xs" />
+                    Quitter la conversation
                   </button>
                 </div>
               </>
@@ -988,6 +1005,57 @@ export default function Thread() {
         </div>
       </form>
 
+      {/* V1.4 : Confirm leave */}
+      {confirmLeave && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => !leaving && setConfirmLeave(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold">Quitter la conversation ?</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Tu vas te retirer de cette conversation. Tu ne recevras plus les messages.
+              Les autres participants gardent l'historique complet.
+            </p>
+            {error && (
+              <p className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                {error}
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setConfirmLeave(false)}
+                disabled={leaving}
+                className="flex-1 rounded-xl bg-slate-800 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-60"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  if (!validId) return;
+                  setLeaving(true);
+                  setError(null);
+                  try {
+                    await leaveConversation(conversationId);
+                    router.push('/apps/messagerie');
+                  } catch (e: any) {
+                    setError(e?.message || 'Impossible de quitter');
+                    setLeaving(false);
+                  }
+                }}
+                disabled={leaving}
+                className="flex-1 rounded-xl bg-amber-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-amber-400 disabled:opacity-60"
+              >
+                {leaving ? 'Sortie…' : 'Quitter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm suppression */}
       {confirmDelete && (
         <div
@@ -1000,7 +1068,7 @@ export default function Thread() {
           >
             <h3 className="text-base font-semibold">Supprimer la conversation ?</h3>
             <p className="mt-1 text-sm text-slate-400">
-              Tous les messages seront perdus pour toi et les autres participants. Cette action est
+              Tu vas supprimer cette conversation pour TOUS les participants. Cette action est
               irréversible.
             </p>
             {error && (
