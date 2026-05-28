@@ -36,6 +36,7 @@ import Avatar from '@/components/Avatar';
 import { compressImage, humanBytes } from '@/lib/image-utils';
 import { setAppBadge } from '@/lib/app-badge';
 import { useFocusTrap } from '@/lib/use-focus-trap';
+import { useKeyboardInset } from '@/lib/use-keyboard-inset';
 
 // V2.6 : retire le polling 5s. On garde uniquement le refetch au visibilitychange
 // (resync au cas où le stream SSE aurait manqué un event pendant un sleep).
@@ -226,6 +227,9 @@ export default function Thread() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Dette tech 3 : visualViewport API — composer s'ajuste a la hauteur du clavier iOS.
+  const keyboardInset = useKeyboardInset();
 
   // Dette tech 2 : long-press iOS pour ouvrir le menu d'actions d'un message.
   // 500ms de pression → ouvre le menu + haptic feedback (si dispo).
@@ -469,6 +473,14 @@ export default function Thread() {
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
   }, [editDraft, editingId]);
+
+  // Dette tech 3 : quand le clavier iOS ouvre/redimensionne, scroll au bas du thread
+  // pour que la derniere bulle reste visible au-dessus du composer.
+  useEffect(() => {
+    if (keyboardInset > 0 && scrollerRef.current) {
+      scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight;
+    }
+  }, [keyboardInset]);
 
   // V2.9 : cleanup du MediaRecorder si l'user navigate ailleurs en plein enregistrement.
   useEffect(() => {
@@ -1551,7 +1563,7 @@ export default function Thread() {
       <form
         onSubmit={onSend}
         className="flex items-end gap-2 border-t border-white/5 bg-slate-950/95 px-3 py-2 sm:px-4"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: `calc(max(0.5rem, env(safe-area-inset-bottom)) + ${keyboardInset}px)` }}
       >
         <button
           type="button"
