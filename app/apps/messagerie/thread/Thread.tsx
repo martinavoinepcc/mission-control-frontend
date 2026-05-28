@@ -450,6 +450,22 @@ export default function Thread() {
     };
   }, []);
 
+  // A11y : Esc ferme la modale la plus haute dans la stack (et le menu/lightbox).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      if (lightbox) { setLightbox(null); return; }
+      if (micErrorModal) { setMicErrorModal(false); return; }
+      if (confirmDeleteMsg != null && !deletingMsg) { setConfirmDeleteMsg(null); return; }
+      if (confirmDelete && !deleting) { setConfirmDelete(false); return; }
+      if (confirmLeave && !leaving) { setConfirmLeave(false); return; }
+      if (menuOpen) { setMenuOpen(false); return; }
+      if (activeMenu != null) { setActiveMenu(null); setShowReactPicker(null); return; }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox, micErrorModal, confirmDeleteMsg, deletingMsg, confirmDelete, deleting, confirmLeave, leaving, menuOpen, activeMenu]);
+
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -971,6 +987,10 @@ export default function Thread() {
         ref={scrollerRef}
         className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-4"
         style={{ WebkitOverflowScrolling: 'touch' as any }}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Messages de la conversation"
       >
         {loadingInitial ? (
           <div className="text-center text-sm text-slate-400">Chargement…</div>
@@ -1053,7 +1073,9 @@ export default function Thread() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === m.id ? null : m.id); setShowReactPicker(null); }}
                           aria-label="Actions message"
-                          className={`absolute -top-2 ${mine ? '-left-7' : '-right-7'} h-7 w-7 rounded-full bg-slate-800/80 text-slate-300 hover:bg-slate-700 transition flex items-center justify-center text-sm opacity-0 group-hover/msg:opacity-100 focus:opacity-100 z-10`}
+                          aria-haspopup="menu"
+                          aria-expanded={activeMenu === m.id}
+                          className={`absolute -top-2 ${mine ? '-left-7' : '-right-7'} h-7 w-7 rounded-full bg-slate-800/80 text-slate-300 hover:bg-slate-700 transition flex items-center justify-center text-sm opacity-60 sm:opacity-0 group-hover/msg:opacity-100 focus:opacity-100 z-10`}
                         >
                           ⋯
                         </button>
@@ -1145,7 +1167,7 @@ export default function Thread() {
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={imgSrc}
-                                alt=""
+                                alt={`Image envoyée par ${m.authorFirstName || (mine ? 'toi' : 'un participant')}`}
                                 width={m.imageWidth || undefined}
                                 height={m.imageHeight || undefined}
                                 style={{
@@ -1562,12 +1584,15 @@ export default function Thread() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => !leaving && setConfirmLeave(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mc-leave-title"
         >
           <div
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold">Quitter la conversation ?</h3>
+            <h3 id="mc-leave-title" className="text-base font-semibold">Quitter la conversation ?</h3>
             <p className="mt-1 text-sm text-slate-400">
               Tu vas te retirer de cette conversation. Tu ne recevras plus les messages.
               Les autres participants gardent l'historique complet.
@@ -1613,12 +1638,15 @@ export default function Thread() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => !deleting && setConfirmDelete(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mc-del-convo-title"
         >
           <div
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold">Supprimer la conversation ?</h3>
+            <h3 id="mc-del-convo-title" className="text-base font-semibold">Supprimer la conversation ?</h3>
             <p className="mt-1 text-sm text-slate-400">
               Tu vas supprimer cette conversation pour TOUS les participants. Cette action est
               irréversible.
@@ -1664,12 +1692,15 @@ export default function Thread() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => !deletingMsg && setConfirmDeleteMsg(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mc-del-msg-title"
         >
           <div
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold">Supprimer ce message ?</h3>
+            <h3 id="mc-del-msg-title" className="text-base font-semibold">Supprimer ce message ?</h3>
             <p className="mt-1 text-sm text-slate-400">
               Cette action est définitive. Le contenu sera retiré pour tous les participants.
             </p>
@@ -1698,12 +1729,15 @@ export default function Thread() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setMicErrorModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mc-mic-err-title"
         >
           <div
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold">Micro inaccessible</h3>
+            <h3 id="mc-mic-err-title" className="text-base font-semibold">Micro inaccessible</h3>
             <p className="mt-2 text-sm text-slate-300">
               Pour enregistrer un message vocal, autorise l'accès au micro dans les réglages
               de ton navigateur (icône cadenas dans la barre d'adresse, puis Microphone → Autoriser).
@@ -1762,11 +1796,14 @@ export default function Thread() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Aperçu image"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightbox.url}
-            alt=""
+            alt="Image en plein écran"
             className="max-h-full max-w-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />
