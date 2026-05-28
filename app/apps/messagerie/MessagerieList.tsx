@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -12,9 +12,11 @@ import {
   conversationDisplayName,
   formatTime,
   participantAvatarSrc,
+  getMessagerieToken,
   type ConversationSummary,
   type MsgAuthor,
 } from '@/lib/messagerie-api';
+import { openMessagerieStream } from '@/lib/messagerie-sse';
 import Avatar from '@/components/Avatar';
 import PushBanner from '@/components/push/PushBanner';
 import { setAppBadge } from '@/lib/app-badge';
@@ -120,7 +122,7 @@ function NewConversationModal({
       const ids = Array.from(selected);
       const cleanTitle = title.trim();
       const created = await createConversation({
-        title: selected.size >= 2 ? cleanTitle || undefined : undefined, // DM sans titre
+        title: selected.size >= 2 ? cleanTitle || undefined : undefined,
         participantIds: ids,
       });
       onCreated(created.id);
@@ -262,7 +264,7 @@ export default function MessagerieList() {
       setConvos(list);
       setError(null);
       const total = list.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-      setAppBadge(total); // resync pastille à chaque poll
+      setAppBadge(total);
     } catch (e: any) {
       setError(e?.message || 'Erreur de chargement');
     }
@@ -276,18 +278,80 @@ export default function MessagerieList() {
     }
     setUser(u);
     load();
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') load();
-    }, 15000);
+    // V2.6 : retire le polling 15s. On garde le visibilitychange refetch en
+    // filet de securite (si le SSE a manque un event pendant un sleep iOS).
     const onVis = () => {
       if (document.visibilityState === 'visible') load();
     };
     document.addEventListener('visibilitychange', onVis);
     return () => {
-      window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVis);
     };
   }, [load, router]);
+
+  // V2.6 : stream SSE pour update optimiste de la liste (last msg + unread).
+  // On refetch tout en arriere-plan dans les 200ms (debounced) pour avoir l'etat
+  // exact du serveur sans calculer cote client.
+  useEffect(() => {
+    if (!user) return;
+    const token = getMessagerieToken();
+    if (!token) return;
+
+    let refetchTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefetch = () => {
+      if (refetchTimer) return;
+      refetchTimer = setTimeout(() => {
+        refetchTimer = null;
+        load();
+      }, 200);
+    };
+
+    const unsubscribe = openMessagerieStream(token, {
+      onMessage: (data) => {
+        // Update optimiste : si on connait la convo, on bump le last message + unread.
+        setConvos((prev) => {
+          if (!prev) return prev;
+          const idx = prev.findIndex((c) => c.id === data.conversationId);
+          if (idx < 0) {
+            scheduleRefetch();
+            return prev;
+          }
+          const target = prev[idx];
+          const m = data.message;
+          const isMine = m && m.authorId === user.id;
+          const next = [...prev];
+          next[idx] = {
+            ...target,
+            lastMessageAt: m?.createdAt || target.lastMessageAt,
+            unreadCount: isMine ? target.unreadCount : (target.unreadCount || 0) + 1,
+            lastMessage: m ? {
+              id: m.id,
+              body: m.body || (m.hasImage ? '📷 photo' : (m.hasAudio ? '🎵 audio' : '')),
+              createdAt: m.createdAt,
+              authorId: m.authorId,
+              authorFirstName: m.authorFirstName,
+            } : target.lastMessage,
+          };
+          next.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+          const total = next.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+          setAppBadge(total);
+          return next;
+        });
+      },
+      onRead: () => { scheduleRefetch(); },
+      onConversationDeleted: (data) => {
+        setConvos((prev) => prev ? prev.filter((c) => c.id !== data.conversationId) : prev);
+      },
+      onParticipantLeave: () => { scheduleRefetch(); },
+      onEdit: () => { scheduleRefetch(); },
+      onDelete: () => { scheduleRefetch(); },
+    });
+
+    return () => {
+      if (refetchTimer) clearTimeout(refetchTimer);
+      unsubscribe();
+    };
+  }, [user, load]);
 
   if (!user) return null;
 
