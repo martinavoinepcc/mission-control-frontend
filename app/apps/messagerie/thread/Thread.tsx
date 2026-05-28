@@ -227,6 +227,30 @@ export default function Thread() {
   const editTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Dette tech 2 : long-press iOS pour ouvrir le menu d'actions d'un message.
+  // 500ms de pression → ouvre le menu + haptic feedback (si dispo).
+  // Cancel si l'user commence a scroller (onTouchMove) ou relache (onTouchEnd).
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef<boolean>(false);
+  const handleTouchStart = useCallback((msgId: number) => () => {
+    longPressTriggeredRef.current = false;
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+    }
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      setActiveMenu(msgId);
+      setShowReactPicker(null);
+      try { navigator.vibrate?.(10); } catch { /* noop */ }
+    }, 500);
+  }, []);
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
   // Dette tech 1 : focus trap refs pour chaque modale.
   const confirmLeaveRef = useRef<HTMLDivElement | null>(null);
   const confirmDeleteRef = useRef<HTMLDivElement | null>(null);
@@ -1075,7 +1099,19 @@ export default function Thread() {
                       className={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'} group/msg relative ${
                         m._status === 'failed' ? 'rounded-2xl ring-2 ring-rose-500/60 ring-offset-2 ring-offset-slate-950 p-1' : ''
                       }`}
-                      style={{ opacity: m._status === 'pending' ? 0.6 : 1 }}
+                      style={{
+                        opacity: m._status === 'pending' ? 0.6 : 1,
+                        WebkitTouchCallout: 'none',
+                        WebkitUserSelect: 'none',
+                      }}
+                      onTouchStart={!isDeleted && !isEditing ? handleTouchStart(m.id) : undefined}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchMove={handleTouchEnd}
+                      onTouchCancel={handleTouchEnd}
+                      onContextMenu={(e) => {
+                        // Bloque le menu contextuel natif iOS Safari pendant un long-press.
+                        if (longPressTriggeredRef.current) e.preventDefault();
+                      }}
                     >
                       {firstOfGroup && !mine && (
                         <span className="mb-0.5 px-1 text-[11px] text-slate-400">
