@@ -59,6 +59,7 @@ export type ConversationDetails = {
   slug: string | null;
   title: string | null;
   createdAt: string;
+  createdById?: number | null;
   lastMessageAt: string;
   participants: Array<MsgAuthor & { username?: string | null }>;
 };
@@ -197,6 +198,12 @@ export async function createConversation(input: {
 
 export async function deleteConversation(conversationId: number): Promise<void> {
   const res = await authFetch(`/conversations/${conversationId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
+}
+
+// V1.4 : se retirer d'une conversation sans la supprimer pour les autres.
+export async function leaveConversation(conversationId: number): Promise<void> {
+  const res = await authFetch(`/conversations/${conversationId}/leave`, { method: 'POST' });
   if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
 }
 
