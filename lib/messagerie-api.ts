@@ -8,6 +8,11 @@ function getToken(): string | null {
   return localStorage.getItem('mc_token');
 }
 
+// Re-export pour les modules qui ouvrent le stream SSE (besoin du JWT brut).
+export function getMessagerieToken(): string | null {
+  return getToken();
+}
+
 async function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -91,6 +96,13 @@ export type MessageReplyPreview = {
   hasImage?: boolean;
   hasAudio?: boolean;
   audioName?: string | null;
+  deletedAt?: string | null;
+};
+
+// V2.7 : read receipt par user pour un message.
+export type MessageRead = {
+  userId: number;
+  readAt: string;
 };
 
 export type Message = {
@@ -108,8 +120,12 @@ export type Message = {
   audioName?: string | null;
   replyTo?: MessageReplyPreview | null;
   reactions?: MessageReaction[];
+  // V2.7 : qui a lu ce message (excl. l'auteur).
+  reads?: MessageRead[];
   createdAt: string;
   editedAt?: string | null;
+  // V2.8 : soft-delete. Si != null, body et binaires sont vides.
+  deletedAt?: string | null;
 };
 
 // Liste fixe d'emojis autorises (doit matcher le backend ALLOWED_REACTION_EMOJIS).
@@ -164,6 +180,38 @@ export async function sendMessage(
   });
   if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
   return (await res.json()) as Message;
+}
+
+// V2.8 : edit un message (auteur seulement, <=3min apres l'envoi).
+export async function editMessage(
+  conversationId: number,
+  messageId: number,
+  body: string
+): Promise<{ messageId: number; body: string; editedAt: string }> {
+  const res = await authFetch(`/conversations/${conversationId}/messages/${messageId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
+  return (await res.json()) as { messageId: number; body: string; editedAt: string };
+}
+
+// V2.8 : soft-delete d'un message (auteur ou admin).
+export async function deleteMessage(
+  conversationId: number,
+  messageId: number
+): Promise<void> {
+  const res = await authFetch(`/conversations/${conversationId}/messages/${messageId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error((await jsonOr<any>(res, {})).erreur || `Erreur ${res.status}`);
+}
+
+// V2.7 : signale au backend qu'on est en train d'ecrire (broadcast SSE 'typing'
+// aux autres participants, expire cote client a 4s sans nouveau signal).
+// Rate-limit cote serveur 20/min/user — le caller doit debounce ~1s.
+export async function sendTyping(conversationId: number): Promise<void> {
+  await authFetch(`/conversations/${conversationId}/typing`, { method: 'POST' }).catch(() => {});
 }
 
 // Toggle reaction emoji sur un message. Retourne la nouvelle liste agregee.
@@ -259,7 +307,6 @@ export function avatarInitial(firstName: string | null | undefined): string {
   if (!firstName) return '·';
   const trimmed = firstName.trim();
   if (!trimmed) return '·';
-  // Supporte aussi les accents (Alizée → A, Marie-Josée → M)
   const first = trimmed.charAt(0).toUpperCase();
   return first;
 }
@@ -302,8 +349,6 @@ export function isSameCalendarDay(a: string, b: string): boolean {
 }
 
 // ---- URLs binaires (image / audio) pour <img src> et <audio src> ----
-// V1.1 : le JWT passe en query string parce que les balises HTML ne peuvent pas
-// porter de header Authorization. Le backend accepte ?token=<jwt> en fallback.
 export function messageImageUrl(conversationId: number, messageId: number, opts?: { download?: boolean }): string {
   const t = getToken();
   const dl = opts?.download ? '&download=1' : '';
@@ -326,9 +371,6 @@ export function avatarUrlFor(userId: number, version?: string | null): string | 
   return `${API_URL}/users/${userId}/avatar${v}`;
 }
 
-// Helper : retourne le src d'avatar à utiliser côté UI pour un participant.
-// Si l'user a un avatar connu (hasAvatar=true), on renvoie l'URL binaire publique.
-// Sinon null → le composant Avatar affichera l'initiale colorée.
 export function participantAvatarSrc(p: MsgAuthor): string | null {
   if (!p.hasAvatar) return null;
   return avatarUrlFor(p.id, p.avatarUpdatedAt || null);
