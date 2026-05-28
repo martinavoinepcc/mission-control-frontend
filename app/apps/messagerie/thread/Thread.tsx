@@ -33,6 +33,24 @@ import { setAppBadge } from '@/lib/app-badge';
 
 const POLL_INTERVAL_MS = 5000;
 
+// V1.2 : envoi optimistic — on attache un statut local au message pendant l'envoi.
+// 'sent' = confirme serveur, 'pending' = en cours, 'failed' = a echoue (bouton retry).
+type MessageStatus = 'sent' | 'pending' | 'failed';
+type MessageWithStatus = Message & {
+  _status?: MessageStatus;
+  // Payload conserve pour pouvoir re-tenter sans repasser par le composer.
+  _retry?: {
+    body: string;
+    image?: { data: string; width?: number; height?: number };
+    audio?: { data: string; type?: string; name?: string };
+    replyToId?: number | null;
+    // Preview locale tant que le serveur n'a pas confirme (avant on n'a pas d'URL serveur).
+    localImageDataUrl?: string;
+    localAudioDataUrl?: string;
+    localAudioName?: string;
+  };
+};
+
 // --- Presentational helpers ---
 
 function StackedAvatars({
@@ -115,7 +133,7 @@ export default function Thread() {
 
   const [user, setUser] = useState<MeUser | null>(null);
   const [convo, setConvo] = useState<ConversationDetails | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageWithStatus[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -169,10 +187,18 @@ export default function Thread() {
     try {
       const { messages: fresh } = await listMessages(conversationId, { limit: 100 });
       setMessages((prev) => {
-        const prevLast = prev.length ? prev[prev.length - 1].id : 0;
+        // Garde les messages locaux 'pending' / 'failed' (ils n'existent pas encore au serveur).
+        const local = prev.filter((m) => m._status === 'pending' || m._status === 'failed');
+        // Si le serveur en sait deja autant, et qu'il n'y a aucun local, optim out.
         const freshLast = fresh.length ? fresh[fresh.length - 1].id : 0;
-        if (prevLast === freshLast && prev.length === fresh.length) return prev;
-        return fresh;
+        const prevServer = prev.filter((m) => !m._status || m._status === 'sent');
+        const prevLast = prevServer.length ? prevServer[prevServer.length - 1].id : 0;
+        if (prevLast === freshLast && prevServer.length === fresh.length && local.length === 0) return prev;
+        const merged: MessageWithStatus[] = [
+          ...fresh.map((m) => ({ ...m, _status: 'sent' as MessageStatus })),
+          ...local,
+        ];
+        return merged;
       });
       setError(null);
     } catch (e: any) {
@@ -371,45 +397,82 @@ export default function Thread() {
     }, 0);
   }
 
+  // V1.2 : envoie en arriere-plan une payload deja stockee localement (utilise par
+  // l'envoi initial ET par le bouton Retry sur les messages 'failed').
+  const performSend = useCallback(async (tempId: number, payload: NonNullable<MessageWithStatus['_retry']>) => {
+    if (!validId) return;
+    try {
+      const msg = await sendMessage(
+        conversationId,
+        payload.body,
+        payload.image,
+        payload.audio,
+        payload.replyToId ?? null
+      );
+      // Remplace le message local par celui du serveur (preserve l'ordre).
+      setMessages((prev) => prev.map((m) => (m.id === tempId
+        ? { ...msg, _status: 'sent' as MessageStatus }
+        : m
+      )));
+    } catch (err: any) {
+      setMessages((prev) => prev.map((m) => (m.id === tempId
+        ? { ...m, _status: 'failed' as MessageStatus }
+        : m
+      )));
+      setError(err?.message || "Erreur d'envoi");
+    }
+  }, [conversationId, validId]);
+
+  const retryMessage = useCallback((m: MessageWithStatus) => {
+    if (!m._retry) return;
+    setMessages((prev) => prev.map((mm) => (mm.id === m.id ? { ...mm, _status: 'pending' as MessageStatus } : mm)));
+    void performSend(m.id, m._retry);
+  }, [performSend]);
+
   async function onSend(e?: React.FormEvent) {
     if (e) e.preventDefault();
     const body = draft.trim();
     if (!validId || sending) return;
     if (!body && !attachPreview && !audioAttach) return;
-    setSending(true);
     setError(null);
-    try {
-      const msg = await sendMessage(
-        conversationId,
-        body,
-        attachPreview
-          ? {
-              data: attachPreview.dataUrl,
-              width: attachPreview.width,
-              height: attachPreview.height,
-            }
-          : undefined,
-        audioAttach
-          ? {
-              data: audioAttach.dataUrl,
-              type: audioAttach.type,
-              name: audioAttach.name,
-            }
-          : undefined,
-        replyingTo ? replyingTo.id : null
-      );
-      setMessages((prev) => [...prev, msg]);
-      setDraft('');
-      setAttachPreview(null);
-      setAudioAttach(null);
-      setReplyingTo(null);
-      window.setTimeout(() => scrollToBottom('smooth'), 30);
-    } catch (e: any) {
-      setError(e?.message || "Erreur d'envoi");
-    } finally {
-      setSending(false);
-      textareaRef.current?.focus();
-    }
+
+    // V1.2 : optimistic — on cree un message local immediatement, push l'envoi async.
+    // L'id temp utilise un nombre negatif (incremental) pour pas collisionner avec les ids serveur.
+    const tempId = -Date.now() - Math.floor(Math.random() * 1000);
+    const payload: NonNullable<MessageWithStatus['_retry']> = {
+      body,
+      image: attachPreview ? { data: attachPreview.dataUrl, width: attachPreview.width, height: attachPreview.height } : undefined,
+      audio: audioAttach ? { data: audioAttach.dataUrl, type: audioAttach.type, name: audioAttach.name } : undefined,
+      replyToId: replyingTo ? replyingTo.id : null,
+      localImageDataUrl: attachPreview?.dataUrl,
+      localAudioDataUrl: audioAttach?.dataUrl,
+      localAudioName: audioAttach?.name,
+    };
+    const optimistic: MessageWithStatus = {
+      id: tempId,
+      authorId: user?.id || 0,
+      authorFirstName: user?.firstName || null,
+      body,
+      hasImage: !!attachPreview,
+      imageWidth: attachPreview?.width || null,
+      imageHeight: attachPreview?.height || null,
+      hasAudio: !!audioAttach,
+      audioType: audioAttach?.type || null,
+      audioName: audioAttach?.name || null,
+      replyTo: replyingTo || null,
+      reactions: [],
+      createdAt: new Date().toISOString(),
+      _status: 'pending',
+      _retry: payload,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setDraft('');
+    setAttachPreview(null);
+    setAudioAttach(null);
+    setReplyingTo(null);
+    window.setTimeout(() => scrollToBottom('smooth'), 30);
+    textareaRef.current?.focus();
+    void performSend(tempId, payload);
   }
 
   const participantsList = useMemo(() => {
@@ -560,7 +623,12 @@ export default function Thread() {
                         ) : null}
                       </div>
                     )}
-                    <div className={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'} group/msg relative`}>
+                    <div
+                      className={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'} group/msg relative ${
+                        m._status === 'failed' ? 'rounded-2xl ring-2 ring-rose-500/60 ring-offset-2 ring-offset-slate-950 p-1' : ''
+                      }`}
+                      style={{ opacity: m._status === 'pending' ? 0.6 : 1 }}
+                    >
                       {firstOfGroup && !mine && (
                         <span className="mb-0.5 px-1 text-[11px] text-slate-400">
                           {m.authorFirstName}
@@ -627,62 +695,80 @@ export default function Thread() {
                           </div>
                         </div>
                       )}
-                      {m.hasImage && (
-                        <div className={`mb-1 flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}`}>
-                          <button
-                            type="button"
-                            onClick={() => setLightbox({
-                              url: messageImageUrl(conversationId, m.id),
-                              downloadUrl: messageImageUrl(conversationId, m.id, { download: true }),
-                            })}
-                            className="max-w-full overflow-hidden rounded-2xl"
-                            aria-label="Voir l'image"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={messageImageUrl(conversationId, m.id)}
-                              alt=""
-                              width={m.imageWidth || undefined}
-                              height={m.imageHeight || undefined}
-                              style={{
-                                maxHeight: 360,
-                                maxWidth: '100%',
-                                width: 'auto',
-                                height: 'auto',
-                                display: 'block',
-                              }}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          </button>
-                          <a
-                            href={messageImageUrl(conversationId, m.id, { download: true })}
-                            download={`image-${m.id}.webp`}
-                            className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
-                          >
-                            ⬇ Télécharger l'image
-                          </a>
-                        </div>
-                      )}
-                      {m.hasAudio && (
-                        <div className={`mb-1 flex flex-col gap-1 max-w-[280px] ${mine ? 'items-end' : 'items-start'}`}>
-                          <audio
-                            controls
-                            src={messageAudioUrl(conversationId, m.id)}
-                            preload="metadata"
-                            style={{ maxWidth: '100%', height: 40 }}
-                          >
-                            Ton navigateur supporte pas la balise audio.
-                          </audio>
-                          <a
-                            href={messageAudioUrl(conversationId, m.id, { download: true })}
-                            download={m.audioName || `audio-${m.id}.mp3`}
-                            className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
-                          >
-                            ⬇ {m.audioName || `audio-${m.id}.mp3`}
-                          </a>
-                        </div>
-                      )}
+                      {m.hasImage && (() => {
+                        // Pendant 'pending'/'failed', l'id est temporaire (<0) → on affiche
+                        // la preview locale (data URL conservee dans _retry).
+                        const isLocal = m.id < 0 && m._retry?.localImageDataUrl;
+                        const imgSrc = isLocal
+                          ? m._retry!.localImageDataUrl!
+                          : messageImageUrl(conversationId, m.id);
+                        const dlSrc = isLocal
+                          ? m._retry!.localImageDataUrl!
+                          : messageImageUrl(conversationId, m.id, { download: true });
+                        return (
+                          <div className={`mb-1 flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}`}>
+                            <button
+                              type="button"
+                              onClick={() => setLightbox({ url: imgSrc, downloadUrl: dlSrc })}
+                              className="max-w-full overflow-hidden rounded-2xl"
+                              aria-label="Voir l'image"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={imgSrc}
+                                alt=""
+                                width={m.imageWidth || undefined}
+                                height={m.imageHeight || undefined}
+                                style={{
+                                  maxHeight: 360,
+                                  maxWidth: '100%',
+                                  width: 'auto',
+                                  height: 'auto',
+                                  display: 'block',
+                                }}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            </button>
+                            {!isLocal && (
+                              <a
+                                href={dlSrc}
+                                download={`image-${m.id}.webp`}
+                                className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
+                              >
+                                ⬇ Télécharger l'image
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      {m.hasAudio && (() => {
+                        const isLocal = m.id < 0 && m._retry?.localAudioDataUrl;
+                        const audSrc = isLocal
+                          ? m._retry!.localAudioDataUrl!
+                          : messageAudioUrl(conversationId, m.id);
+                        return (
+                          <div className={`mb-1 flex flex-col gap-1 max-w-[280px] ${mine ? 'items-end' : 'items-start'}`}>
+                            <audio
+                              controls
+                              src={audSrc}
+                              preload="metadata"
+                              style={{ maxWidth: '100%', height: 40 }}
+                            >
+                              Ton navigateur supporte pas la balise audio.
+                            </audio>
+                            {!isLocal && (
+                              <a
+                                href={messageAudioUrl(conversationId, m.id, { download: true })}
+                                download={m.audioName || `audio-${m.id}.mp3`}
+                                className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
+                              >
+                                ⬇ {m.audioName || `audio-${m.id}.mp3`}
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {m.body && (
                         <div
                           className={`px-3.5 py-2 text-[15px] leading-snug msg-body ${
@@ -719,8 +805,21 @@ export default function Thread() {
                         </div>
                       )}
                       {lastOfGroup && (
-                        <span className={`mt-0.5 px-1 text-[10px] text-slate-500 ${mine ? 'self-end' : 'self-start'}`}>
+                        <span className={`mt-0.5 px-1 text-[10px] text-slate-500 ${mine ? 'self-end' : 'self-start'} flex items-center gap-1.5`}>
                           {formatTime(m.createdAt)}
+                          {m._status === 'pending' && (
+                            <span className="text-slate-400" title="Envoi en cours">⏳ Envoi…</span>
+                          )}
+                          {m._status === 'failed' && (
+                            <button
+                              type="button"
+                              onClick={() => retryMessage(m)}
+                              className="rounded-md border border-rose-500/60 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200 hover:bg-rose-500/20"
+                              title="Reessayer l'envoi"
+                            >
+                              ↻ Réessayer
+                            </button>
+                          )}
                         </span>
                       )}
                     </div>
