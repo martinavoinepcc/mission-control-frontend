@@ -35,6 +35,7 @@ import { openMessagerieStream } from '@/lib/messagerie-sse';
 import Avatar from '@/components/Avatar';
 import { compressImage, humanBytes } from '@/lib/image-utils';
 import { setAppBadge } from '@/lib/app-badge';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 
 // V2.6 : retire le polling 5s. On garde uniquement le refetch au visibilitychange
 // (resync au cas où le stream SSE aurait manqué un event pendant un sleep).
@@ -225,6 +226,20 @@ export default function Thread() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Dette tech 1 : focus trap refs pour chaque modale.
+  const confirmLeaveRef = useRef<HTMLDivElement | null>(null);
+  const confirmDeleteRef = useRef<HTMLDivElement | null>(null);
+  const confirmDeleteMsgRef = useRef<HTMLDivElement | null>(null);
+  const micErrorModalRef = useRef<HTMLDivElement | null>(null);
+  const lightboxRef = useRef<HTMLDivElement | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(confirmLeave, confirmLeaveRef);
+  useFocusTrap(confirmDelete, confirmDeleteRef);
+  useFocusTrap(confirmDeleteMsg != null, confirmDeleteMsgRef);
+  useFocusTrap(micErrorModal, micErrorModalRef);
+  useFocusTrap(!!lightbox, lightboxRef);
+  useFocusTrap(activeMenu != null, actionMenuRef);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     const el = scrollerRef.current;
@@ -1084,6 +1099,7 @@ export default function Thread() {
                         <>
                           <div className="fixed inset-0 z-20" onClick={() => { setActiveMenu(null); setShowReactPicker(null); }} aria-hidden="true" />
                           <div
+                            ref={actionMenuRef}
                             className={`absolute -top-10 ${mine ? 'right-0' : 'left-0'} z-30 flex gap-1 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-2xl`}
                           >
                             <button type="button" onClick={(e) => { e.stopPropagation(); handleCopy(m); }} title="Copier" className="h-8 w-8 rounded-md text-slate-300 hover:bg-white/10 flex items-center justify-center text-sm">
@@ -1589,6 +1605,7 @@ export default function Thread() {
           aria-labelledby="mc-leave-title"
         >
           <div
+            ref={confirmLeaveRef}
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1643,6 +1660,7 @@ export default function Thread() {
           aria-labelledby="mc-del-convo-title"
         >
           <div
+            ref={confirmDeleteRef}
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1697,6 +1715,7 @@ export default function Thread() {
           aria-labelledby="mc-del-msg-title"
         >
           <div
+            ref={confirmDeleteMsgRef}
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1734,6 +1753,7 @@ export default function Thread() {
           aria-labelledby="mc-mic-err-title"
         >
           <div
+            ref={micErrorModalRef}
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1794,6 +1814,7 @@ export default function Thread() {
       {/* Lightbox */}
       {lightbox && (
         <div
+          ref={lightboxRef}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setLightbox(null)}
           role="dialog"
