@@ -18,6 +18,8 @@ import {
   isSameCalendarDay,
   participantAvatarSrc,
   toggleReaction,
+  messageImageUrl,
+  messageAudioUrl,
   REACTION_EMOJIS,
   type ConversationDetails,
   type Message,
@@ -144,8 +146,8 @@ export default function Thread() {
   const [showReactPicker, setShowReactPicker] = useState<number | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<number | null>(null);
 
-  // Lightbox (tap image to zoom)
-  const [lightbox, setLightbox] = useState<string | null>(null);
+  // Lightbox (tap image to zoom). On stocke {url, downloadUrl} pour pouvoir telecharger.
+  const [lightbox, setLightbox] = useState<{ url: string; downloadUrl: string } | null>(null);
 
   // Menu ••• (delete)
   const [menuOpen, setMenuOpen] = useState(false);
@@ -328,8 +330,8 @@ export default function Thread() {
       body: m.body || '',
       authorId: m.authorId,
       authorFirstName: m.authorFirstName,
-      hasImage: !!m.imageData,
-      hasAudio: !!m.audioData,
+      hasImage: !!m.hasImage,
+      hasAudio: !!m.hasAudio,
       audioName: m.audioName || null,
     });
     setActiveMenu(null);
@@ -625,17 +627,20 @@ export default function Thread() {
                           </div>
                         </div>
                       )}
-                      {m.imageData && (
+                      {m.hasImage && (
                         <div className={`mb-1 flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}`}>
                           <button
                             type="button"
-                            onClick={() => setLightbox(m.imageData!)}
+                            onClick={() => setLightbox({
+                              url: messageImageUrl(conversationId, m.id),
+                              downloadUrl: messageImageUrl(conversationId, m.id, { download: true }),
+                            })}
                             className="max-w-full overflow-hidden rounded-2xl"
                             aria-label="Voir l'image"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={m.imageData}
+                              src={messageImageUrl(conversationId, m.id)}
                               alt=""
                               width={m.imageWidth || undefined}
                               height={m.imageHeight || undefined}
@@ -651,7 +656,7 @@ export default function Thread() {
                             />
                           </button>
                           <a
-                            href={m.imageData}
+                            href={messageImageUrl(conversationId, m.id, { download: true })}
                             download={`image-${m.id}.webp`}
                             className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
                           >
@@ -659,18 +664,18 @@ export default function Thread() {
                           </a>
                         </div>
                       )}
-                      {m.audioData && (
+                      {m.hasAudio && (
                         <div className={`mb-1 flex flex-col gap-1 max-w-[280px] ${mine ? 'items-end' : 'items-start'}`}>
                           <audio
                             controls
-                            src={m.audioData}
+                            src={messageAudioUrl(conversationId, m.id)}
                             preload="metadata"
                             style={{ maxWidth: '100%', height: 40 }}
                           >
                             Ton navigateur supporte pas la balise audio.
                           </audio>
                           <a
-                            href={m.audioData}
+                            href={messageAudioUrl(conversationId, m.id, { download: true })}
                             download={m.audioName || `audio-${m.id}.mp3`}
                             className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
                           >
@@ -958,13 +963,13 @@ export default function Thread() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={lightbox}
+            src={lightbox.url}
             alt=""
             className="max-h-full max-w-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />
           <a
-            href={lightbox}
+            href={lightbox.downloadUrl}
             download="image.webp"
             onClick={(e) => e.stopPropagation()}
             aria-label="Télécharger l'image"
