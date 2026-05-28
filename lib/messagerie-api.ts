@@ -97,10 +97,12 @@ export type Message = {
   authorId: number;
   authorFirstName: string | null;
   body: string;
-  imageData?: string | null;
+  // V1.1 : les binaires (image / audio) ne sont plus inclus dans le payload JSON.
+  // Le client les charge lazy via /conversations/:id/messages/:msgId/{image|audio}.
+  hasImage?: boolean;
   imageWidth?: number | null;
   imageHeight?: number | null;
-  audioData?: string | null;
+  hasAudio?: boolean;
   audioType?: string | null;
   audioName?: string | null;
   replyTo?: MessageReplyPreview | null;
@@ -290,6 +292,23 @@ export function isSameCalendarDay(a: string, b: string): boolean {
     da.getMonth() === db.getMonth() &&
     da.getDate() === db.getDate()
   );
+}
+
+// ---- URLs binaires (image / audio) pour <img src> et <audio src> ----
+// V1.1 : le JWT passe en query string parce que les balises HTML ne peuvent pas
+// porter de header Authorization. Le backend accepte ?token=<jwt> en fallback.
+export function messageImageUrl(conversationId: number, messageId: number, opts?: { download?: boolean }): string {
+  const t = getToken();
+  const dl = opts?.download ? '&download=1' : '';
+  const q = t ? `?token=${encodeURIComponent(t)}${dl}` : (opts?.download ? '?download=1' : '');
+  return `${API_URL}/conversations/${conversationId}/messages/${messageId}/image${q}`;
+}
+
+export function messageAudioUrl(conversationId: number, messageId: number, opts?: { download?: boolean }): string {
+  const t = getToken();
+  const dl = opts?.download ? '&download=1' : '';
+  const q = t ? `?token=${encodeURIComponent(t)}${dl}` : (opts?.download ? '?download=1' : '');
+  return `${API_URL}/conversations/${conversationId}/messages/${messageId}/audio${q}`;
 }
 
 // ---- URL publique de l'avatar (utilisée aussi dans les push icons côté backend) ----
