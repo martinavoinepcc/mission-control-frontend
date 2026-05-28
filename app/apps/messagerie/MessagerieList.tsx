@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -20,6 +20,7 @@ import { openMessagerieStream } from '@/lib/messagerie-sse';
 import Avatar from '@/components/Avatar';
 import PushBanner from '@/components/push/PushBanner';
 import { setAppBadge } from '@/lib/app-badge';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 
 // --- Stack d'avatars (photo si dispo, sinon couleur+initiale) ---
 function StackedAvatars({
@@ -85,6 +86,10 @@ function NewConversationModal({
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Dette tech 1 : focus trap dans la modale.
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(open, modalRef);
 
   useEffect(() => {
     if (!open) return;
@@ -152,6 +157,7 @@ function NewConversationModal({
       onClick={onClose}
     >
       <div
+        ref={modalRef}
         className="relative w-full sm:max-w-lg bg-slate-900 text-slate-100 sm:rounded-2xl border border-white/10 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         style={{
