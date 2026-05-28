@@ -101,6 +101,16 @@ function NewConversationModal({
     })();
   }, [open, currentUserId]);
 
+  // A11y : Esc ferme la modale.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !loading) onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, loading, onClose]);
+
   if (!open) return null;
 
   const canCreate = selected.size > 0 && !loading;
@@ -134,9 +144,16 @@ function NewConversationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-950/80 backdrop-blur">
+    <div
+      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-950/80 backdrop-blur"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mc-new-convo-title"
+      onClick={onClose}
+    >
       <div
         className="relative w-full sm:max-w-lg bg-slate-900 text-slate-100 sm:rounded-2xl border border-white/10 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
         style={{
           paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
           paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
@@ -147,7 +164,7 @@ function NewConversationModal({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/5 bg-slate-900/95 px-4 py-3 backdrop-blur">
           <div>
             <p className="text-[10px] uppercase tracking-wider text-sky-300">Nouvelle conversation</p>
-            <h2 className="text-base font-bold">Choisis des membres</h2>
+            <h2 id="mc-new-convo-title" className="text-base font-bold">Choisis des membres</h2>
           </div>
           <button
             onClick={onClose}
