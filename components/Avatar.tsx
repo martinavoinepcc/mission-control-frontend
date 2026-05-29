@@ -1,5 +1,9 @@
+'use client';
+
 // Composant Avatar réutilisable : photo si disponible, sinon cercle coloré + initiale.
 // Utilise la même palette stable que `avatarColor` dans messagerie-api.
+
+import { useEffect, useState } from 'react';
 
 const AVATAR_BG = [
   { bg: 'bg-fuchsia-500', hex: '#EC4899' },
@@ -25,7 +29,7 @@ function initialOf(firstName: string | null | undefined): string {
 export type AvatarProps = {
   userId: number;
   firstName: string | null;
-  src?: string | null;       // data URL base64 — si présent, on l'affiche
+  src?: string | null;       // data URL base64 OU URL absolue — si présent, on l'affiche
   size?: number;             // diamètre px (default 40)
   ring?: boolean;            // ring-2 ring-slate-900 (empilement)
   ringColor?: string;
@@ -41,16 +45,21 @@ export default function Avatar({
   ringColor,
   className = '',
 }: AvatarProps) {
+  // Fallback initiales si l'<img> fail à charger (CORP, 401, 404, réseau).
+  // Reset à chaque changement de src.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [src]);
+
   const bg = avatarBg(userId);
   const ringCls = ring ? 'ring-2' : '';
   const ringStyle = ring
     ? { boxShadow: `0 0 0 2px ${ringColor || '#0f172a'}` }
     : undefined;
 
-  if (src) {
+  if (src && !failed) {
     return (
       <div
-        className={`relative flex-shrink-0 overflow-hidden rounded-full ${ringCls} ${className}`}
+        className={`relative flex-shrink-0 overflow-hidden rounded-full ${ringCls} ${className} ${bg}`}
         style={{
           width: size,
           height: size,
@@ -66,6 +75,7 @@ export default function Avatar({
           decoding="async"
           className="h-full w-full object-cover"
           draggable={false}
+          onError={() => setFailed(true)}
         />
       </div>
     );
