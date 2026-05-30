@@ -56,12 +56,14 @@ export type User = {
   avatarUpdatedAt?: string | null;
 };
 
-// Utilisateur dans le picker "Nouvelle conversation" — pas d'email exposé
+// Utilisateur dans le picker "Nouvelle conversation" — pas d'email exposé.
+// V1.5+ : pattern URL endpoint au lieu de avatarData base64 inline.
 export type PickableUser = {
   id: number;
   firstName: string;
   username: string | null;
-  avatarData: string | null;
+  hasAvatar: boolean;
+  avatarUpdatedAt: string | null;
 };
 
 export type App = {

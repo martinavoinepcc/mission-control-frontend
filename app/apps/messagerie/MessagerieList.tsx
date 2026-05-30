@@ -12,6 +12,7 @@ import {
   conversationDisplayName,
   formatTime,
   participantAvatarSrc,
+  avatarUrlFor,
   getMessagerieToken,
   type ConversationSummary,
   type MsgAuthor,
@@ -212,7 +213,7 @@ function NewConversationModal({
                         <Avatar
                           userId={u.id}
                           firstName={u.firstName}
-                          src={u.avatarData}
+                          src={u.hasAvatar ? avatarUrlFor(u.id, u.avatarUpdatedAt) : null}
                           size={40}
                         />
                         <div className="flex-1 min-w-0">
