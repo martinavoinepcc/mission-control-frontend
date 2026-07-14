@@ -25,6 +25,7 @@ const APP_PRIORITY: Record<string, number> = {
   maison: 20,
   chalet: 30,
   chantier: 35,
+  budget: 37,
   assistant: 40,
   qscale: 50,
   logifox: 60,
@@ -693,6 +694,7 @@ Bientôt disponible.`);
         else if (app.slug === 'maison') window.location.href = '/apps/maison/';
         else if (app.slug === 'chalet') window.location.href = '/apps/chalet/';
         else if (app.slug === 'chantier') window.location.href = '/apps/chantier/';
+        else if (app.slug === 'budget') window.location.href = '/budget-app.html';
         else if (app.slug === 'messagerie') window.location.href = '/apps/messagerie/';
         else if (app.slug === 'assistant') window.location.href = '/apps/heimdall/';
       }}
