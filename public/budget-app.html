@@ -81,7 +81,7 @@
   .income-item input:focus{outline:2px solid var(--primary); border-color:var(--primary);}
 
   /* ── Formulaires ── */
-  .add-form{display:grid; grid-template-columns:1.4fr 1fr .85fr .7fr .9fr .9fr auto; gap:10px; align-items:end;}
+  .add-form{display:grid; grid-template-columns:1.3fr 1fr .8fr .7fr .85fr .85fr .85fr auto; gap:10px; align-items:end;}
   @media(max-width:920px){.add-form{grid-template-columns:1fr 1fr;}}
   .field label{display:block; font-size:.78rem; font-weight:600; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.05em;}
   .field input,.field select{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font:inherit; font-size:16px; background:#fff; min-height:44px;}
@@ -104,6 +104,14 @@
   tr:hover td{background:#F8FAF7;}
   .chip{display:inline-block; font-size:.72rem; font-weight:600; padding:2px 9px; border-radius:99px; color:#fff; margin-left:8px; vertical-align:1px; white-space:nowrap;}
   .name-cell{font-weight:500;}
+  .date-sub{display:block; font-size:.75rem; color:#9AA79F; font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums;}
+  .search-box{position:relative; margin-bottom:6px;}
+  .search-box input{width:100%; padding:11px 14px 11px 38px; border:1px solid var(--line); border-radius:9px; font:inherit; font-size:16px; background:#fff; min-height:44px;}
+  .search-box input:focus{outline:2px solid var(--primary); border-color:var(--primary);}
+  .search-box::before{content:'🔍'; position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:.9rem; opacity:.55; pointer-events:none;}
+  .search-count{font-size:.8rem; color:var(--muted); margin:4px 2px 0;}
+  .freq-block.avenir{border:1px dashed var(--amber); border-radius:10px; padding:12px 14px; background:#FDFAF2;}
+  .freq-block.avenir .freq-head{border-bottom-color:var(--amber);}
   .row-actions button{border:none; background:transparent; cursor:pointer; font-size:1rem; padding:8px 10px; border-radius:6px; color:var(--muted); min-width:36px; min-height:36px;}
   .row-actions button:hover{background:var(--neg-soft); color:var(--neg);}
   .row-actions .edit:hover{background:var(--primary-soft); color:var(--primary);}
@@ -282,6 +290,10 @@
           <input id="fAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00">
         </div>
         <div class="field">
+          <label for="fDebut">Début <span class="tip" tabindex="0" data-tip="Facultative. Si la dépense commence plus tard (nouvelle hypothèque, contrat qui débute en septembre…), elle sera classée « à venir » : exclue du budget courant, mais comptée dans les prévisions à partir de cette date.">?</span></label>
+          <input id="fDebut" type="date">
+        </div>
+        <div class="field">
           <label for="fDue">Échéance <span class="tip" tabindex="0" data-tip="Date du prochain paiement ou du renouvellement. Facultative — modifiable en tout temps dans le registre.">?</span></label>
           <input id="fDue" type="date">
         </div>
@@ -301,6 +313,10 @@
     <div class="panel">
       <h2>Registre des dépenses <span class="tip" tabindex="0" data-tip="Chaque ligne montre le montant réel payé selon sa fréquence, puis son équivalent mensuel et annuel. Cliquez la date pour fixer une échéance, le crayon pour changer le montant, le × pour retirer la ligne.">?</span></h2>
       <p class="hint">Regroupées par fréquence de paiement. Survolez les « ? » pour les explications.</p>
+      <div class="search-box">
+        <input id="searchDep" type="search" placeholder="Rechercher une dépense (nom, catégorie, note)…" autocomplete="off">
+      </div>
+      <div class="search-count" id="searchCount"></div>
       <div id="registry"></div>
     </div>
   </div>
@@ -369,7 +385,7 @@
       <p class="hint">Cochez « indexée » pour les dépenses qui suivent l'inflation. Fixez une date de fin pour celles qui se terminent.</p>
       <div style="overflow:visible;">
         <table class="rwd" id="prevTable">
-          <thead><tr><th>Dépense</th><th>Équiv. mensuel</th><th>Indexée</th><th style="text-align:left; padding-left:14px;">Date de fin</th></tr></thead>
+          <thead><tr><th>Dépense</th><th>Équiv. mensuel</th><th>Indexée</th><th style="text-align:left; padding-left:14px;">Début</th><th style="text-align:left; padding-left:14px;">Date de fin</th></tr></thead>
           <tbody id="prevTableBody"></tbody>
         </table>
       </div>
@@ -502,6 +518,7 @@ function migrate(s){
   if(!s || !Array.isArray(s.depenses) || !Array.isArray(s.revenus)) throw new Error('format invalide');
   s.depenses.forEach(d => {
     if(d.fin === undefined) d.fin = '';
+    if(d.debut === undefined) d.debut = '';
     if(d.idx === undefined) d.idx = true;
     if(d.echeance === undefined) d.echeance = '';
     if(d.note === undefined) d.note = '';
@@ -618,15 +635,47 @@ const cat = id => state.categories.find(c => c.id === id) || state.categories[st
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const pct = v => v.toFixed(1).replace('.', ',') + ' %';
 
+/* Une dépense est « active » si sa date de début est vide ou passée.
+   Les dépenses à venir sont exclues du budget courant (totaux, ruban,
+   graphiques) mais comptées dans les prévisions à partir de leur début. */
+function estActive(d){
+  if(!d.debut) return true;
+  return d.debut <= new Date().toISOString().slice(0,10);
+}
+const depensesActives = () => state.depenses.filter(estActive);
+const depensesAVenir = () => state.depenses.filter(d => !estActive(d));
+
 function totals(){
   const revAn = state.revenus.reduce((s,r) => s + r.montant, 0) * 26;
-  const depAn = state.depenses.reduce((s,d) => s + annualise(d), 0);
+  const depAn = depensesActives().reduce((s,d) => s + annualise(d), 0);
   return { revAn, depAn, revMois:revAn/12, depMois:depAn/12, surAn:revAn-depAn, surMois:(revAn-depAn)/12 };
 }
 function parCategorie(){
   const map = {};
-  state.depenses.forEach(d => { map[d.cat] = (map[d.cat] || 0) + mensualise(d); });
+  depensesActives().forEach(d => { map[d.cat] = (map[d.cat] || 0) + mensualise(d); });
   return Object.entries(map).map(([id,m]) => ({ cat:cat(id), mois:m })).sort((a,b) => b.mois - a.mois);
+}
+
+/* Ligne grise « du … au … » sous le nom d'une dépense */
+function fmtDateFr(iso){
+  return new Date(iso + 'T12:00:00').toLocaleDateString('fr-CA', { day:'numeric', month:'short', year:'numeric' });
+}
+function dateSubHtml(d){
+  if(!d.debut && !d.fin) return '';
+  let txt;
+  if(d.debut && d.fin) txt = 'du ' + fmtDateFr(d.debut) + ' au ' + fmtDateFr(d.fin);
+  else if(d.debut) txt = estActive(d) ? 'depuis le ' + fmtDateFr(d.debut) : 'débute le ' + fmtDateFr(d.debut);
+  else txt = 'se termine le ' + fmtDateFr(d.fin);
+  return '<span class="date-sub">' + txt + '</span>';
+}
+
+/* Recherche insensible aux accents et à la casse */
+function normTxt(s){
+  return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+function matchesSearch(d, q){
+  if(!q) return true;
+  return normTxt(d.nom + ' ' + cat(d.cat).nom + ' ' + (d.note || '')).includes(q);
 }
 
 /* Année/mois d'une date ISO sans piège de fuseau horaire */
@@ -724,7 +773,7 @@ function renderCharts(t){
         tooltip:{ callbacks:{ label: c => ' ' + fmt$(c.parsed) + ' /mois — ' + pct(c.parsed / t.depMois * 100) + ' des dépenses' } } } }
   });
 
-  const top = [...state.depenses].sort((a,b) => mensualise(b) - mensualise(a)).slice(0,10);
+  const top = [...depensesActives()].sort((a,b) => mensualise(b) - mensualise(a)).slice(0,10);
   charts.top = new Chart(document.getElementById('chartTop'), {
     type: 'bar',
     data: { labels: top.map(d => d.nom),
@@ -767,15 +816,47 @@ function renderCatSelect(){
 function renderRegistry(){
   const root = document.getElementById('registry');
   root.innerHTML = '';
+  const q = normTxt((document.getElementById('searchDep').value || '').trim());
+  const actives = depensesActives().filter(d => matchesSearch(d, q));
+  const aVenir = depensesAVenir().filter(d => matchesSearch(d, q));
+
+  /* Compteur de résultats quand on filtre */
+  const cnt = document.getElementById('searchCount');
+  if(q){
+    const n = actives.length + aVenir.length;
+    cnt.textContent = n === 0 ? 'Aucune dépense ne correspond à la recherche.' : n + ' dépense(s) trouvée(s) — les totaux de groupe restent ceux du budget complet.';
+  }else{
+    cnt.textContent = '';
+  }
+
+  /* Bloc « à venir » en premier : exclu du budget courant */
+  if(aVenir.length){
+    const totMois = aVenir.reduce((s,d) => s + mensualise(d), 0);
+    const blk = document.createElement('div');
+    blk.className = 'freq-block avenir';
+    blk.innerHTML = '<div class="freq-head"><h3>⏳ Dépenses à venir</h3><span class="tot num">' + fmt$(totMois) + ' /mois à leur activation</span></div>' +
+      '<p class="hint" style="margin:6px 0 2px;">Exclues des totaux actuels — elles entreront au budget (et dans les prévisions) à leur date de début.</p>';
+    blk.appendChild(buildRegistryTable(aVenir.sort((a,b) => (a.debut < b.debut ? -1 : 1))));
+    root.appendChild(blk);
+  }
+
   const ordre = [['mensuel','Dépenses mensuelles'],['bihebdo','Dépenses aux 2 semaines'],['annuel','Dépenses annuelles']];
   ordre.forEach(([freq, titre]) => {
-    const rows = state.depenses.filter(d => d.freq === freq).sort((a,b) => mensualise(b) - mensualise(a));
+    const rows = actives.filter(d => d.freq === freq).sort((a,b) => mensualise(b) - mensualise(a));
     if(!rows.length) return;
-    const totMois = rows.reduce((s,d) => s + mensualise(d), 0);
-    const totAn = rows.reduce((s,d) => s + annualise(d), 0);
+    /* Totaux du groupe = budget complet (pas seulement les lignes filtrées) */
+    const all = depensesActives().filter(d => d.freq === freq);
+    const totMois = all.reduce((s,d) => s + mensualise(d), 0);
+    const totAn = all.reduce((s,d) => s + annualise(d), 0);
     const blk = document.createElement('div');
     blk.className = 'freq-block';
     blk.innerHTML = '<div class="freq-head"><h3>' + titre + '</h3><span class="tot num">' + fmt$(totMois) + ' /mois · ' + fmt$(totAn) + ' /an</span></div>';
+    blk.appendChild(buildRegistryTable(rows));
+    root.appendChild(blk);
+  });
+}
+
+function buildRegistryTable(rows){
     const tbl = document.createElement('table');
     tbl.className = 'rwd';
     tbl.innerHTML = '<thead><tr><th>Dépense</th><th>Montant payé</th><th>Équiv. mensuel</th><th>Équiv. annuel</th><th style="text-align:left;padding-left:14px;">Échéance</th><th></th></tr></thead>';
@@ -784,9 +865,8 @@ function renderRegistry(){
       const c = cat(d.cat);
       const tr = document.createElement('tr');
       const tipHtml = d.note ? '<span class="tip" tabindex="0" data-tip="' + esc(d.note) + '">?</span>' : '';
-      const finBadge = d.fin ? ' <span class="chip" style="background:#476178;" title="Se termine le ' + esc(d.fin) + '">fin ' + d.fin.slice(0,7) + '</span>' : '';
       tr.innerHTML =
-        '<td class="name-cell"><span>' + esc(d.nom) + tipHtml + '</span><span><span class="chip" style="background:' + c.hex + '; margin-left:0;">' + esc(c.nom) + '</span>' + finBadge + '</span></td>' +
+        '<td class="name-cell"><span>' + esc(d.nom) + tipHtml + '</span><span><span class="chip" style="background:' + c.hex + '; margin-left:0;">' + esc(c.nom) + '</span></span>' + dateSubHtml(d) + '</td>' +
         '<td class="num" data-l="Montant payé">' + fmt$(d.montant,2) + '</td>' +
         '<td class="num" data-l="Équiv. mensuel">' + fmt$(mensualise(d)) + '</td>' +
         '<td class="num" data-l="Équiv. annuel">' + fmt$(annualise(d)) + '</td>';
@@ -827,9 +907,7 @@ function renderRegistry(){
       tb.appendChild(tr);
     });
     tbl.appendChild(tb);
-    blk.appendChild(tbl);
-    root.appendChild(blk);
-  });
+    return tbl;
 }
 
 /* Code couleur des échéances */
@@ -852,7 +930,9 @@ function updateImpact(){
   const an = amount * F[freq].an;
   const mois = an / 12;
   const nouveau = t.surMois - mois;
-  box.innerHTML = 'Simulation : cette dépense coûterait <strong>' + fmt$(mois) + ' /mois</strong> (' + fmt$(an) + ' /an). ' +
+  const deb = document.getElementById('fDebut').value;
+  const futur = deb && deb > new Date().toISOString().slice(0,10) ? ' à partir du ' + fmtDateFr(deb) : '';
+  box.innerHTML = 'Simulation' + futur + ' : cette dépense coûterait <strong>' + fmt$(mois) + ' /mois</strong> (' + fmt$(an) + ' /an). ' +
     'Votre surplus passerait de <strong>' + fmt$(t.surMois) + '</strong> à <strong style="color:' + (nouveau >= 0 ? 'var(--primary)' : 'var(--neg)') + '">' + fmt$(nouveau) + ' /mois</strong>' +
     (nouveau < 0 ? ' — attention, le budget deviendrait déficitaire.' : '.');
   box.classList.add('show');
@@ -866,6 +946,7 @@ function addExpense(){
   const note = document.getElementById('fNote').value.trim();
   const due = document.getElementById('fDue').value;
   const fin = document.getElementById('fFin').value;
+  const debut = document.getElementById('fDebut').value;
   if(!nom){ toast('Donnez un nom à la dépense.'); return; }
   if(!amount || amount <= 0){ toast('Entrez un montant valide.'); return; }
   if(catId === '__new__'){
@@ -876,11 +957,14 @@ function addExpense(){
     state.categories.push({ id:catId, nom:nomCat.trim(), hex:palette[state.categories.length % palette.length] });
   }
   state.seq = (state.seq || 100) + 1;
-  state.depenses.push({ id:'d' + state.seq, nom, cat:catId, freq, montant:amount, note, echeance:due || '', fin:fin || '', idx:true });
-  ['fName','fAmount','fNote','fDue','fFin'].forEach(id => document.getElementById(id).value = '');
+  const dep = { id:'d' + state.seq, nom, cat:catId, freq, montant:amount, note, echeance:due || '', debut:debut || '', fin:fin || '', idx:true };
+  state.depenses.push(dep);
+  ['fName','fAmount','fNote','fDue','fFin','fDebut'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('impactBox').classList.remove('show');
   markDirty(); renderAll();
-  toast('« ' + nom + ' » ajoutée au budget.');
+  toast(estActive(dep)
+    ? '« ' + nom + ' » ajoutée au budget.'
+    : '« ' + nom + ' » classée dans « Dépenses à venir » — elle entrera au budget le ' + fmtDateFr(dep.debut) + '.');
 }
 
 /* ═══════════════ Onglet Prévisions ═══════════════ */
@@ -893,12 +977,19 @@ function buildProjection(){
     const infl = Math.pow(1 + (p.inflation || 0) / 100, k);
     let dep = 0;
     state.depenses.forEach(d => {
-      const f = finYM(d.fin);
-      let months = 12;
-      if(f){
-        if(f.y < year) months = 0;
-        else if(f.y === year) months = f.m; // inclusif : payé jusqu'au mois de fin
+      /* Fenêtre active dans l'année : du mois de début (inclus) au mois de fin (inclus) */
+      let mStart = 1, mEnd = 12;
+      const db = finYM(d.debut);
+      if(db){
+        if(db.y > year) return;
+        if(db.y === year) mStart = db.m;
       }
+      const f = finYM(d.fin);
+      if(f){
+        if(f.y < year) return;
+        if(f.y === year) mEnd = f.m;
+      }
+      const months = Math.max(0, mEnd - mStart + 1);
       if(months === 0) return;
       const factor = d.idx === false ? 1 : infl;
       dep += mensualise(d) * factor * months;
@@ -992,6 +1083,15 @@ function renderPrevisions(){
     cb.addEventListener('change', () => { d.idx = cb.checked; markDirty(); renderPrevisions(); });
     tdIdx.appendChild(cb);
     tr.appendChild(tdIdx);
+    const tdDeb = document.createElement('td');
+    tdDeb.setAttribute('data-l', 'Début');
+    tdDeb.style.textAlign = 'left'; tdDeb.style.paddingLeft = '14px';
+    const inpDeb = document.createElement('input');
+    inpDeb.type = 'date'; inpDeb.className = 'due-input'; inpDeb.value = d.debut || '';
+    inpDeb.title = d.debut ? 'Commence à cette date — cliquez pour modifier' : 'Déjà en cours — cliquez pour fixer un début futur';
+    inpDeb.addEventListener('change', () => { d.debut = inpDeb.value || ''; markDirty(); renderPrevisions(); render(); });
+    tdDeb.appendChild(inpDeb);
+    tr.appendChild(tdDeb);
     const tdFin = document.createElement('td');
     tdFin.setAttribute('data-l', 'Date de fin');
     tdFin.style.textAlign = 'left'; tdFin.style.paddingLeft = '14px';
@@ -1162,7 +1262,8 @@ function renderHypo(){
     const t = totals();
     const mois = m.eqMensuel;
     const nouveau = t.surMois - mois;
-    box.innerHTML = 'Impact : ce paiement coûterait <strong>' + fmt$(mois) + ' /mois</strong>. ' +
+    const futur = m.debut > new Date().toISOString().slice(0,10) ? ' à partir du ' + fmtDateFr(m.debut) : '';
+    box.innerHTML = 'Impact' + futur + ' : ce paiement coûterait <strong>' + fmt$(mois) + ' /mois</strong>. ' +
       'Votre surplus passerait de <strong>' + fmt$(t.surMois) + '</strong> à <strong style="color:' + (nouveau >= 0 ? 'var(--primary)' : 'var(--neg)') + '">' + fmt$(nouveau) + ' /mois</strong>' +
       (nouveau < 0 ? ' — attention, le budget deviendrait déficitaire.' : '.');
   }else{
@@ -1183,7 +1284,7 @@ document.getElementById('btnAddHypo').addEventListener('click', () => {
   const note = 'Prêt de ' + fmt$(m.loan, 0) + ' à ' + String(m.taux).replace('.', ',') + ' %, paiement ' + m.freqLabel +
     (m.prime > 0 ? ', prime SCHL incluse' : '') +
     '. Remboursée vers ' + m.finIso + '. Ajoutée depuis le calculateur d’hypothèque.';
-  state.depenses.push({
+  const dep = {
     id: 'd' + state.seq,
     nom,
     cat: 'habitation',
@@ -1191,19 +1292,25 @@ document.getElementById('btnAddHypo').addEventListener('click', () => {
     montant: Math.round(m.payment * 100) / 100,
     note,
     echeance: m.debut,
+    debut: m.debut,
     fin: m.finIso,
     idx: false
-  });
+  };
+  state.depenses.push(dep);
   markDirty(); renderAll();
   switchTab('budget');
-  toast('« ' + nom + ' » ajoutée au budget avec sa date de fin (' + m.finIso + ') pour les prévisions.');
+  toast(estActive(dep)
+    ? '« ' + nom + ' » ajoutée au budget (du ' + fmtDateFr(dep.debut) + ' au ' + fmtDateFr(dep.fin) + ').'
+    : '« ' + nom + ' » classée dans « Dépenses à venir » — elle entrera au budget le ' + fmtDateFr(dep.debut) + ' et les prévisions en tiennent déjà compte.');
 });
 
 /* ═══════════════ Init ═══════════════ */
 document.getElementById('btnSave').addEventListener('click', () => saveState(true));
+document.getElementById('searchDep').addEventListener('input', () => { if(state) renderRegistry(); });
 document.getElementById('btnAdd').addEventListener('click', addExpense);
 document.getElementById('fAmount').addEventListener('input', updateImpact);
 document.getElementById('fFreq').addEventListener('change', updateImpact);
+document.getElementById('fDebut').addEventListener('change', updateImpact);
 document.getElementById('btnExport').addEventListener('click', exportState);
 document.getElementById('btnImport').addEventListener('click', () => document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', (e) => {

@@ -20,12 +20,12 @@ import Avatar from '@/components/Avatar';
 
 // Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
 const APP_PRIORITY: Record<string, number> = {
+  budget: -10, // demande Martin 2026-07-14 : Budget en premier (seuls les parents l'ont)
   messagerie: 0,
   educatif: 10,
   maison: 20,
   chalet: 30,
   chantier: 35,
-  budget: 37,
   assistant: 40,
   qscale: 50,
   logifox: 60,
