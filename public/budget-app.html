@@ -81,8 +81,9 @@
   .income-item input:focus{outline:2px solid var(--primary); border-color:var(--primary);}
 
   /* ── Formulaires ── */
-  .add-form{display:grid; grid-template-columns:1.3fr 1fr .8fr .7fr .85fr .85fr .85fr auto; gap:10px; align-items:end;}
-  @media(max-width:920px){.add-form{grid-template-columns:1fr 1fr;}}
+  .add-form{display:grid; grid-template-columns:1.6fr 1.2fr 1fr 1fr; gap:12px; align-items:end;}
+  .add-form .btn-primary{grid-column:3/-1;}
+  @media(max-width:920px){.add-form{grid-template-columns:1fr 1fr;} .add-form .btn-primary{grid-column:1/-1;}}
   .field label{display:block; font-size:.78rem; font-weight:600; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.05em;}
   .field input,.field select{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font:inherit; font-size:16px; background:#fff; min-height:44px;}
   .field input:focus,.field select:focus{outline:2px solid var(--primary); border-color:var(--primary);}
@@ -118,8 +119,6 @@
   .due-input{border:1px solid transparent; background:transparent; font:inherit; font-size:.85rem; color:var(--muted); border-radius:7px; padding:6px; width:140px; cursor:pointer; font-variant-numeric:tabular-nums; min-height:36px;}
   .due-input:hover{border-color:var(--line); background:#fff;}
   .due-input:focus{outline:2px solid var(--primary); border-color:var(--primary); background:#fff; color:var(--ink);}
-  .due-input.soon{color:var(--amber); font-weight:600;}
-  .due-input.past{color:var(--neg); font-weight:600;}
   .idx-check{width:20px; height:20px; accent-color:var(--primary); cursor:pointer;}
 
   /* ── Prévisions ── */
@@ -294,10 +293,6 @@
           <input id="fDebut" type="date">
         </div>
         <div class="field">
-          <label for="fDue">Échéance <span class="tip" tabindex="0" data-tip="Date du prochain paiement ou du renouvellement. Facultative — modifiable en tout temps dans le registre.">?</span></label>
-          <input id="fDue" type="date">
-        </div>
-        <div class="field">
           <label for="fFin">Date de fin <span class="tip" tabindex="0" data-tip="Facultative. Si cette dépense se termine un jour (fin d'un financement, d'un plan de traitement, dernière année de camp…), indiquez quand : l'onglet Prévisions en tiendra compte automatiquement.">?</span></label>
           <input id="fFin" type="date">
         </div>
@@ -311,7 +306,7 @@
     </div>
 
     <div class="panel">
-      <h2>Registre des dépenses <span class="tip" tabindex="0" data-tip="Chaque ligne montre le montant réel payé selon sa fréquence, puis son équivalent mensuel et annuel. Cliquez la date pour fixer une échéance, le crayon pour changer le montant, le × pour retirer la ligne.">?</span></h2>
+      <h2>Registre des dépenses <span class="tip" tabindex="0" data-tip="Chaque ligne montre le montant réel payé selon sa fréquence, puis son équivalent mensuel et annuel. Cliquez le crayon pour changer le montant, le × pour retirer la ligne.">?</span></h2>
       <p class="hint">Regroupées par fréquence de paiement. Survolez les « ? » pour les explications.</p>
       <div class="search-box">
         <input id="searchDep" type="search" placeholder="Rechercher une dépense (nom, catégorie, note)…" autocomplete="off">
@@ -859,7 +854,7 @@ function renderRegistry(){
 function buildRegistryTable(rows){
     const tbl = document.createElement('table');
     tbl.className = 'rwd';
-    tbl.innerHTML = '<thead><tr><th>Dépense</th><th>Montant payé</th><th>Équiv. mensuel</th><th>Équiv. annuel</th><th style="text-align:left;padding-left:14px;">Échéance</th><th></th></tr></thead>';
+    tbl.innerHTML = '<thead><tr><th>Dépense</th><th>Montant payé</th><th>Équiv. mensuel</th><th>Équiv. annuel</th><th></th></tr></thead>';
     const tb = document.createElement('tbody');
     rows.forEach(d => {
       const c = cat(d.cat);
@@ -870,20 +865,6 @@ function buildRegistryTable(rows){
         '<td class="num" data-l="Montant payé">' + fmt$(d.montant,2) + '</td>' +
         '<td class="num" data-l="Équiv. mensuel">' + fmt$(mensualise(d)) + '</td>' +
         '<td class="num" data-l="Équiv. annuel">' + fmt$(annualise(d)) + '</td>';
-      const tdDue = document.createElement('td');
-      tdDue.setAttribute('data-l', 'Échéance');
-      tdDue.style.textAlign = 'left'; tdDue.style.paddingLeft = '14px';
-      const inp = document.createElement('input');
-      inp.type = 'date'; inp.className = 'due-input ' + dueClass(d.echeance);
-      inp.value = d.echeance || '';
-      inp.title = d.echeance ? 'Prochaine échéance — cliquez pour modifier' : 'Aucune échéance — cliquez pour en fixer une';
-      inp.addEventListener('change', () => {
-        d.echeance = inp.value || '';
-        inp.className = 'due-input ' + dueClass(d.echeance);
-        markDirty();
-      });
-      tdDue.appendChild(inp);
-      tr.appendChild(tdDue);
       const tdA = document.createElement('td');
       tdA.className = 'row-actions';
       tdA.setAttribute('data-l', 'Actions');
@@ -910,16 +891,6 @@ function buildRegistryTable(rows){
     return tbl;
 }
 
-/* Code couleur des échéances */
-function dueClass(iso){
-  if(!iso) return '';
-  const due = new Date(iso + 'T23:59:59');
-  const now = new Date();
-  if(due < now) return 'past';
-  if((due - now) / (1000*60*60*24) <= 30) return 'soon';
-  return '';
-}
-
 /* ═══════════════ Simulation / ajout ═══════════════ */
 function updateImpact(){
   const box = document.getElementById('impactBox');
@@ -944,7 +915,6 @@ function addExpense(){
   const freq = document.getElementById('fFreq').value;
   let catId = document.getElementById('fCat').value;
   const note = document.getElementById('fNote').value.trim();
-  const due = document.getElementById('fDue').value;
   const fin = document.getElementById('fFin').value;
   const debut = document.getElementById('fDebut').value;
   if(!nom){ toast('Donnez un nom à la dépense.'); return; }
@@ -957,9 +927,9 @@ function addExpense(){
     state.categories.push({ id:catId, nom:nomCat.trim(), hex:palette[state.categories.length % palette.length] });
   }
   state.seq = (state.seq || 100) + 1;
-  const dep = { id:'d' + state.seq, nom, cat:catId, freq, montant:amount, note, echeance:due || '', debut:debut || '', fin:fin || '', idx:true };
+  const dep = { id:'d' + state.seq, nom, cat:catId, freq, montant:amount, note, echeance:'', debut:debut || '', fin:fin || '', idx:true };
   state.depenses.push(dep);
-  ['fName','fAmount','fNote','fDue','fFin','fDebut'].forEach(id => document.getElementById(id).value = '');
+  ['fName','fAmount','fNote','fFin','fDebut'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('impactBox').classList.remove('show');
   markDirty(); renderAll();
   toast(estActive(dep)
@@ -1291,7 +1261,7 @@ document.getElementById('btnAddHypo').addEventListener('click', () => {
     freq: m.budgetFreq,
     montant: Math.round(m.payment * 100) / 100,
     note,
-    echeance: m.debut,
+    echeance: '',
     debut: m.debut,
     fin: m.finIso,
     idx: false
