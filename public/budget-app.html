@@ -147,13 +147,14 @@
   .tip{position:relative; display:inline-flex; align-items:center; justify-content:center;
        width:17px; height:17px; border-radius:50%; background:#EDF1EC; color:var(--muted);
        font-size:.68rem; font-weight:700; cursor:help; margin-left:7px; vertical-align:1px; flex:none;}
+  /* display:none au repos : une bulle invisible mais positionnée élargissait la page de ~100px sur mobile (mouvement gauche-droite) */
   .tip::after{content:attr(data-tip); position:absolute; bottom:135%; left:50%; transform:translateX(-50%);
        background:var(--ink); color:#F4F6F2; font-size:.78rem; font-weight:400; line-height:1.45;
-       padding:10px 12px; border-radius:9px; width:250px; text-align:left; white-space:normal;
-       opacity:0; pointer-events:none; transition:opacity .15s; z-index:50; box-shadow:0 6px 20px rgba(0,0,0,.25);}
+       padding:10px 12px; border-radius:9px; width:250px; max-width:calc(100vw - 40px); text-align:left; white-space:normal;
+       display:none; pointer-events:none; z-index:50; box-shadow:0 6px 20px rgba(0,0,0,.25);}
   .tip::before{content:''; position:absolute; bottom:calc(135% - 6px); left:50%; transform:translateX(-50%);
-       border:6px solid transparent; border-top-color:var(--ink); opacity:0; transition:opacity .15s; z-index:50;}
-  .tip:hover::after,.tip:hover::before,.tip:focus::after,.tip:focus::before{opacity:1;}
+       border:6px solid transparent; border-top-color:var(--ink); display:none; z-index:50;}
+  .tip:hover::after,.tip:hover::before,.tip:focus::after,.tip:focus::before{display:block;}
   td .tip::after{left:auto; right:-10px; transform:none;}
   td .tip::before{left:auto; right:-6px; transform:none;}
 
@@ -163,6 +164,7 @@
 
   /* ── Mobile ── */
   @media(max-width:720px){
+    body{touch-action:pan-y pinch-zoom;}
     .wrap{padding:14px 12px calc(60px + env(safe-area-inset-bottom));}
     header{align-items:flex-start;}
     .brand h1{font-size:1.5rem;}
@@ -181,7 +183,7 @@
     table.rwd td{display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px dashed var(--line); padding:8px 0; text-align:right;}
     table.rwd td:last-child{border-bottom:none;}
     table.rwd td::before{content:attr(data-l); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; text-align:left; flex:none;}
-    table.rwd td:first-child{text-align:left; flex-direction:column; align-items:flex-start; gap:4px;}
+    table.rwd td:first-child{text-align:left; flex-direction:column; align-items:flex-start; gap:4px; padding-right:26px;}
     table.rwd td:first-child::before{display:none;}
     table.rwd td.row-actions{justify-content:flex-end;}
     table.rwd td.row-actions::before{margin-right:auto;}
@@ -189,6 +191,14 @@
     table.rwd td.edit-cell::before{display:none;}
     .edit-form{grid-template-columns:1fr;}
     .due-input{width:150px;}
+    /* Cartes repliées : nom + équiv. mensuel ; toucher la carte révèle le reste + les options */
+    table.rwd tbody tr:not(.edit-row){position:relative; cursor:pointer;}
+    table.rwd tbody tr:not(.edit-row)::after{content:'▾'; position:absolute; top:12px; right:13px; color:var(--muted); font-size:.85rem; transition:transform .15s;}
+    table.rwd tbody tr.open::after{transform:rotate(180deg);}
+    table.rwd tr:not(.open) td:nth-child(2), table.rwd tr:not(.open) td:nth-child(4), table.rwd tr:not(.open) td.row-actions{display:none;}
+    table.rwd tr:not(.open) td:nth-child(3){border-bottom:none;}
+    /* Crayon et × plus gros au doigt */
+    table.rwd .row-actions button{font-size:1.45rem; min-width:52px; min-height:52px;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
@@ -872,6 +882,12 @@ function buildRegistryTable(rows){
         '<td class="num" data-l="Montant payé">' + fmt$(d.montant,2) + '</td>' +
         '<td class="num" data-l="Équiv. mensuel">' + fmt$(mensualise(d)) + '</td>' +
         '<td class="num" data-l="Équiv. annuel">' + fmt$(annualise(d)) + '</td>';
+      /* Mobile : carte repliée, toucher pour révéler détails + options */
+      tr.addEventListener('click', ev => {
+        if(!window.matchMedia('(max-width:720px)').matches) return;
+        if(ev.target.closest('button,input,select,a,.tip')) return;
+        tr.classList.toggle('open');
+      });
       const tdA = document.createElement('td');
       tdA.className = 'row-actions';
       tdA.setAttribute('data-l', 'Actions');
