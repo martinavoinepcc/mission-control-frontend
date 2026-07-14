@@ -120,6 +120,10 @@
   .due-input:hover{border-color:var(--line); background:#fff;}
   .due-input:focus{outline:2px solid var(--primary); border-color:var(--primary); background:#fff; color:var(--ink);}
   .idx-check{width:20px; height:20px; accent-color:var(--primary); cursor:pointer;}
+  /* Éditeur de ligne du registre (montant + début + fin) */
+  .edit-row td{background:#FBFCFA; text-align:left;}
+  .edit-row:hover td{background:#FBFCFA;}
+  .edit-form{display:grid; grid-template-columns:1fr 1fr 1fr auto auto; gap:10px; align-items:end; padding:4px 2px;}
 
   /* ── Prévisions ── */
   .prev-params{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px;}
@@ -181,6 +185,9 @@
     table.rwd td:first-child::before{display:none;}
     table.rwd td.row-actions{justify-content:flex-end;}
     table.rwd td.row-actions::before{margin-right:auto;}
+    table.rwd td.edit-cell{display:block;}
+    table.rwd td.edit-cell::before{display:none;}
+    .edit-form{grid-template-columns:1fr;}
     .due-input{width:150px;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
@@ -306,7 +313,7 @@
     </div>
 
     <div class="panel">
-      <h2>Registre des dépenses <span class="tip" tabindex="0" data-tip="Chaque ligne montre le montant réel payé selon sa fréquence, puis son équivalent mensuel et annuel. Cliquez le crayon pour changer le montant, le × pour retirer la ligne.">?</span></h2>
+      <h2>Registre des dépenses <span class="tip" tabindex="0" data-tip="Chaque ligne montre le montant réel payé selon sa fréquence, puis son équivalent mensuel et annuel. Cliquez le crayon pour modifier le montant, la date de début ou la date de fin ; le × retire la ligne.">?</span></h2>
       <p class="hint">Regroupées par fréquence de paiement. Survolez les « ? » pour les explications.</p>
       <div class="search-box">
         <input id="searchDep" type="search" placeholder="Rechercher une dépense (nom, catégorie, note)…" autocomplete="off">
@@ -868,13 +875,35 @@ function buildRegistryTable(rows){
       const tdA = document.createElement('td');
       tdA.className = 'row-actions';
       tdA.setAttribute('data-l', 'Actions');
-      const bE = document.createElement('button'); bE.className = 'edit'; bE.textContent = '✎'; bE.title = 'Modifier le montant';
+      const bE = document.createElement('button'); bE.className = 'edit'; bE.textContent = '✎'; bE.title = 'Modifier le montant et les dates';
       bE.addEventListener('click', () => {
-        const v = prompt('Nouveau montant pour « ' + d.nom + ' » (' + F[d.freq].label.toLowerCase() + ') :', d.montant);
-        if(v === null) return;
-        const n = parseFloat(String(v).replace(',', '.'));
-        if(isNaN(n) || n < 0){ toast('Montant invalide.'); return; }
-        d.montant = n; markDirty(); render();
+        const nxt = tr.nextElementSibling;
+        if(nxt && nxt.classList.contains('edit-row')){ nxt.remove(); return; }
+        document.querySelectorAll('.edit-row').forEach(r => r.remove());
+        const er = document.createElement('tr'); er.className = 'edit-row';
+        const td = document.createElement('td'); td.className = 'edit-cell'; td.colSpan = 5;
+        const form = document.createElement('div'); form.className = 'edit-form';
+        form.innerHTML =
+          '<div class="field"><label>Montant (' + F[d.freq].label.toLowerCase() + ', $)</label><input type="number" min="0" step="0.01" inputmode="decimal"></div>' +
+          '<div class="field"><label>Début <span class="tip" tabindex="0" data-tip="Facultative. Une date future classe la dépense dans « à venir » : exclue du budget courant, comptée dans les prévisions à partir de cette date.">?</span></label><input type="date"></div>' +
+          '<div class="field"><label>Date de fin <span class="tip" tabindex="0" data-tip="Facultative. Quand la dépense se termine (fin d’hypothèque, de financement, de plan…) — les prévisions en tiennent compte automatiquement.">?</span></label><input type="date"></div>';
+        const inputs = form.querySelectorAll('input');
+        const iM = inputs[0], iD = inputs[1], iF = inputs[2];
+        iM.value = d.montant; iD.value = d.debut || ''; iF.value = d.fin || '';
+        const bOk = document.createElement('button'); bOk.className = 'btn btn-primary'; bOk.textContent = 'Enregistrer';
+        const bNo = document.createElement('button'); bNo.className = 'btn btn-ghost'; bNo.textContent = 'Annuler';
+        bNo.addEventListener('click', () => er.remove());
+        bOk.addEventListener('click', () => {
+          const n = parseFloat(String(iM.value).replace(',', '.'));
+          if(isNaN(n) || n < 0){ toast('Montant invalide.'); return; }
+          if(iD.value && iF.value && iF.value < iD.value){ toast('La date de fin doit venir après la date de début.'); return; }
+          d.montant = n; d.debut = iD.value || ''; d.fin = iF.value || '';
+          markDirty(); renderAll();
+          toast('« ' + d.nom + ' » mise à jour' + (d.fin ? ' — se termine le ' + fmtDateFr(d.fin) + ', les prévisions en tiennent compte.' : '.'));
+        });
+        form.appendChild(bOk); form.appendChild(bNo);
+        td.appendChild(form); er.appendChild(td);
+        tr.after(er);
       });
       const bD = document.createElement('button'); bD.textContent = '✕'; bD.title = 'Retirer cette dépense';
       bD.addEventListener('click', () => {
