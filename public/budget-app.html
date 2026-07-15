@@ -215,7 +215,8 @@
     </div>
     <div class="header-actions">
       <span id="saveStatus">Chargement…</span>
-      <button class="btn btn-ghost" id="btnReset" title="Revenir aux données du fichier d'origine">Réinitialiser</button>
+      <button class="btn btn-ghost" id="btnBaseline" title="Figer la version actuelle comme modèle de base — « Réinitialiser » reviendra à cette version">Définir comme modèle</button>
+      <button class="btn btn-ghost" id="btnReset" title="Revenir au modèle de base (ou aux données du fichier d'origine s'il n'y a pas de modèle)">Réinitialiser</button>
       <button class="btn btn-ghost" id="btnExport" title="Télécharger une copie de secours (.json)">Exporter</button>
       <button class="btn btn-ghost" id="btnImport" title="Recharger une copie exportée">Importer</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
@@ -1332,16 +1333,26 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   if(e.target.files && e.target.files[0]) importState(e.target.files[0]);
   e.target.value = '';
 });
+document.getElementById('btnBaseline').addEventListener('click', async () => {
+  if(!confirm('Faire de la version actuelle le modèle de base ? « Réinitialiser » reviendra désormais à cette version (dates de début/fin incluses).')) return;
+  try{
+    if(dirty) await saveState(false);
+    await api('/budget/baseline', { method: 'POST', body: JSON.stringify({ data: state }) });
+    toast('Modèle de base enregistré ✓ — « Réinitialiser » reviendra à cette version.');
+  }catch(err){
+    if(err.message !== 'auth') toast('Enregistrement du modèle impossible : ' + err.message);
+  }
+});
 document.getElementById('btnReset').addEventListener('click', async () => {
-  if(!confirm('Revenir aux données d’origine du fichier ? Vos ajouts et modifications (pour vous deux) seront perdus.')) return;
+  if(!confirm('Réinitialiser le budget ? Vos modifications depuis le dernier modèle de base seront perdues (pour vous deux).')) return;
   try{
     const r = await api('/budget', { method: 'DELETE' });
     state = migrate(r.data);
     dirty = false;
     try{ localStorage.setItem(CACHE_KEY, JSON.stringify(state)); }catch(e){}
-    setStatus('', 'Données d’origine rechargées');
+    setStatus('', r.fromBaseline ? 'Modèle de base rechargé' : 'Données d’origine rechargées');
     renderAll();
-    toast('Budget réinitialisé aux données du fichier.');
+    toast(r.fromBaseline ? 'Budget réinitialisé au modèle de base.' : 'Budget réinitialisé aux données du fichier d’origine.');
   }catch(err){
     if(err.message !== 'auth') toast('Réinitialisation impossible : ' + err.message);
   }
