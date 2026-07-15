@@ -143,6 +143,18 @@
   .schl-row{grid-column:1/-1; display:flex; align-items:center; gap:10px; font-size:.88rem; color:var(--muted); background:var(--neg-soft); border-radius:9px; padding:10px 14px;}
   .schl-row.ok{background:var(--primary-soft);}
 
+  /* ── Retraite & Épargne ── */
+  .person-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media(max-width:820px){.person-grid{grid-template-columns:1fr;}}
+  .person-card{border:1px solid var(--line); border-radius:10px; padding:14px; background:#FBFCFA;}
+  .person-card h3{font-family:'Fraunces',serif; font-size:1.05rem; margin-bottom:10px;}
+  .person-fields{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .dette-item{display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#FBFCFA; margin-bottom:8px; flex-wrap:wrap;}
+  .dette-item .dsub{font-size:.78rem; color:var(--muted);}
+  .dette-item .dgain{margin-left:auto; font-size:.82rem; font-weight:600; color:var(--primary); white-space:nowrap;}
+  .ret-note{font-size:.82rem; color:var(--muted); background:var(--primary-soft); border-radius:9px; padding:10px 14px; margin-top:12px; line-height:1.5;}
+  .ret-note.warn{background:var(--neg-soft);}
+
   /* ── Infobulles ── */
   .tip{position:relative; display:inline-flex; align-items:center; justify-content:center;
        width:17px; height:17px; border-radius:50%; background:#EDF1EC; color:var(--muted);
@@ -228,6 +240,7 @@
     <button class="tab-btn active" data-tab="budget">📊 Budget courant</button>
     <button class="tab-btn" data-tab="previsions">🔮 Prévisions</button>
     <button class="tab-btn" data-tab="hypotheque">🏠 Hypothèque</button>
+    <button class="tab-btn" data-tab="retraite">🌅 Retraite</button>
   </nav>
 
   <!-- ════════════ ONGLET 1 : BUDGET COURANT ════════════ -->
@@ -487,6 +500,88 @@
     </div>
   </div>
 
+  <!-- ════════════ ONGLET 4 : RETRAITE & ÉPARGNE ════════════ -->
+  <div class="tab-panel" id="panel-retraite">
+
+    <div class="panel">
+      <h2>Votre retraite, personne par personne <span class="tip" tabindex="0" data-tip="Chaque personne a sa date de naissance, son âge de retraite visé et sa RRQ. La paye de la personne s'arrête à SA retraite ; la RRQ et la PSV prennent le relais selon l'âge choisi. Tout est modifiable — la projection se recalcule instantanément.">?</span></h2>
+      <p class="hint">La paye s'arrête à la retraite de chacun ; la RRQ (Retraite Québec) et la PSV (pension fédérale, dès 65 ans) prennent le relais.</p>
+      <div class="person-grid" id="retPersonnes"></div>
+      <div class="ret-note">💡 Le montant RRQ exact est sur votre relevé <strong>Retraite Québec</strong> (maximum 2026 ≈ 1 433 $/mois à 65 ans). RRQ prise avant 65 ans : −0,6 %/mois ; après 65 ans : +0,7 %/mois (jusqu'à 72 ans) — appliqué automatiquement. La PSV (≈ 734 $/mois) commence à 65 ans et est indexée.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Épargne &amp; stratégie du surplus <span class="tip" tabindex="0" data-tip="Chaque mois où le budget dégage un surplus, vous choisissez quelle part va à l'épargne (qui fructifie au rendement choisi) et quelle part attaque les dettes (qui finissent alors plus tôt, libérant leurs paiements). Le reste demeure un coussin non investi.">?</span></h2>
+      <p class="hint">Le levier central : épargner le surplus, ou l'envoyer sur les dettes pour les finir plus tôt — ou un mélange des deux.</p>
+      <div class="prev-params">
+        <div class="field">
+          <label for="rEpargne">Épargne actuelle ($)</label>
+          <input id="rEpargne" type="number" inputmode="decimal" min="0" step="1000">
+        </div>
+        <div class="field">
+          <label for="rRendement">Rendement de l'épargne (%/an) <span class="tip" tabindex="0" data-tip="Rendement annuel moyen après frais. Prudent : 3-4 %. Équilibré : 4-5 %. Croissance : 5-6 %. La projection compose ce rendement chaque mois.">?</span></label>
+          <input id="rRendement" type="number" inputmode="decimal" min="0" max="12" step="0.1">
+        </div>
+        <div class="field">
+          <label for="rPctEpargne">% du surplus → épargne</label>
+          <input id="rPctEpargne" type="number" inputmode="numeric" min="0" max="100" step="5">
+        </div>
+        <div class="field">
+          <label for="rPctDette">% du surplus → dettes <span class="tip" tabindex="0" data-tip="Ce montant s'ajoute chaque mois aux paiements réguliers de la dette qui finit le plus tôt. Quand une dette meurt, son paiement retourne au surplus, et l'extra passe à la dette suivante. Une fois toutes les dettes payées, cette part rejoint l'épargne automatiquement. Approximation prudente (sans intérêts) : en réalité c'est encore plus payant.">?</span></label>
+          <input id="rPctDette" type="number" inputmode="numeric" min="0" max="100" step="5">
+        </div>
+        <div class="field">
+          <label for="rPsv">PSV à 65 ans ($/mois) <span class="tip" tabindex="0" data-tip="Pension de la Sécurité de la vieillesse (fédérale), identique pour chacun, indexée à l'inflation. Peut être réduite si les revenus de retraite sont très élevés (récupération fiscale) — non modélisé ici.">?</span></label>
+          <input id="rPsv" type="number" inputmode="decimal" min="0" step="1">
+        </div>
+      </div>
+      <div id="retDettesBox" style="margin-top:16px;">
+        <h2 style="font-size:1rem;">Dettes accélérables <span class="tip" tabindex="0" data-tip="Les dépenses avec une date de fin peuvent recevoir l'extra « % du surplus → dettes ». Cochées = accélérées (la plus proche de sa fin d'abord). Le gain d'années s'affiche à droite quand la stratégie en devance la fin.">?</span></h2>
+        <div id="retDettes"></div>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="label">Épargne à la retraite <span class="tip" tabindex="0" data-tip="Le coffre accumulé au moment où le DERNIER de vous deux prend sa retraite, selon la stratégie choisie.">?</span></div>
+        <div class="value num pos" id="rtEpargne">—</div>
+        <div class="sub" id="rtEpargneSub">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Rentes mensuelles <span class="tip" tabindex="0" data-tip="RRQ des deux + PSV des deux, la première année où vous êtes tous les deux à la retraite (en dollars de cette année-là, indexés).">?</span></div>
+        <div class="value num" id="rtRentes">—</div>
+        <div class="sub" id="rtRentesSub">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Verdict <span class="tip" tabindex="0" data-tip="Après la retraite, si les rentes ne couvrent pas les dépenses, la différence est retirée de l'épargne chaque mois. Le verdict dit jusqu'à quel âge l'épargne tient (on projette jusqu'à 95 ans du plus jeune).">?</span></div>
+        <div class="value" id="rtVerdict" style="font-size:1.25rem;">—</div>
+        <div class="sub" id="rtVerdictSub">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Effet sur les dettes <span class="tip" tabindex="0" data-tip="Années gagnées sur la dette la plus accélérée grâce au % du surplus envoyé au remboursement.">?</span></div>
+        <div class="value num pos" id="rtDetteGain">—</div>
+        <div class="sub" id="rtDetteGainSub">—</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Le film complet, année par année <span class="tip" tabindex="0" data-tip="Lignes pleines (axe de gauche) : revenus totaux (payes + rentes) et dépenses annuelles. Zone verte (axe de droite) : votre épargne accumulée. Les décrochages de revenus = départs à la retraite ; les remontées = RRQ/PSV qui embarquent.">?</span></h2>
+      <p class="hint" id="retHint">—</p>
+      <div class="chart-holder" style="height:360px;"><canvas id="chartRet"></canvas></div>
+      <div class="ret-note" id="retResume">—</div>
+    </div>
+
+    <div class="panel">
+      <h2>Tableau détaillé</h2>
+      <p class="hint">Toutes les années jusqu'à 5 ans après la dernière retraite, puis aux 5 ans. Montants annuels indexés.</p>
+      <table class="rwd" id="retTable">
+        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Dépenses</th><th>Épargne au 31 déc.</th></tr></thead>
+        <tbody id="retTableBody"></tbody>
+      </table>
+      <div class="ret-note">Estimation simplifiée pour explorer des scénarios — pas un conseil financier. Impôts, REER/CELI et récupération fiscale de la PSV ne sont pas modélisés ; les payes sont vos montants nets actuels.</div>
+    </div>
+  </div>
+
   <footer>Budget partagé Martin &amp; Marie-Josée · Sauvegardé dans Mission Control · Montants en dollars canadiens</footer>
 </div>
 
@@ -535,8 +630,26 @@ function migrate(s){
     if(d.idx === undefined) d.idx = true;
     if(d.echeance === undefined) d.echeance = '';
     if(d.note === undefined) d.note = '';
+    /* dette accélérable : par défaut les paiements fixes avec une date de fin
+       (hypothèques, financements, plans) — décochable dans l'onglet Retraite */
+    if(d.dette === undefined) d.dette = (d.idx === false && !!d.fin);
   });
   if(!s.previsions) s.previsions = { inflation: 2.5, croissance: 2.0, horizon: 10 };
+  /* Paramètres retraite : défauts raisonnables, tout est modifiable dans l'onglet */
+  const RET_DEF = {
+    personnes: [
+      { id:'p1', nom:'Marie-Josée', revenuNom:'MJB', dob:'1985-01-01', ageRetraite:65, rrqAge:65, rrq65:1350 },
+      { id:'p2', nom:'Martin', revenuNom:'Martin', dob:'1983-02-18', ageRetraite:65, rrqAge:65, rrq65:1100 }
+    ],
+    psv65: 734, epargneActuelle: 0, rendement: 4.0, pctEpargne: 50, pctDette: 0
+  };
+  if(!s.retraite) s.retraite = JSON.parse(JSON.stringify(RET_DEF));
+  else{
+    ['psv65','epargneActuelle','rendement','pctEpargne','pctDette'].forEach(k => {
+      if(s.retraite[k] === undefined) s.retraite[k] = RET_DEF[k];
+    });
+    if(!Array.isArray(s.retraite.personnes) || !s.retraite.personnes.length) s.retraite.personnes = JSON.parse(JSON.stringify(RET_DEF.personnes));
+  }
   if(!Array.isArray(s.categories) || !s.categories.length){
     s.categories = [{ id:'autre', nom:'Autre', hex:'#5A5F6E' }];
   }
@@ -706,6 +819,7 @@ function switchTab(tab){
   if(tab === 'previsions') renderPrevisions();
   if(tab === 'budget') render();
   if(tab === 'hypotheque') renderHypo();
+  if(tab === 'retraite') renderRetraite();
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
@@ -713,6 +827,7 @@ function renderAll(){
   render();
   if(activeTab === 'previsions') renderPrevisions();
   if(activeTab === 'hypotheque') renderHypo();
+  if(activeTab === 'retraite') renderRetraite();
 }
 
 /* ═══════════════ Rendu — onglet Budget ═══════════════ */
@@ -1319,6 +1434,335 @@ document.getElementById('btnAddHypo').addEventListener('click', () => {
     ? '« ' + nom + ' » ajoutée au budget (du ' + fmtDateFr(dep.debut) + ' au ' + fmtDateFr(dep.fin) + ').'
     : '« ' + nom + ' » classée dans « Dépenses à venir » — elle entrera au budget le ' + fmtDateFr(dep.debut) + ' et les prévisions en tiennent déjà compte.');
 });
+
+/* ═══════════════ Onglet Retraite & Épargne ═══════════════
+   Simulation MENSUELLE de maintenant jusqu'aux 95 ans du plus jeune :
+   - la paye de chaque personne s'arrête à SA retraite (croissance appliquée) ;
+   - RRQ dès l'âge choisi (−0,6 %/mois avant 65, +0,7 %/mois après, indexée) ;
+   - PSV dès 65 ans (indexée) ;
+   - dépenses du budget avec leurs débuts/fins et l'inflation (moteur identique
+     aux Prévisions) ;
+   - surplus positif : % vers l'épargne (rendement composé mensuel) et % vers
+     la dette la plus proche de sa fin (elle meurt plus tôt → son paiement
+     revient au budget). Dettes toutes payées → la part dette rejoint l'épargne ;
+   - surplus négatif (retraite) : retiré de l'épargne jusqu'à épuisement. */
+
+function isoToM(iso){ return parseInt(iso.slice(0,4),10)*12 + (parseInt(iso.slice(5,7),10)-1); }
+function mToLabel(m){ return Math.floor(m/12); }
+
+function simulateRetraite(){
+  const r = state.retraite, p = state.previsions;
+  const now = new Date();
+  const m0 = now.getFullYear()*12 + now.getMonth();
+
+  const persons = r.personnes.map(x => {
+    const mNaiss = isoToM(x.dob || '1984-01-01');
+    const rrqAge = Math.min(72, Math.max(60, x.rrqAge || 65));
+    return {
+      nom: x.nom, revenuNom: x.revenuNom,
+      mNaiss,
+      mRetraite: mNaiss + Math.round((x.ageRetraite || 65) * 12),
+      mRrq: mNaiss + Math.round(rrqAge * 12),
+      facteurRrq: rrqAge < 65 ? 1 - 0.006*(65 - rrqAge)*12 : 1 + 0.007*(rrqAge - 65)*12,
+      mPsv: mNaiss + 65*12,
+      rrq65: x.rrq65 || 0
+    };
+  });
+  const lastRet = Math.max(m0, ...persons.map(x => x.mRetraite));
+  const mEnd = Math.max(...persons.map(x => x.mNaiss)) + 95*12;
+
+  /* Dettes accélérables : restant ≈ paiement mensuel × mois restants (sans intérêts, prudent) */
+  const debts = state.depenses
+    .filter(d => d.dette && d.fin)
+    .map(d => {
+      const mFin = isoToM(d.fin);
+      const mDeb = d.debut ? Math.max(isoToM(d.debut), m0) : m0;
+      return { d, mensuel: mensualise(d), mDeb, mFinOrig: mFin,
+               restant: mensualise(d) * Math.max(0, mFin - mDeb + 1), mort: null };
+    })
+    .filter(x => x.restant > 0 && x.mFinOrig >= m0)
+    .sort((a,b) => a.mFinOrig - b.mFinOrig);
+
+  let ep = Math.max(0, r.epargneActuelle || 0);
+  const rMens = Math.pow(1 + Math.max(0, r.rendement || 0)/100, 1/12);
+  const pctE = Math.max(0, Math.min(100, r.pctEpargne || 0))/100;
+  const pctD = Math.max(0, Math.min(100, r.pctDette || 0))/100;
+
+  let epuiseM = null, epRetraite = null, renteRetraite = null, retraitRetraite = null;
+  const years = [];
+  let acc = { travail:0, rentes:0, dep:0 };
+
+  for(let m = m0; m <= mEnd; m++){
+    const k = Math.floor((m - m0)/12);
+    const infl = Math.pow(1 + (p.inflation || 0)/100, k);
+    const grow = Math.pow(1 + (p.croissance || 0)/100, k);
+
+    /* Payes (26 payes/an → équivalent mensuel) */
+    let travail = 0;
+    state.revenus.forEach(rv => {
+      const pers = persons.find(x => x.revenuNom === rv.nom);
+      const mRet = pers ? pers.mRetraite : lastRet;
+      if(m < mRet) travail += rv.montant * 26/12 * grow;
+    });
+
+    /* Rentes publiques */
+    let rentes = 0;
+    persons.forEach(x => {
+      if(m >= x.mRrq) rentes += x.rrq65 * x.facteurRrq * infl;
+      if(m >= x.mPsv) rentes += (r.psv65 || 0) * infl;
+    });
+
+    /* Dépenses du mois (mêmes règles que les Prévisions + morts anticipées de dettes) */
+    let dep = 0;
+    state.depenses.forEach(d => {
+      if(d.debut && isoToM(d.debut) > m) return;
+      const dl = debts.find(x => x.d === d);
+      if(dl){
+        if(dl.mort !== null && m >= dl.mort) return;
+        if(m > dl.mFinOrig) return;
+      }else if(d.fin && isoToM(d.fin) < m) return;
+      dep += mensualise(d) * (d.idx === false ? 1 : infl);
+    });
+
+    /* Paiements réguliers du mois réduisent le restant des dettes vivantes */
+    debts.forEach(x => {
+      if(x.mort !== null || x.restant <= 0) return;
+      if(m < x.mDeb || m > x.mFinOrig) return;
+      x.restant -= x.mensuel;
+      if(x.restant <= 0) x.mort = m + 1;
+    });
+
+    /* Allocation du surplus */
+    const surplus = travail + rentes - dep;
+    if(surplus > 0){
+      let extra = surplus * pctD;
+      let vers = surplus * pctE;
+      for(const x of debts){
+        if(extra <= 0) break;
+        if(x.mort !== null || x.restant <= 0 || m < x.mDeb) continue;
+        const take = Math.min(extra, x.restant);
+        x.restant -= take; extra -= take;
+        if(x.restant <= 0) x.mort = m + 1;
+      }
+      ep += vers + extra; /* extra dette inutilisé (plus de dettes) → épargne */
+    }else{
+      ep += surplus;
+      if(ep < 0){ if(epuiseM === null) epuiseM = m; ep = 0; }
+    }
+    ep *= rMens;
+
+    /* Jalons */
+    if(m === lastRet){
+      epRetraite = ep;
+      renteRetraite = rentes;
+      retraitRetraite = Math.max(0, dep - rentes - travail);
+    }
+
+    /* Agrégats annuels */
+    acc.travail += travail; acc.rentes += rentes; acc.dep += dep;
+    if(m % 12 === 11 || m === mEnd){
+      years.push({ year: mToLabel(m), travail: acc.travail, rentes: acc.rentes, dep: acc.dep, ep,
+        ages: persons.map(x => ({ nom: x.nom, age: Math.floor((m - x.mNaiss)/12) })) });
+      acc = { travail:0, rentes:0, dep:0 };
+    }
+  }
+
+  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite };
+}
+
+/* Construction des cartes-personnes et de la liste des dettes (une fois par affichage d'onglet) */
+function buildRetParams(){
+  const r = state.retraite;
+  const grid = document.getElementById('retPersonnes');
+  grid.innerHTML = '';
+  r.personnes.forEach(pers => {
+    const card = document.createElement('div');
+    card.className = 'person-card';
+    card.innerHTML = '<h3>' + esc(pers.nom) + '</h3>';
+    const f = document.createElement('div');
+    f.className = 'person-fields';
+    const mk = (label, type, value, attrs, onChange, tip) => {
+      const div = document.createElement('div');
+      div.className = 'field';
+      const lab = document.createElement('label');
+      lab.innerHTML = label + (tip ? ' <span class="tip" tabindex="0" data-tip="' + esc(tip) + '">?</span>' : '');
+      const inp = document.createElement('input');
+      inp.type = type; Object.assign(inp, attrs || {});
+      inp.value = value;
+      inp.addEventListener('change', () => { onChange(inp); markDirty(); renderRetResultats(); });
+      div.appendChild(lab); div.appendChild(inp);
+      f.appendChild(div);
+    };
+    mk('Date de naissance', 'date', pers.dob || '', {},
+      inp => { if(inp.value) pers.dob = inp.value; });
+    mk('Retraite à (ans)', 'number', pers.ageRetraite, { min:50, max:75, step:1, inputMode:'numeric' },
+      inp => { pers.ageRetraite = Math.min(75, Math.max(50, parseInt(inp.value,10) || 65)); inp.value = pers.ageRetraite; },
+      'La paye de ' + pers.nom + ' s’arrête à cet âge.');
+    mk('RRQ dès (ans)', 'number', pers.rrqAge, { min:60, max:72, step:1, inputMode:'numeric' },
+      inp => { pers.rrqAge = Math.min(72, Math.max(60, parseInt(inp.value,10) || 65)); inp.value = pers.rrqAge; },
+      'Entre 60 et 72 ans. Avant 65 : rente réduite de 0,6 %/mois. Après 65 : bonifiée de 0,7 %/mois.');
+    mk('RRQ estimée à 65 ans ($/mois)', 'number', pers.rrq65, { min:0, max:2500, step:10, inputMode:'decimal' },
+      inp => { pers.rrq65 = Math.max(0, parseFloat(inp.value) || 0); },
+      'En dollars d’aujourd’hui — le vrai montant est sur le relevé Retraite Québec (maximum 2026 ≈ 1 433 $/mois).');
+    card.appendChild(f);
+    grid.appendChild(card);
+  });
+
+  document.getElementById('rEpargne').value = r.epargneActuelle;
+  document.getElementById('rRendement').value = r.rendement;
+  document.getElementById('rPctEpargne').value = r.pctEpargne;
+  document.getElementById('rPctDette').value = r.pctDette;
+  document.getElementById('rPsv').value = r.psv65;
+
+  /* Liste des dettes accélérables (dépenses avec une date de fin) */
+  const box = document.getElementById('retDettes');
+  box.innerHTML = '';
+  const candidates = state.depenses.filter(d => d.fin).sort((a,b) => (a.fin < b.fin ? -1 : 1));
+  if(!candidates.length){
+    box.innerHTML = '<p class="hint" style="margin:0;">Aucune dépense avec date de fin — fixez des fins (onglet Prévisions) pour activer l’accélération de dettes.</p>';
+    return;
+  }
+  candidates.forEach(d => {
+    const div = document.createElement('div');
+    div.className = 'dette-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.className = 'idx-check'; cb.checked = !!d.dette;
+    cb.addEventListener('change', () => { d.dette = cb.checked; markDirty(); renderRetResultats(); });
+    div.appendChild(cb);
+    const span = document.createElement('span');
+    span.innerHTML = '<strong>' + esc(d.nom) + '</strong><span class="dsub"> · ' + fmt$(mensualise(d)) + ' /mois · fin prévue ' + fmtDateFr(d.fin) + '</span>';
+    div.appendChild(span);
+    const gain = document.createElement('span');
+    gain.className = 'dgain'; gain.dataset.depId = d.id;
+    div.appendChild(gain);
+    box.appendChild(div);
+  });
+}
+
+function renderRetResultats(){
+  const sim = simulateRetraite();
+  const r = state.retraite;
+  const lastYear = mToLabel(sim.lastRet);
+
+  document.getElementById('rtEpargne').textContent = sim.epRetraite !== null ? fmt$(sim.epRetraite) : '—';
+  document.getElementById('rtEpargneSub').textContent = 'quand le dernier prend sa retraite (' + lastYear + ')';
+
+  document.getElementById('rtRentes').textContent = sim.renteRetraite !== null ? fmt$(sim.renteRetraite) + ' /mois' : '—';
+  document.getElementById('rtRentesSub').textContent = sim.retraitRetraite > 0
+    ? 'RRQ + PSV · il manque ' + fmt$(sim.retraitRetraite) + ' /mois, retirés de l’épargne'
+    : 'RRQ + PSV couvrent les dépenses à ce moment';
+
+  const v = document.getElementById('rtVerdict');
+  const vs = document.getElementById('rtVerdictSub');
+  if(sim.epuiseM === null){
+    v.textContent = '✅ Épargne suffisante';
+    v.style.color = 'var(--primary)';
+    vs.textContent = 'elle tient jusqu’à 95 ans (fin de la projection)';
+  }else{
+    const yr = mToLabel(sim.epuiseM);
+    const ages = sim.persons.map(x => x.nom + ' ' + Math.floor((sim.epuiseM - x.mNaiss)/12) + ' ans').join(' · ');
+    v.textContent = '⚠️ Épuisée en ' + yr;
+    v.style.color = 'var(--neg)';
+    vs.textContent = ages + ' — augmentez le % épargné, retardez une retraite ou réduisez les dépenses';
+  }
+
+  /* Gains sur les dettes */
+  let bestGain = 0, bestNom = '';
+  document.querySelectorAll('#retDettes .dgain').forEach(el => { el.textContent = ''; });
+  sim.debts.forEach(x => {
+    const gainMois = x.mort !== null ? Math.max(0, x.mFinOrig - (x.mort - 1)) : 0;
+    const el = document.querySelector('#retDettes .dgain[data-dep-id="' + x.d.id + '"]');
+    if(el) el.textContent = gainMois >= 2 ? '−' + (gainMois/12).toFixed(1).replace('.', ',') + ' an(s) 🎉' : '';
+    if(gainMois > bestGain){ bestGain = gainMois; bestNom = x.d.nom; }
+  });
+  document.getElementById('rtDetteGain').textContent = bestGain >= 2 ? (bestGain/12).toFixed(1).replace('.', ',') + ' ans plus tôt' : '—';
+  document.getElementById('rtDetteGainSub').textContent = bestGain >= 2 ? bestNom : (r.pctDette > 0 ? 'aucun devancement notable' : 'mettez un % du surplus sur les dettes pour voir l’effet');
+
+  document.getElementById('retHint').textContent =
+    r.pctEpargne + ' % du surplus épargné à ' + String(r.rendement).replace('.', ',') + ' %/an · ' + r.pctDette + ' % vers les dettes · inflation ' + String(state.previsions.inflation).replace('.', ',') + ' %.';
+
+  /* Graphique : flux annuels (gauche) + épargne (droite) */
+  if(typeof Chart !== 'undefined'){
+    if(charts.ret) charts.ret.destroy();
+    const ys = sim.years;
+    charts.ret = new Chart(document.getElementById('chartRet'), {
+      data: {
+        labels: ys.map(y => y.year),
+        datasets: [
+          { type:'line', label:'Épargne accumulée', yAxisID:'y2', data: ys.map(y => Math.round(y.ep)),
+            borderColor:'#0C6B4F', backgroundColor:'rgba(12,107,79,.12)', fill:true, tension:.3, pointRadius:0, borderWidth:2.5, order:1 },
+          { type:'line', label:'Revenus (payes + rentes)', data: ys.map(y => Math.round(y.travail + y.rentes)),
+            borderColor:'#2E7DA1', backgroundColor:'#2E7DA1', tension:.25, pointRadius:0, borderWidth:2, order:2 },
+          { type:'line', label:'Dépenses', data: ys.map(y => Math.round(y.dep)),
+            borderColor:'#B4553B', backgroundColor:'#B4553B', borderDash:[6,4], tension:.25, pointRadius:0, borderWidth:2, order:3 }
+        ]
+      },
+      options: { maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+        plugins: { legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, borderRadius:3, useBorderRadius:true } },
+          tooltip:{ callbacks:{ label: c => ' ' + c.dataset.label + ' : ' + fmt$(c.parsed.y) + (c.dataset.yAxisID === 'y2' ? '' : ' /an') } } },
+        scales: {
+          x:{ grid:{display:false}, ticks:{ maxTicksLimit:14 } },
+          y:{ position:'left', grid:{color:'#EDF1EC'}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Flux annuels' } },
+          y2:{ position:'right', grid:{display:false}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Épargne' } }
+        } }
+    });
+  }
+
+  /* Résumé en mots */
+  const rets = sim.persons.map(x => x.nom + ' en ' + mToLabel(x.mRetraite) + ' (' + (x.mRetraite - x.mNaiss >= 0 ? Math.floor((x.mRetraite - x.mNaiss)/12) : '?') + ' ans)').join(', ');
+  document.getElementById('retResume').innerHTML =
+    '🌅 Retraites : <strong>' + rets + '</strong>. Épargne au dernier départ : <strong>' + fmt$(sim.epRetraite || 0) + '</strong>. ' +
+    (sim.epuiseM === null
+      ? 'Avec vos rentes et vos retraits, <strong style="color:var(--primary)">l’épargne tient jusqu’à la fin de la projection (95 ans)</strong>.'
+      : '<strong style="color:var(--neg)">L’épargne s’épuise en ' + mToLabel(sim.epuiseM) + '</strong> — jouez avec les leviers ci-dessus (% épargné, âges de retraite, dettes) pour corriger le tir.');
+
+  /* Tableau : chaque année jusqu'à dernière retraite + 5 ans, ensuite aux 5 ans */
+  const tb = document.getElementById('retTableBody');
+  tb.innerHTML = '';
+  const cutFull = lastYear + 5;
+  sim.years.forEach((y, i) => {
+    if(y.year > cutFull && (y.year % 5 !== 0) && i !== sim.years.length - 1) return;
+    const tr = document.createElement('tr');
+    const ages = y.ages.map(a => a.nom.slice(0, 6) + ' ' + a.age).join(' · ');
+    tr.innerHTML = '<td style="text-align:left; font-weight:600;">' + y.year + '</td>' +
+      '<td style="text-align:left;" data-l="Âges">' + esc(ages) + '</td>' +
+      '<td class="num" data-l="Payes">' + fmt$(y.travail) + '</td>' +
+      '<td class="num" data-l="RRQ + PSV">' + fmt$(y.rentes) + '</td>' +
+      '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + '</td>' +
+      '<td class="num" data-l="Épargne au 31 déc." style="font-weight:600; color:' + (y.ep > 0 ? 'var(--primary)' : 'var(--neg)') + ';">' + fmt$(y.ep) + '</td>';
+    tb.appendChild(tr);
+  });
+}
+
+function renderRetraite(){
+  buildRetParams();
+  renderRetResultats();
+}
+
+/* Écouteurs des paramètres épargne/stratégie (construits une seule fois) */
+(function(){
+  const bind = (id, apply) => {
+    document.getElementById(id).addEventListener('change', () => {
+      apply(document.getElementById(id));
+      markDirty(); renderRetResultats();
+    });
+  };
+  bind('rEpargne', inp => { state.retraite.epargneActuelle = Math.max(0, parseFloat(inp.value) || 0); });
+  bind('rRendement', inp => { state.retraite.rendement = Math.min(12, Math.max(0, parseFloat(inp.value) || 0)); inp.value = state.retraite.rendement; });
+  bind('rPsv', inp => { state.retraite.psv65 = Math.max(0, parseFloat(inp.value) || 0); });
+  bind('rPctEpargne', inp => {
+    const r = state.retraite;
+    r.pctEpargne = Math.min(100, Math.max(0, parseInt(inp.value, 10) || 0));
+    if(r.pctEpargne + r.pctDette > 100){ r.pctDette = 100 - r.pctEpargne; document.getElementById('rPctDette').value = r.pctDette; }
+    inp.value = r.pctEpargne;
+  });
+  bind('rPctDette', inp => {
+    const r = state.retraite;
+    r.pctDette = Math.min(100, Math.max(0, parseInt(inp.value, 10) || 0));
+    if(r.pctEpargne + r.pctDette > 100){ r.pctEpargne = 100 - r.pctDette; document.getElementById('rPctEpargne').value = r.pctEpargne; }
+    inp.value = r.pctDette;
+  });
+})();
 
 /* ═══════════════ Init ═══════════════ */
 document.getElementById('btnSave').addEventListener('click', () => saveState(true));
