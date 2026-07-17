@@ -170,6 +170,34 @@
   td .tip::after{left:auto; right:-10px; transform:none;}
   td .tip::before{left:auto; right:-6px; transform:none;}
 
+  /* ── Fenêtre détail d'une année (Prévisions) ── */
+  .modal-back{position:fixed; inset:0; background:rgba(28,43,36,.45); z-index:90; display:none; align-items:flex-start; justify-content:center; padding:28px 14px; overflow-y:auto; overscroll-behavior:contain;}
+  .modal-back.show{display:flex;}
+  .modal{background:var(--surface); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.35); max-width:880px; width:100%; padding:22px 22px 26px; position:relative;}
+  .modal h3{font-family:'Fraunces',serif; font-size:1.35rem; font-weight:700; margin-bottom:2px; padding-right:44px;}
+  .modal .msum{font-size:.88rem; color:var(--muted); margin-bottom:16px;}
+  .modal .msum strong{color:var(--ink);}
+  .modal-close{position:absolute; top:10px; right:10px; border:none; background:#EDF1EC; color:var(--muted); font-size:1.05rem; border-radius:8px; cursor:pointer; width:40px; height:40px;}
+  .modal-close:hover{background:var(--neg-soft); color:var(--neg);}
+  .year-cols{display:grid; grid-template-columns:1.3fr 1fr; gap:22px; align-items:start;}
+  @media(max-width:720px){.year-cols{grid-template-columns:1fr;}}
+  .year-cols h4{font-family:'Fraunces',serif; font-size:.98rem; font-weight:700; border-bottom:2px solid var(--ink); padding-bottom:5px; margin-bottom:6px;}
+  .ydep{display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:.87rem;}
+  .ydep:last-child{border-bottom:none;}
+  .ydep .dot{flex:none;}
+  .ydep .ynom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ydep .amt{margin-left:auto; font-weight:600; white-space:nowrap;}
+  .delta{font-size:.7rem; font-weight:700; padding:1px 6px; border-radius:6px; white-space:nowrap; flex:none;}
+  .delta.up{color:#9C3D2E; background:#F6E9E5;}
+  .delta.down{color:#0C6B4F; background:#E3F0EA;}
+  .delta.new{color:#476178; background:#E8EEF3;}
+  .ychange{border:1px solid var(--line); border-left:4px solid var(--muted); border-radius:8px; padding:9px 12px; margin-bottom:8px; font-size:.86rem; background:#FBFCFA;}
+  .ychange.start{border-left-color:#2E7DA1;}
+  .ychange.end{border-left-color:#0C6B4F;}
+  .ychange .when{color:var(--muted); font-size:.8rem;}
+  .clickable-year{cursor:pointer;}
+
+  .dette-taux{width:74px !important; text-align:right; font-variant-numeric:tabular-nums;}
   .toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--ink); color:#fff; padding:12px 20px; border-radius:10px; font-size:.9rem; opacity:0; transition:all .3s; z-index:100; box-shadow:0 8px 30px rgba(0,0,0,.3); max-width:92vw;}
   .toast.show{transform:translateX(-50%) translateY(0); opacity:1;}
   footer{margin-top:30px; text-align:center; font-size:.78rem; color:var(--muted);}
@@ -211,6 +239,8 @@
     table.rwd tr:not(.open) td:nth-child(3){border-bottom:none;}
     /* Crayon et × plus gros au doigt */
     table.rwd .row-actions button{font-size:1.45rem; min-width:52px; min-height:52px;}
+    .dette-item .dgain{white-space:normal; margin-left:0; width:100%;}
+    .modal{padding:16px 14px 20px;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
@@ -307,6 +337,10 @@
           <label for="fCat">Catégorie</label>
           <select id="fCat"></select>
         </div>
+        <div class="field" id="fCatNewWrap" style="display:none;">
+          <label for="fCatNew">Nom de la nouvelle catégorie</label>
+          <input id="fCatNew" type="text" placeholder="Ex. : Coussin de sûreté">
+        </div>
         <div class="field">
           <label for="fFreq">Fréquence</label>
           <select id="fFreq">
@@ -395,7 +429,7 @@
     </div>
 
     <div class="panel">
-      <h2>Projection année par année <span class="tip" tabindex="0" data-tip="Barres = dépenses projetées. Lignes = revenus et surplus. Les marches d'escalier vers le bas dans les dépenses correspondent aux fins de dépenses (hypothèque payée, plan terminé…).">?</span></h2>
+      <h2>Projection année par année <span class="tip" tabindex="0" data-tip="Barres = dépenses projetées. Lignes = revenus et surplus. Cliquez sur une année (dans le graphique ou le tableau plus bas) pour ouvrir le détail : toutes les dépenses de l'année, leur variation vs l'année précédente, et ce qui commence ou se termine.">?</span></h2>
       <p class="hint" id="projHint">—</p>
       <div class="chart-holder" style="height:340px;"><canvas id="chartProj"></canvas></div>
     </div>
@@ -419,7 +453,7 @@
 
     <div class="panel">
       <h2>Tableau détaillé</h2>
-      <p class="hint">Montants annuels projetés, en dollars d'aujourd'hui gonflés selon vos hypothèses.</p>
+      <p class="hint">Montants annuels projetés, en dollars d'aujourd'hui gonflés selon vos hypothèses. Cliquez une année pour voir le détail de ses dépenses.</p>
       <table class="rwd" id="projTable">
         <thead><tr><th style="text-align:left;">Année</th><th>Revenus</th><th>Dépenses</th><th>Surplus</th><th>Taux d'épargne</th></tr></thead>
         <tbody id="projTableBody"></tbody>
@@ -527,7 +561,7 @@
           <input id="rPctEpargne" type="number" inputmode="numeric" min="0" max="100" step="5">
         </div>
         <div class="field">
-          <label for="rPctDette">% du surplus → dettes <span class="tip" tabindex="0" data-tip="Ce montant s'ajoute chaque mois aux paiements réguliers de la dette qui finit le plus tôt. Quand une dette meurt, son paiement retourne au surplus, et l'extra passe à la dette suivante. Une fois toutes les dettes payées, cette part rejoint l'épargne automatiquement. Approximation prudente (sans intérêts) : en réalité c'est encore plus payant.">?</span></label>
+          <label for="rPctDette">% du surplus → dettes <span class="tip" tabindex="0" data-tip="Ce montant s'ajoute chaque mois aux paiements réguliers de la dette qui finit le plus tôt. Chaque dette porte un solde qui accumule de l'intérêt à son taux : rembourser d'avance évite ces intérêts (le gain s'affiche par dette). Quand une dette meurt, son paiement retourne au surplus et l'extra passe à la suivante ; toutes payées, cette part rejoint l'épargne automatiquement.">?</span></label>
           <input id="rPctDette" type="number" inputmode="numeric" min="0" max="100" step="5">
         </div>
         <div class="field">
@@ -536,7 +570,7 @@
         </div>
       </div>
       <div id="retDettesBox" style="margin-top:16px;">
-        <h2 style="font-size:1rem;">Dettes accélérables <span class="tip" tabindex="0" data-tip="Les dépenses avec une date de fin peuvent recevoir l'extra « % du surplus → dettes ». Cochées = accélérées (la plus proche de sa fin d'abord). Le gain d'années s'affiche à droite quand la stratégie en devance la fin.">?</span></h2>
+        <h2 style="font-size:1rem;">Dettes accélérables <span class="tip" tabindex="0" data-tip="Les dépenses avec une date de fin peuvent recevoir l'extra « % du surplus → dettes ». Cochées = accélérées (la plus proche de sa fin d'abord). Ajustez le taux d'intérêt de chaque dette : c'est lui qui détermine les intérêts évités par le remboursement anticipé. Le gain (années + intérêts) s'affiche à droite.">?</span></h2>
         <div id="retDettes"></div>
       </div>
     </div>
@@ -583,6 +617,25 @@
   </div>
 
   <footer>Budget partagé Martin &amp; Marie-Josée · Sauvegardé dans Mission Control · Montants en dollars canadiens</footer>
+</div>
+
+<!-- Fenêtre détail d'une année (Prévisions) -->
+<div class="modal-back" id="yearModal">
+  <div class="modal">
+    <button class="modal-close" id="yearModalClose" title="Fermer">✕</button>
+    <h3 id="ymTitle">—</h3>
+    <p class="msum" id="ymSummary">—</p>
+    <div class="year-cols">
+      <div>
+        <h4>Dépenses de l'année</h4>
+        <div id="ymList"></div>
+      </div>
+      <div>
+        <h4>Changements durant l'année</h4>
+        <div id="ymChanges"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -653,6 +706,19 @@ function migrate(s){
   if(!Array.isArray(s.categories) || !s.categories.length){
     s.categories = [{ id:'autre', nom:'Autre', hex:'#5A5F6E' }];
   }
+  /* Catégorie « Coussin de sûreté » (demande Martin 2026-07-16) */
+  if(!s.categories.find(c => c.id === 'coussin') && !s.categories.find(c => normTxt(c.nom).includes('coussin'))){
+    s.categories.push({ id:'coussin', nom:'Coussin de sûreté', hex:'#0E7490' });
+  }
+  /* Réparation : dépenses dont la catégorie n'existe pas (ex. « __new__ » laissé
+     par l'ancien prompt() bloqué sur mobile) → Coussin si le nom le suggère, sinon Autre */
+  s.depenses.forEach(d => {
+    if(!s.categories.find(c => c.id === d.cat)){
+      const cCoussin = s.categories.find(c => c.id === 'coussin' || normTxt(c.nom).includes('coussin'));
+      d.cat = (cCoussin && normTxt(d.nom).includes('coussin')) ? cCoussin.id : 'autre';
+    }
+    if(d.detteTaux === undefined) d.detteTaux = 4.5;
+  });
   if(!s.seq) s.seq = s.depenses.length + 100;
   return s;
 }
@@ -1081,14 +1147,22 @@ function addExpense(){
   if(!nom){ toast('Donnez un nom à la dépense.'); return; }
   if(!amount || amount <= 0){ toast('Entrez un montant valide.'); return; }
   if(catId === '__new__'){
-    const nomCat = prompt('Nom de la nouvelle catégorie :');
-    if(!nomCat) return;
-    const palette = ['#0C6B4F','#2E7DA1','#C99A2E','#7A5CA8','#B4553B','#4C8A57','#8A6A4F','#476178','#9A4D74','#5A5F6E'];
-    catId = 'cat' + Date.now();
-    state.categories.push({ id:catId, nom:nomCat.trim(), hex:palette[state.categories.length % palette.length] });
+    /* Champ inline (pas de prompt() — bloqué sur certains mobiles/PWA) */
+    const nomCat = (document.getElementById('fCatNew').value || '').trim();
+    if(!nomCat){ toast('Écrivez le nom de la nouvelle catégorie dans le champ juste à côté.'); return; }
+    const existante = state.categories.find(c => normTxt(c.nom) === normTxt(nomCat));
+    if(existante){
+      catId = existante.id;
+    }else{
+      const palette = ['#0C6B4F','#2E7DA1','#C99A2E','#7A5CA8','#B4553B','#4C8A57','#8A6A4F','#476178','#9A4D74','#5A5F6E'];
+      catId = 'cat' + Date.now();
+      state.categories.push({ id:catId, nom:nomCat, hex:palette[state.categories.length % palette.length] });
+    }
+    document.getElementById('fCatNew').value = '';
+    document.getElementById('fCatNewWrap').style.display = 'none';
   }
   state.seq = (state.seq || 100) + 1;
-  const dep = { id:'d' + state.seq, nom, cat:catId, freq, montant:amount, note, echeance:'', debut:debut || '', fin:fin || '', idx:true };
+  const dep = { id:'d' + state.seq, nom, cat:catId, freq, montant:amount, note, echeance:'', debut:debut || '', fin:fin || '', idx:true, detteTaux:4.5 };
   state.depenses.push(dep);
   ['fName','fAmount','fNote','fFin','fDebut'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('impactBox').classList.remove('show');
@@ -1174,8 +1248,11 @@ function renderPrevisions(){
         ]
       },
       options: { maintainAspectRatio:false,
+        onHover: (e) => {
+          if(e.native && e.native.target) e.native.target.style.cursor = 'pointer';
+        },
         plugins: { legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, borderRadius:3, useBorderRadius:true } },
-          tooltip:{ callbacks:{ label: c => ' ' + c.dataset.label + ' : ' + fmt$(c.parsed.y) + ' /an' } } },
+          tooltip:{ callbacks:{ label: c => ' ' + c.dataset.label + ' : ' + fmt$(c.parsed.y) + ' /an', footer: () => 'Cliquez pour le détail de l’année' } } },
         scales: { x:{ grid:{display:false} }, y:{ grid:{color:'#EDF1EC'}, ticks:{ callback: v => fmt$(v) } } } }
     });
   }
@@ -1235,20 +1312,135 @@ function renderPrevisions(){
     tb.appendChild(tr);
   });
 
-  /* Tableau détaillé */
+  /* Tableau détaillé — chaque ligne ouvre le détail de l'année */
   const pb = document.getElementById('projTableBody');
   pb.innerHTML = '';
   proj.forEach(y => {
     const rate = y.rev > 0 ? y.surplus / y.rev * 100 : 0;
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td style="text-align:left; font-weight:600;">' + y.year + '</td>' +
+    tr.className = 'clickable-year';
+    tr.title = 'Cliquez pour le détail de ' + y.year;
+    tr.innerHTML = '<td style="text-align:left; font-weight:600;">' + y.year + ' <span style="color:var(--muted); font-weight:400; font-size:.8rem;">🔍</span></td>' +
       '<td class="num" data-l="Revenus">' + fmt$(y.rev) + '</td>' +
       '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + '</td>' +
       '<td class="num" data-l="Surplus" style="color:' + (y.surplus >= 0 ? 'var(--primary)' : 'var(--neg)') + '; font-weight:600;">' + fmt$(y.surplus) + '</td>' +
       '<td class="num" data-l="Taux d’épargne">' + pct(rate) + '</td>';
+    tr.addEventListener('click', () => openYearModal(y.year));
     pb.appendChild(tr);
   });
 }
+
+/* ═══ Fenêtre détail d'une année ═══ */
+/* Clic direct sur le canvas de projection : la position X donne l'année.
+   (Écouteur DOM plutôt que l'onClick de Chart.js — plus fiable.) */
+document.getElementById('chartProj').addEventListener('click', (ev) => {
+  const chartInst = charts.proj;
+  if(!chartInst || !state) return;
+  const rect = chartInst.canvas.getBoundingClientRect();
+  const idx = Math.round(chartInst.scales.x.getValueForPixel(ev.clientX - rect.left));
+  const prj = buildProjection();
+  if(idx >= 0 && idx < prj.length) openYearModal(prj[idx].year);
+});
+
+function yearAmountFor(d, y, startYear, inflPct){
+  let mStart = 1, mEnd = 12;
+  const db = finYM(d.debut);
+  if(db){ if(db.y > y) return 0; if(db.y === y) mStart = db.m; }
+  const f = finYM(d.fin);
+  if(f){ if(f.y < y) return 0; if(f.y === y) mEnd = f.m; }
+  const months = Math.max(0, mEnd - mStart + 1);
+  if(!months) return 0;
+  const factor = d.idx === false ? 1 : Math.pow(1 + inflPct/100, y - startYear);
+  return mensualise(d) * factor * months;
+}
+
+function openYearModal(year){
+  const p = state.previsions;
+  const startYear = new Date().getFullYear();
+  const yRow = buildProjection().find(x => x.year === year);
+  if(!yRow) return;
+
+  document.getElementById('ymTitle').textContent = 'Projection ' + year;
+  document.getElementById('ymSummary').innerHTML =
+    'Revenus <strong>' + fmt$(yRow.rev) + '</strong> · Dépenses <strong>' + fmt$(yRow.dep) + '</strong> · Surplus ' +
+    '<strong style="color:' + (yRow.surplus >= 0 ? 'var(--primary)' : 'var(--neg)') + '">' + fmt$(yRow.surplus) + '</strong>' +
+    (year > startYear ? ' · flèches = variation vs ' + (year - 1) : '');
+
+  /* Colonne gauche : toutes les dépenses de l'année, avec variation vs année précédente */
+  const list = document.getElementById('ymList');
+  list.innerHTML = '';
+  const rows = state.depenses
+    .map(d => ({ d, now: yearAmountFor(d, year, startYear, p.inflation || 0),
+                 prev: year > startYear ? yearAmountFor(d, year - 1, startYear, p.inflation || 0) : null }))
+    .filter(x => x.now > 0)
+    .sort((a,b) => b.now - a.now);
+  rows.forEach(x => {
+    const c = cat(x.d.cat);
+    let deltaHtml = '';
+    if(x.prev !== null){
+      if(x.prev === 0){
+        deltaHtml = '<span class="delta new">nouveau</span>';
+      }else{
+        const dv = (x.now - x.prev) / x.prev * 100;
+        if(Math.abs(dv) >= 0.05){
+          deltaHtml = dv > 0
+            ? '<span class="delta up">▲ +' + dv.toFixed(1).replace('.', ',') + ' %</span>'
+            : '<span class="delta down">▼ ' + dv.toFixed(1).replace('.', ',') + ' %</span>';
+        }
+      }
+    }
+    const div = document.createElement('div');
+    div.className = 'ydep';
+    div.innerHTML = '<span class="dot" style="background:' + c.hex + '" title="' + esc(c.nom) + '"></span>' +
+      '<span class="ynom" title="' + esc(x.d.nom) + ' (' + esc(c.nom) + ')">' + esc(x.d.nom) + '</span>' +
+      deltaHtml +
+      '<span class="amt num">' + fmt$(x.now) + '</span>';
+    list.appendChild(div);
+  });
+  if(!rows.length) list.innerHTML = '<p class="hint" style="margin:0;">Aucune dépense active cette année.</p>';
+
+  /* Colonne droite : ce qui commence et ce qui se termine durant l'année */
+  const ch = document.getElementById('ymChanges');
+  ch.innerHTML = '';
+  const inflFull = y2 => Math.pow(1 + (p.inflation || 0)/100, y2 - startYear);
+  state.depenses
+    .filter(d => { const s2 = finYM(d.debut); return s2 && s2.y === year; })
+    .sort((a,b) => (a.debut < b.debut ? -1 : 1))
+    .forEach(d => {
+      const c = cat(d.cat);
+      const full = annualise(d) * (d.idx === false ? 1 : inflFull(year));
+      const div = document.createElement('div');
+      div.className = 'ychange start';
+      div.innerHTML = '➕ <strong>' + esc(d.nom) + '</strong> <span class="chip" style="background:' + c.hex + '; margin-left:4px;">' + esc(c.nom) + '</span><br>' +
+        '<span class="when">débute le ' + fmtDateFr(d.debut) + ' · ' + fmt$(full) + ' /an à plein régime</span>';
+      ch.appendChild(div);
+    });
+  state.depenses
+    .filter(d => { const f = finYM(d.fin); return f && f.y === year; })
+    .sort((a,b) => (a.fin < b.fin ? -1 : 1))
+    .forEach(d => {
+      const c = cat(d.cat);
+      const full = annualise(d) * (d.idx === false ? 1 : inflFull(year));
+      const div = document.createElement('div');
+      div.className = 'ychange end';
+      div.innerHTML = '✔ <strong>' + esc(d.nom) + '</strong> <span class="chip" style="background:' + c.hex + '; margin-left:4px;">' + esc(c.nom) + '</span><br>' +
+        '<span class="when">se termine le ' + fmtDateFr(d.fin) + ' · libère ' + fmt$(full) + ' /an par la suite</span>';
+      ch.appendChild(div);
+    });
+  if(!ch.children.length){
+    ch.innerHTML = '<p class="hint" style="margin:0;">Aucun début ni fin de dépense cette année — seule l’inflation fait bouger les montants.</p>';
+  }
+
+  document.getElementById('yearModal').classList.add('show');
+}
+function closeYearModal(){
+  document.getElementById('yearModal').classList.remove('show');
+}
+document.getElementById('yearModalClose').addEventListener('click', closeYearModal);
+document.getElementById('yearModal').addEventListener('click', (e) => {
+  if(e.target === document.getElementById('yearModal')) closeYearModal();
+});
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeYearModal(); });
 
 ['pInflation','pCroissance'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => {
@@ -1471,16 +1663,24 @@ function simulateRetraite(){
   const lastRet = Math.max(m0, ...persons.map(x => x.mRetraite));
   const mEnd = Math.max(...persons.map(x => x.mNaiss)) + 95*12;
 
-  /* Dettes accélérables : restant ≈ paiement mensuel × mois restants (sans intérêts, prudent) */
+  /* Dettes accélérables — modèle avec INTÉRÊTS : le solde de départ est la
+     valeur actualisée des paiements restants au taux de la dette. Chaque mois,
+     le solde accumule l'intérêt puis le paiement régulier l'amortit — il tombe
+     naturellement à zéro à la date de fin prévue. L'extra du surplus écrase le
+     solde plus vite, ce qui évite de VRAIS intérêts (comparez le taux de la
+     dette au rendement de l'épargne pour choisir la meilleure stratégie). */
   const debts = state.depenses
     .filter(d => d.dette && d.fin)
     .map(d => {
       const mFin = isoToM(d.fin);
       const mDeb = d.debut ? Math.max(isoToM(d.debut), m0) : m0;
-      return { d, mensuel: mensualise(d), mDeb, mFinOrig: mFin,
-               restant: mensualise(d) * Math.max(0, mFin - mDeb + 1), mort: null };
+      const N = Math.max(0, mFin - mDeb + 1);
+      const pay = mensualise(d);
+      const im = Math.pow(1 + Math.max(0, d.detteTaux !== undefined ? d.detteTaux : 4.5)/100, 1/12) - 1;
+      const bal = im > 0 ? pay * (1 - Math.pow(1 + im, -N)) / im : pay * N;
+      return { d, mensuel: pay, mDeb, mFinOrig: mFin, im, bal, nominal: pay * N, paye: 0, mort: null };
     })
-    .filter(x => x.restant > 0 && x.mFinOrig >= m0)
+    .filter(x => x.bal > 0 && x.mFinOrig >= m0)
     .sort((a,b) => a.mFinOrig - b.mFinOrig);
 
   let ep = Math.max(0, r.epargneActuelle || 0);
@@ -1524,12 +1724,13 @@ function simulateRetraite(){
       dep += mensualise(d) * (d.idx === false ? 1 : infl);
     });
 
-    /* Paiements réguliers du mois réduisent le restant des dettes vivantes */
+    /* Intérêt du mois + paiement régulier amortissent le solde des dettes vivantes */
     debts.forEach(x => {
-      if(x.mort !== null || x.restant <= 0) return;
+      if(x.mort !== null || x.bal <= 0) return;
       if(m < x.mDeb || m > x.mFinOrig) return;
-      x.restant -= x.mensuel;
-      if(x.restant <= 0) x.mort = m + 1;
+      x.bal = x.bal * (1 + x.im) - x.mensuel;
+      x.paye += x.mensuel;
+      if(x.bal <= 0.005){ x.bal = 0; x.mort = m + 1; }
     });
 
     /* Allocation du surplus */
@@ -1539,10 +1740,10 @@ function simulateRetraite(){
       let vers = surplus * pctE;
       for(const x of debts){
         if(extra <= 0) break;
-        if(x.mort !== null || x.restant <= 0 || m < x.mDeb) continue;
-        const take = Math.min(extra, x.restant);
-        x.restant -= take; extra -= take;
-        if(x.restant <= 0) x.mort = m + 1;
+        if(x.mort !== null || x.bal <= 0 || m < x.mDeb) continue;
+        const take = Math.min(extra, x.bal);
+        x.bal -= take; x.paye += take; extra -= take;
+        if(x.bal <= 0.005){ x.bal = 0; x.mort = m + 1; }
       }
       ep += vers + extra; /* extra dette inutilisé (plus de dettes) → épargne */
     }else{
@@ -1567,7 +1768,11 @@ function simulateRetraite(){
     }
   }
 
-  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite };
+  /* Intérêts réellement évités : total nominal des paiements prévus − total payé
+     (une dette tuée d'avance coûte moins cher que la somme de ses paiements) */
+  const interetsEvites = debts.reduce((s,x) => s + (x.mort !== null ? Math.max(0, x.nominal - x.paye) : 0), 0);
+
+  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites };
 }
 
 /* Construction des cartes-personnes et de la liste des dettes (une fois par affichage d'onglet) */
@@ -1632,6 +1837,22 @@ function buildRetParams(){
     const span = document.createElement('span');
     span.innerHTML = '<strong>' + esc(d.nom) + '</strong><span class="dsub"> · ' + fmt$(mensualise(d)) + ' /mois · fin prévue ' + fmtDateFr(d.fin) + '</span>';
     div.appendChild(span);
+    const rate = document.createElement('input');
+    rate.type = 'number'; rate.min = '0'; rate.max = '25'; rate.step = '0.1'; rate.inputMode = 'decimal';
+    rate.className = 'due-input dette-taux';
+    rate.value = d.detteTaux !== undefined ? d.detteTaux : 4.5;
+    rate.title = 'Taux d’intérêt annuel de cette dette (%) — détermine les intérêts évités par le remboursement anticipé';
+    rate.addEventListener('change', () => {
+      d.detteTaux = Math.min(25, Math.max(0, parseFloat(rate.value) || 0));
+      rate.value = d.detteTaux;
+      markDirty(); renderRetResultats();
+    });
+    const rlab = document.createElement('span');
+    rlab.className = 'dsub'; rlab.textContent = 'taux';
+    div.appendChild(rlab); div.appendChild(rate);
+    const rpct = document.createElement('span');
+    rpct.className = 'dsub'; rpct.textContent = '%';
+    div.appendChild(rpct);
     const gain = document.createElement('span');
     gain.className = 'dgain'; gain.dataset.depId = d.id;
     div.appendChild(gain);
@@ -1666,17 +1887,22 @@ function renderRetResultats(){
     vs.textContent = ages + ' — augmentez le % épargné, retardez une retraite ou réduisez les dépenses';
   }
 
-  /* Gains sur les dettes */
+  /* Gains sur les dettes : années gagnées + intérêts réellement évités */
   let bestGain = 0, bestNom = '';
   document.querySelectorAll('#retDettes .dgain').forEach(el => { el.textContent = ''; });
   sim.debts.forEach(x => {
     const gainMois = x.mort !== null ? Math.max(0, x.mFinOrig - (x.mort - 1)) : 0;
+    const evite = x.mort !== null ? Math.max(0, x.nominal - x.paye) : 0;
     const el = document.querySelector('#retDettes .dgain[data-dep-id="' + x.d.id + '"]');
-    if(el) el.textContent = gainMois >= 2 ? '−' + (gainMois/12).toFixed(1).replace('.', ',') + ' an(s) 🎉' : '';
+    if(el) el.textContent = gainMois >= 2
+      ? '−' + (gainMois/12).toFixed(1).replace('.', ',') + ' an(s) · ' + fmt$(evite) + ' d’intérêts évités 🎉'
+      : '';
     if(gainMois > bestGain){ bestGain = gainMois; bestNom = x.d.nom; }
   });
   document.getElementById('rtDetteGain').textContent = bestGain >= 2 ? (bestGain/12).toFixed(1).replace('.', ',') + ' ans plus tôt' : '—';
-  document.getElementById('rtDetteGainSub').textContent = bestGain >= 2 ? bestNom : (r.pctDette > 0 ? 'aucun devancement notable' : 'mettez un % du surplus sur les dettes pour voir l’effet');
+  document.getElementById('rtDetteGainSub').textContent = bestGain >= 2
+    ? bestNom + ' · ' + fmt$(sim.interetsEvites) + ' d’intérêts évités au total'
+    : (r.pctDette > 0 ? 'aucun devancement notable' : 'mettez un % du surplus sur les dettes pour voir l’effet');
 
   document.getElementById('retHint').textContent =
     r.pctEpargne + ' % du surplus épargné à ' + String(r.rendement).replace('.', ',') + ' %/an · ' + r.pctDette + ' % vers les dettes · inflation ' + String(state.previsions.inflation).replace('.', ',') + ' %.';
@@ -1768,6 +1994,10 @@ function renderRetraite(){
 document.getElementById('btnSave').addEventListener('click', () => saveState(true));
 document.getElementById('searchDep').addEventListener('input', () => { if(state) renderRegistry(); });
 document.getElementById('btnAdd').addEventListener('click', addExpense);
+document.getElementById('fCat').addEventListener('change', () => {
+  document.getElementById('fCatNewWrap').style.display =
+    document.getElementById('fCat').value === '__new__' ? '' : 'none';
+});
 document.getElementById('fAmount').addEventListener('input', updateImpact);
 document.getElementById('fFreq').addEventListener('change', updateImpact);
 document.getElementById('fDebut').addEventListener('change', updateImpact);
