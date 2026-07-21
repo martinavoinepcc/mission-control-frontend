@@ -570,8 +570,46 @@
         </div>
       </div>
       <div id="retDettesBox" style="margin-top:16px;">
-        <h2 style="font-size:1rem;">Dettes accélérables <span class="tip" tabindex="0" data-tip="Les dépenses avec une date de fin peuvent recevoir l'extra « % du surplus → dettes ». Cochées = accélérées (la plus proche de sa fin d'abord). Ajustez le taux d'intérêt de chaque dette : c'est lui qui détermine les intérêts évités par le remboursement anticipé. Le gain (années + intérêts) s'affiche à droite.">?</span></h2>
+        <h2 style="font-size:1rem;">Dettes accélérables <span class="tip" tabindex="0" data-tip="Les dépenses avec une date de fin sont vos dettes. L'extra « % du surplus → dettes » attaque toujours d'abord celle au TAUX LE PLUS ÉLEVÉ (méthode avalanche, la plus payante). Ajustez le taux de chaque dette. Quand une dette est payée, son paiement disparaît de vos dépenses et l'extra passe à la suivante — le solde total descend dans le graphique et le tableau.">?</span></h2>
         <div id="retDettes"></div>
+      </div>
+    </div>
+
+    <!-- Portrait fiscal des retraits -->
+    <div class="panel">
+      <h2>Retraits &amp; impôt à la retraite <span class="tip" tabindex="0" data-tip="À la retraite, vos dépenses sont couvertes par : rentes (RRQ + PSV) + retraits de placements. L'impôt est calculé automatiquement sur le revenu imposable (rentes + part imposable des retraits) selon les tranches marginales combinées Québec, seuils indexés à l'inflation. La simulation retire juste assez pour couvrir vos dépenses APRÈS impôt — ou le montant fixe que vous imposez ci-dessous.">?</span></h2>
+      <p class="hint">Le vrai portrait : combien sortir des placements, l'impôt payé dessus, et l'effet sur l'épargne.</p>
+      <div class="prev-params">
+        <div class="field">
+          <label for="rRetraitAnnuel">Retrait annuel imposé ($) <span class="tip" tabindex="0" data-tip="Laissez 0 = mode automatique (la simulation retire juste ce qu'il faut pour couvrir les dépenses après impôt). Mettez un montant (ex. 200 000 $) pour imposer VOTRE stratégie : la simulation sortira au moins ce montant/an, paiera l'impôt, et rebancarisera le net non dépensé. Parfait pour tester « je sors 200 k pendant 5 ans ».">?</span></label>
+          <input id="rRetraitAnnuel" type="number" inputmode="decimal" min="0" step="5000">
+        </div>
+        <div class="field">
+          <label for="rRetraitAnnees">Pendant (ans) <span class="tip" tabindex="0" data-tip="Nombre d'années où le retrait imposé ci-contre s'applique, à partir d'aujourd'hui. 0 = jusqu'à la fin. Après cette période, la simulation revient au mode automatique.">?</span></label>
+          <input id="rRetraitAnnees" type="number" inputmode="numeric" min="0" max="60" step="1">
+        </div>
+        <div class="field">
+          <label for="rPctImposable">% du retrait imposable <span class="tip" tabindex="0" data-tip="Quelle part de vos retraits est imposable. REER/FERR : 100 %. Placement non enregistré : souvent bien moins (seul le gain est imposé, pas le capital déjà taxé). CELI : 0 %. Société : selon la sortie. À valider avec ton fiscaliste.">?</span></label>
+          <input id="rPctImposable" type="number" inputmode="numeric" min="0" max="100" step="5">
+        </div>
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; margin-top:22px;">
+            <input id="rFractionner" type="checkbox" class="idx-check">
+            <span>Fractionner le revenu <span class="tip" tabindex="0" data-tip="Après 65 ans, un couple peut fractionner son revenu de pension 50/50 entre conjoints — deux fois moins de revenu dans les hautes tranches, donc beaucoup moins d'impôt. Coché = fractionnement appliqué (réaliste pour un couple).">?</span></span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <h2 style="font-size:1rem;">Entrées d'argent ponctuelles <span class="tip" tabindex="0" data-tip="Une rentrée d'argent future (vente de clinique, héritage, vente d'un chalet…). Indiquez l'année, le montant, et quelle part va au remboursement des dettes (attaque le taux le plus élevé) vs à l'épargne. L'événement s'ajoute automatiquement au bon moment dans la projection.">?</span></h2>
+        <p class="hint" style="margin-bottom:8px;">Ex. : vente de la clinique de Marie-Josée. La part « dette » attaque le taux le plus élevé ; le reste va à l'épargne.</p>
+        <div class="add-form" id="evForm" style="grid-template-columns:1.4fr .7fr 1fr .9fr auto;">
+          <div class="field"><label for="evNom">Description</label><input id="evNom" type="text" placeholder="Ex. : Vente clinique"></div>
+          <div class="field"><label for="evAnnee">Année</label><input id="evAnnee" type="number" inputmode="numeric" min="2026" max="2085" step="1" placeholder="2044"></div>
+          <div class="field"><label for="evMontant">Montant ($)</label><input id="evMontant" type="number" inputmode="decimal" min="0" step="10000" placeholder="1 500 000"></div>
+          <div class="field"><label for="evPctDette">% vers dette</label><input id="evPctDette" type="number" inputmode="numeric" min="0" max="100" step="5" value="0"></div>
+          <button class="btn btn-primary" id="btnAddEvent" style="height:44px;">Ajouter</button>
+        </div>
+        <div id="evList" style="margin-top:10px;"></div>
       </div>
     </div>
 
@@ -596,6 +634,16 @@
         <div class="value num pos" id="rtDetteGain">—</div>
         <div class="sub" id="rtDetteGainSub">—</div>
       </div>
+      <div class="card">
+        <div class="label">Dette totale aujourd'hui <span class="tip" tabindex="0" data-tip="Le solde estimé de toutes vos dettes cochées (valeur actualisée des paiements restants à leur taux). Il descend dans le graphique et le tableau à mesure que vous remboursez.">?</span></div>
+        <div class="value num neg" id="rtDetteTotale">—</div>
+        <div class="sub" id="rtDetteTotaleSub">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Impôt à la retraite <span class="tip" tabindex="0" data-tip="Impôt annuel estimé la première année où vous êtes tous les deux à la retraite, sur vos rentes + retraits imposables, tranches combinées Québec.">?</span></div>
+        <div class="value num neg" id="rtImpot">—</div>
+        <div class="sub" id="rtImpotSub">—</div>
+      </div>
     </div>
 
     <div class="panel">
@@ -609,10 +657,10 @@
       <h2>Tableau détaillé</h2>
       <p class="hint">Toutes les années jusqu'à 5 ans après la dernière retraite, puis aux 5 ans. Montants annuels indexés.</p>
       <table class="rwd" id="retTable">
-        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Dépenses</th><th>Épargne au 31 déc.</th></tr></thead>
+        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Retrait</th><th>Impôt</th><th>Dépenses</th><th>Dette</th><th>Épargne au 31 déc.</th></tr></thead>
         <tbody id="retTableBody"></tbody>
       </table>
-      <div class="ret-note">Estimation simplifiée pour explorer des scénarios — pas un conseil financier. Impôts, REER/CELI et récupération fiscale de la PSV ne sont pas modélisés ; les payes sont vos montants nets actuels.</div>
+      <div class="ret-note">Estimation pour explorer des scénarios — <strong>pas un conseil financier</strong>. L'impôt utilise les tranches marginales combinées Québec ~2025 (seuils indexés à l'inflation) sur le revenu ordinaire ; la vraie facture dépend de la nature des revenus (gains en capital, dividendes, REER/FERR, CELI), du fractionnement réel et de crédits non modélisés. Les payes en emploi sont vos montants nets actuels. Valide avec ton fiscaliste.</div>
     </div>
   </div>
 
@@ -694,14 +742,21 @@ function migrate(s){
       { id:'p1', nom:'Marie-Josée', revenuNom:'MJB', dob:'1985-01-01', ageRetraite:65, rrqAge:65, rrq65:1350 },
       { id:'p2', nom:'Martin', revenuNom:'Martin', dob:'1983-02-18', ageRetraite:65, rrqAge:65, rrq65:1100 }
     ],
-    psv65: 734, epargneActuelle: 0, rendement: 4.0, pctEpargne: 50, pctDette: 0
+    psv65: 734, epargneActuelle: 0, rendement: 4.0, pctEpargne: 50, pctDette: 0,
+    // Retraits de placement à la retraite (portrait fiscal)
+    retraitAnnuel: 0,      // $ retirés/an des placements (0 = automatique : juste de quoi couvrir les dépenses)
+    retraitAnnees: 0,      // pendant combien d'années ce retrait s'applique (0 = jusqu'à la fin)
+    pctImposable: 100,     // % du retrait qui est imposable (REER 100 %, non-enregistré souvent moins, CELI 0 %)
+    fractionner: true,     // fractionner le revenu de retraite entre conjoints (réaliste après 65 ans)
+    evenements: []         // entrées d'argent ponctuelles : [{id, nom, annee, montant, pctDette}]
   };
   if(!s.retraite) s.retraite = JSON.parse(JSON.stringify(RET_DEF));
   else{
-    ['psv65','epargneActuelle','rendement','pctEpargne','pctDette'].forEach(k => {
+    ['psv65','epargneActuelle','rendement','pctEpargne','pctDette','retraitAnnuel','retraitAnnees','pctImposable','fractionner'].forEach(k => {
       if(s.retraite[k] === undefined) s.retraite[k] = RET_DEF[k];
     });
     if(!Array.isArray(s.retraite.personnes) || !s.retraite.personnes.length) s.retraite.personnes = JSON.parse(JSON.stringify(RET_DEF.personnes));
+    if(!Array.isArray(s.retraite.evenements)) s.retraite.evenements = [];
   }
   if(!Array.isArray(s.categories) || !s.categories.length){
     s.categories = [{ id:'autre', nom:'Autre', hex:'#5A5F6E' }];
@@ -1642,10 +1697,41 @@ document.getElementById('btnAddHypo').addEventListener('click', () => {
 function isoToM(iso){ return parseInt(iso.slice(0,4),10)*12 + (parseInt(iso.slice(5,7),10)-1); }
 function mToLabel(m){ return Math.floor(m/12); }
 
+/* Tranches marginales d'imposition COMBINÉES fédéral + Québec, revenu ordinaire
+   (~2025, source Raymond Chabot / CFFP). [seuil, taux]. Le premier ~18 000 $ est
+   quasi exonéré par les crédits personnels de base. Les seuils sont indexés à
+   l'inflation dans les projections (comme dans la vraie vie) pour éviter que
+   l'inflation pousse artificiellement tout le monde dans les hautes tranches. */
+const TRANCHES_QC = [
+  [0, 0], [18000, 0.2653], [53000, 0.3212], [57000, 0.3612],
+  [106000, 0.4112], [115000, 0.4571], [132000, 0.4746], [178000, 0.5023], [253000, 0.5331]
+];
+function impotSurRevenu(revenu, f){
+  if(revenu <= 0) return 0;
+  f = f || 1;
+  let tax = 0;
+  for(let i = 0; i < TRANCHES_QC.length; i++){
+    const lo = TRANCHES_QC[i][0] * f;
+    const hi = (i + 1 < TRANCHES_QC.length) ? TRANCHES_QC[i + 1][0] * f : Infinity;
+    if(revenu > lo) tax += (Math.min(revenu, hi) - lo) * TRANCHES_QC[i][1];
+    else break;
+  }
+  return tax;
+}
+/* Impôt du ménage : avec fractionnement, le revenu de retraite est réparti 50/50
+   entre les deux conjoints (réaliste après 65 ans → deux fois moins de haut taux). */
+function impotMenage(revenu, fractionner, f){
+  return fractionner ? 2 * impotSurRevenu(revenu / 2, f) : impotSurRevenu(revenu, f);
+}
+
 function simulateRetraite(){
   const r = state.retraite, p = state.previsions;
   const now = new Date();
   const m0 = now.getFullYear()*12 + now.getMonth();
+  const pctImp = Math.max(0, Math.min(100, r.pctImposable !== undefined ? r.pctImposable : 100)) / 100;
+  const fractionner = r.fractionner !== false;
+  const retraitCibleAn = Math.max(0, r.retraitAnnuel || 0);
+  const retraitFinM = (r.retraitAnnees && r.retraitAnnees > 0) ? m0 + Math.round(r.retraitAnnees * 12) : Infinity;
 
   const persons = r.personnes.map(x => {
     const mNaiss = isoToM(x.dob || '1984-01-01');
@@ -1678,10 +1764,32 @@ function simulateRetraite(){
       const pay = mensualise(d);
       const im = Math.pow(1 + Math.max(0, d.detteTaux !== undefined ? d.detteTaux : 4.5)/100, 1/12) - 1;
       const bal = im > 0 ? pay * (1 - Math.pow(1 + im, -N)) / im : pay * N;
-      return { d, mensuel: pay, mDeb, mFinOrig: mFin, im, bal, nominal: pay * N, paye: 0, mort: null };
+      return { d, mensuel: pay, mDeb, mFinOrig: mFin, im, bal, bal0: bal, taux: (d.detteTaux !== undefined ? d.detteTaux : 4.5), nominal: pay * N, paye: 0, mort: null };
     })
     .filter(x => x.bal > 0 && x.mFinOrig >= m0)
-    .sort((a,b) => a.mFinOrig - b.mFinOrig);
+    .sort((a,b) => b.im - a.im); /* AVALANCHE : le taux le plus élevé d'abord (demande Martin) */
+
+  /* Attaque un montant sur les dettes vivantes, du taux le plus élevé au plus bas.
+     Retourne ce qui reste (aucune dette à attaquer). */
+  function attaquerDettes(montant, m){
+    for(const x of debts){
+      if(montant <= 0) break;
+      if(x.mort !== null || x.bal <= 0 || m < x.mDeb) continue;
+      const take = Math.min(montant, x.bal);
+      x.bal -= take; x.paye += take; montant -= take;
+      if(x.bal <= 0.005){ x.bal = 0; x.mort = m + 1; }
+    }
+    return montant;
+  }
+
+  /* Entrées d'argent ponctuelles, indexées par année d'arrivée (mois de janvier) */
+  const evParMois = {};
+  (r.evenements || []).forEach(e => {
+    const an = parseInt(e.annee, 10);
+    if(!an || !e.montant) return;
+    const mm = an * 12; /* janvier de l'année */
+    (evParMois[mm] = evParMois[mm] || []).push(e);
+  });
 
   let ep = Math.max(0, r.epargneActuelle || 0);
   const rMens = Math.pow(1 + Math.max(0, r.rendement || 0)/100, 1/12);
@@ -1690,14 +1798,25 @@ function simulateRetraite(){
 
   let epuiseM = null, epRetraite = null, renteRetraite = null, retraitRetraite = null;
   const years = [];
-  let acc = { travail:0, rentes:0, dep:0 };
+  let acc = { travail:0, rentes:0, dep:0, retrait:0, impot:0, entrees:0 };
 
   for(let m = m0; m <= mEnd; m++){
     const k = Math.floor((m - m0)/12);
     const infl = Math.pow(1 + (p.inflation || 0)/100, k);
     const grow = Math.pow(1 + (p.croissance || 0)/100, k);
 
-    /* Payes (26 payes/an → équivalent mensuel) */
+    /* Entrées ponctuelles du mois (vente de clinique, héritage…) : réparties
+       %dette (avalanche, taux le plus élevé) et le reste à l'épargne. */
+    let entreeMois = 0;
+    (evParMois[m] || []).forEach(e => {
+      const montant = Math.max(0, e.montant);
+      entreeMois += montant;
+      const versDette = montant * Math.max(0, Math.min(100, e.pctDette || 0)) / 100;
+      const reste = attaquerDettes(versDette, m);
+      ep += (montant - versDette) + reste; /* part épargne + ce qui dépasse les dettes */
+    });
+
+    /* Payes (26 payes/an → équivalent mensuel), nettes d'impôt */
     let travail = 0;
     state.revenus.forEach(rv => {
       const pers = persons.find(x => x.revenuNom === rv.nom);
@@ -1705,7 +1824,7 @@ function simulateRetraite(){
       if(m < mRet) travail += rv.montant * 26/12 * grow;
     });
 
-    /* Rentes publiques */
+    /* Rentes publiques (RRQ + PSV) — IMPOSABLES */
     let rentes = 0;
     persons.forEach(x => {
       if(m >= x.mRrq) rentes += x.rrq65 * x.facteurRrq * infl;
@@ -1733,46 +1852,71 @@ function simulateRetraite(){
       if(x.bal <= 0.005){ x.bal = 0; x.mort = m + 1; }
     });
 
-    /* Allocation du surplus */
-    const surplus = travail + rentes - dep;
-    if(surplus > 0){
-      let extra = surplus * pctD;
-      let vers = surplus * pctE;
-      for(const x of debts){
-        if(extra <= 0) break;
-        if(x.mort !== null || x.bal <= 0 || m < x.mDeb) continue;
-        const take = Math.min(extra, x.bal);
-        x.bal -= take; x.paye += take; extra -= take;
-        if(x.bal <= 0.005){ x.bal = 0; x.mort = m + 1; }
-      }
-      ep += vers + extra; /* extra dette inutilisé (plus de dettes) → épargne */
-    }else{
-      ep += surplus;
-      if(ep < 0){ if(epuiseM === null) epuiseM = m; ep = 0; }
-    }
-    ep *= rMens;
+    /* ── Revenu, impôt et retrait du mois ──
+       Impôt calculé sur le revenu IMPOSABLE (rentes + part imposable du retrait),
+       seuils indexés à l'inflation, fractionnement optionnel entre conjoints.
+       On résout le retrait qui couvre les dépenses APRÈS impôt. */
+    let retraitM = 0, impotM = 0;
+    const taxRentesM = impotMenage(rentes * 12, fractionner, infl) / 12;
+    const netSansRetrait = travail + rentes - taxRentesM;
 
-    /* Jalons */
+    if(netSansRetrait >= dep){
+      /* Surplus (années de travail surtout) : impôt = sur les rentes seules,
+         le surplus net est réparti épargne / dettes comme avant. */
+      impotM = taxRentesM;
+      const surplus = netSansRetrait - dep;
+      let extra = surplus * pctD;
+      const vers = surplus * pctE;
+      extra = attaquerDettes(extra, m);
+      ep += vers + extra;
+    }else{
+      /* Il faut piger dans les placements. On résout le retrait brut W tel que
+         travail + rentes + W − impôt(rentes + W·%imp) = dépenses (bissection). */
+      let lo = 0, hi = Math.max(dep * 4, 100000/12), W = 0;
+      for(let it = 0; it < 44; it++){
+        W = (lo + hi) / 2;
+        const tax = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
+        (travail + rentes + W - tax >= dep) ? (hi = W) : (lo = W);
+      }
+      /* Retrait EXPLICITE choisi par Martin : on pige au moins ce montant. */
+      if(retraitCibleAn > 0 && m < retraitFinM){
+        W = Math.max(W, retraitCibleAn / 12);
+      }
+      impotM = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
+      const net = travail + rentes + W - impotM;
+      retraitM = W;
+      ep -= W;
+      if(net > dep) ep += (net - dep); /* revenu net non dépensé → retourne à l'épargne */
+    }
+
+    ep *= rMens;
+    if(ep < 0){ if(epuiseM === null) epuiseM = m; ep = 0; }
+
+    const detteTot = debts.reduce((s,x) => s + Math.max(0, x.bal), 0);
+
+    /* Jalons au dernier départ à la retraite */
     if(m === lastRet){
       epRetraite = ep;
       renteRetraite = rentes;
-      retraitRetraite = Math.max(0, dep - rentes - travail);
+      retraitRetraite = retraitM;
     }
 
     /* Agrégats annuels */
     acc.travail += travail; acc.rentes += rentes; acc.dep += dep;
+    acc.retrait += retraitM; acc.impot += impotM; acc.entrees += entreeMois;
     if(m % 12 === 11 || m === mEnd){
-      years.push({ year: mToLabel(m), travail: acc.travail, rentes: acc.rentes, dep: acc.dep, ep,
+      years.push({ year: mToLabel(m), travail: acc.travail, rentes: acc.rentes, dep: acc.dep,
+        retrait: acc.retrait, impot: acc.impot, entrees: acc.entrees, ep, dette: detteTot,
         ages: persons.map(x => ({ nom: x.nom, age: Math.floor((m - x.mNaiss)/12) })) });
-      acc = { travail:0, rentes:0, dep:0 };
+      acc = { travail:0, rentes:0, dep:0, retrait:0, impot:0, entrees:0 };
     }
   }
 
-  /* Intérêts réellement évités : total nominal des paiements prévus − total payé
-     (une dette tuée d'avance coûte moins cher que la somme de ses paiements) */
+  /* Intérêts réellement évités : total nominal des paiements prévus − total payé */
   const interetsEvites = debts.reduce((s,x) => s + (x.mort !== null ? Math.max(0, x.nominal - x.paye) : 0), 0);
+  const detteInitiale = debts.reduce((s,x) => s + x.bal0, 0);
 
-  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites };
+  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites, detteInitiale };
 }
 
 /* Construction des cartes-personnes et de la liste des dettes (une fois par affichage d'onglet) */
@@ -1818,6 +1962,11 @@ function buildRetParams(){
   document.getElementById('rPctEpargne').value = r.pctEpargne;
   document.getElementById('rPctDette').value = r.pctDette;
   document.getElementById('rPsv').value = r.psv65;
+  document.getElementById('rRetraitAnnuel').value = r.retraitAnnuel || 0;
+  document.getElementById('rRetraitAnnees').value = r.retraitAnnees || 0;
+  document.getElementById('rPctImposable').value = r.pctImposable !== undefined ? r.pctImposable : 100;
+  document.getElementById('rFractionner').checked = r.fractionner !== false;
+  renderEvenements();
 
   /* Liste des dettes accélérables (dépenses avec une date de fin) */
   const box = document.getElementById('retDettes');
@@ -1856,6 +2005,32 @@ function buildRetParams(){
     const gain = document.createElement('span');
     gain.className = 'dgain'; gain.dataset.depId = d.id;
     div.appendChild(gain);
+    box.appendChild(div);
+  });
+}
+
+/* Liste des entrées d'argent ponctuelles */
+function renderEvenements(){
+  const box = document.getElementById('evList');
+  box.innerHTML = '';
+  const evs = (state.retraite.evenements || []).slice().sort((a,b) => (a.annee || 0) - (b.annee || 0));
+  if(!evs.length){
+    box.innerHTML = '<p class="hint" style="margin:0;">Aucune entrée. Ajoutez la vente de la clinique ou toute rentrée d’argent future ci-dessus.</p>';
+    return;
+  }
+  evs.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'end-item';
+    div.innerHTML = '<span style="font-weight:600;">' + esc(e.nom || 'Entrée') + '</span>' +
+      '<span class="freed num">' + fmt$(e.montant || 0) + ' · ' + (e.pctDette || 0) + ' % dette / ' + (100 - (e.pctDette || 0)) + ' % épargne</span>' +
+      '<span class="when">' + (e.annee || '?') + '</span>';
+    const del = document.createElement('button');
+    del.className = 'btn btn-ghost'; del.textContent = '✕'; del.title = 'Retirer'; del.style.minHeight = '36px'; del.style.padding = '4px 10px';
+    del.addEventListener('click', () => {
+      state.retraite.evenements = state.retraite.evenements.filter(x => x.id !== e.id);
+      markDirty(); renderEvenements(); renderRetResultats();
+    });
+    div.appendChild(del);
     box.appendChild(div);
   });
 }
@@ -1904,8 +2079,28 @@ function renderRetResultats(){
     ? bestNom + ' · ' + fmt$(sim.interetsEvites) + ' d’intérêts évités au total'
     : (r.pctDette > 0 ? 'aucun devancement notable' : 'mettez un % du surplus sur les dettes pour voir l’effet');
 
+  /* Carte dette totale (aujourd'hui) + date où elle atteint zéro */
+  document.getElementById('rtDetteTotale').textContent = sim.detteInitiale > 0 ? fmt$(sim.detteInitiale) : '0 $';
+  const mortsAll = sim.debts.filter(x => x.mort !== null);
+  const derniereMort = sim.debts.length && sim.debts.every(x => x.mort !== null)
+    ? Math.max(...sim.debts.map(x => x.mort)) : null;
+  document.getElementById('rtDetteTotaleSub').textContent = sim.detteInitiale <= 0
+    ? 'aucune dette cochée'
+    : (derniereMort ? 'libre de dettes en ' + mToLabel(derniereMort) : sim.debts.length + ' dette(s) cochée(s)');
+
+  /* Carte impôt : à la première année où tout le monde est à la retraite */
+  const yRet = sim.years.find(y => y.year >= lastYear);
+  const impotRet = yRet ? yRet.impot : 0;
+  const retraitRet = yRet ? yRet.retrait : 0;
+  document.getElementById('rtImpot').textContent = impotRet > 0 ? fmt$(impotRet) + ' /an' : '—';
+  document.getElementById('rtImpotSub').textContent = retraitRet > 0
+    ? 'sur ' + fmt$(yRet.rentes + retraitRet) + ' de revenu imposable' + (r.fractionner !== false ? ' (fractionné)' : '')
+    : (impotRet > 0 ? 'sur les rentes' : 'pas encore de retrait imposable');
+
   document.getElementById('retHint').textContent =
-    r.pctEpargne + ' % du surplus épargné à ' + String(r.rendement).replace('.', ',') + ' %/an · ' + r.pctDette + ' % vers les dettes · inflation ' + String(state.previsions.inflation).replace('.', ',') + ' %.';
+    r.pctEpargne + ' % du surplus épargné à ' + String(r.rendement).replace('.', ',') + ' %/an · ' + r.pctDette + ' % → dettes (taux le + élevé d’abord) · ' +
+    (r.retraitAnnuel > 0 ? 'retrait imposé ' + fmt$(r.retraitAnnuel) + '/an' + (r.retraitAnnees > 0 ? ' sur ' + r.retraitAnnees + ' ans' : '') : 'retrait auto') +
+    ' · impôt ' + (r.fractionner !== false ? 'fractionné' : 'non fractionné') + ' · inflation ' + String(state.previsions.inflation).replace('.', ',') + ' %.';
 
   /* Graphique : flux annuels (gauche) + épargne (droite) */
   if(typeof Chart !== 'undefined'){
@@ -1915,21 +2110,23 @@ function renderRetResultats(){
       data: {
         labels: ys.map(y => y.year),
         datasets: [
-          { type:'line', label:'Épargne accumulée', yAxisID:'y2', data: ys.map(y => Math.round(y.ep)),
+          { type:'line', label:'Épargne', yAxisID:'y2', data: ys.map(y => Math.round(y.ep)),
             borderColor:'#0C6B4F', backgroundColor:'rgba(12,107,79,.12)', fill:true, tension:.3, pointRadius:0, borderWidth:2.5, order:1 },
-          { type:'line', label:'Revenus (payes + rentes)', data: ys.map(y => Math.round(y.travail + y.rentes)),
-            borderColor:'#2E7DA1', backgroundColor:'#2E7DA1', tension:.25, pointRadius:0, borderWidth:2, order:2 },
+          { type:'line', label:'Dette restante', yAxisID:'y2', data: ys.map(y => Math.round(y.dette)),
+            borderColor:'#9C3D2E', backgroundColor:'#9C3D2E', tension:.2, pointRadius:0, borderWidth:2, order:2 },
+          { type:'line', label:'Revenus nets (payes + rentes + retraits − impôt)', data: ys.map(y => Math.round(y.travail + y.rentes + y.retrait - y.impot)),
+            borderColor:'#2E7DA1', backgroundColor:'#2E7DA1', tension:.25, pointRadius:0, borderWidth:2, order:3 },
           { type:'line', label:'Dépenses', data: ys.map(y => Math.round(y.dep)),
-            borderColor:'#B4553B', backgroundColor:'#B4553B', borderDash:[6,4], tension:.25, pointRadius:0, borderWidth:2, order:3 }
+            borderColor:'#B4553B', backgroundColor:'#B4553B', borderDash:[6,4], tension:.25, pointRadius:0, borderWidth:2, order:4 }
         ]
       },
       options: { maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
-        plugins: { legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, borderRadius:3, useBorderRadius:true } },
+        plugins: { legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, borderRadius:3, useBorderRadius:true, font:{size:10} } },
           tooltip:{ callbacks:{ label: c => ' ' + c.dataset.label + ' : ' + fmt$(c.parsed.y) + (c.dataset.yAxisID === 'y2' ? '' : ' /an') } } },
         scales: {
           x:{ grid:{display:false}, ticks:{ maxTicksLimit:14 } },
           y:{ position:'left', grid:{color:'#EDF1EC'}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Flux annuels' } },
-          y2:{ position:'right', grid:{display:false}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Épargne' } }
+          y2:{ position:'right', grid:{display:false}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Épargne / Dette' } }
         } }
     });
   }
@@ -1950,11 +2147,15 @@ function renderRetResultats(){
     if(y.year > cutFull && (y.year % 5 !== 0) && i !== sim.years.length - 1) return;
     const tr = document.createElement('tr');
     const ages = y.ages.map(a => a.nom.slice(0, 6) + ' ' + a.age).join(' · ');
-    tr.innerHTML = '<td style="text-align:left; font-weight:600;">' + y.year + '</td>' +
+    const evTip = y.entrees > 0 ? ' <span class="tip" tabindex="0" data-tip="Entrée d’argent de ' + fmt$(y.entrees) + ' cette année.">💰</span>' : '';
+    tr.innerHTML = '<td style="text-align:left; font-weight:600;">' + y.year + evTip + '</td>' +
       '<td style="text-align:left;" data-l="Âges">' + esc(ages) + '</td>' +
       '<td class="num" data-l="Payes">' + fmt$(y.travail) + '</td>' +
       '<td class="num" data-l="RRQ + PSV">' + fmt$(y.rentes) + '</td>' +
+      '<td class="num" data-l="Retrait">' + (y.retrait > 0 ? fmt$(y.retrait) : '—') + '</td>' +
+      '<td class="num" data-l="Impôt" style="color:var(--neg);">' + (y.impot > 0 ? fmt$(y.impot) : '—') + '</td>' +
       '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + '</td>' +
+      '<td class="num" data-l="Dette" style="color:' + (y.dette > 0 ? 'var(--neg)' : 'var(--muted)') + ';">' + (y.dette > 0 ? fmt$(y.dette) : '0 $') + '</td>' +
       '<td class="num" data-l="Épargne au 31 déc." style="font-weight:600; color:' + (y.ep > 0 ? 'var(--primary)' : 'var(--neg)') + ';">' + fmt$(y.ep) + '</td>';
     tb.appendChild(tr);
   });
@@ -1987,6 +2188,27 @@ function renderRetraite(){
     r.pctDette = Math.min(100, Math.max(0, parseInt(inp.value, 10) || 0));
     if(r.pctEpargne + r.pctDette > 100){ r.pctEpargne = 100 - r.pctDette; document.getElementById('rPctEpargne').value = r.pctEpargne; }
     inp.value = r.pctDette;
+  });
+  bind('rRetraitAnnuel', inp => { state.retraite.retraitAnnuel = Math.max(0, parseFloat(inp.value) || 0); });
+  bind('rRetraitAnnees', inp => { state.retraite.retraitAnnees = Math.max(0, Math.min(60, parseInt(inp.value, 10) || 0)); inp.value = state.retraite.retraitAnnees; });
+  bind('rPctImposable', inp => { state.retraite.pctImposable = Math.min(100, Math.max(0, parseInt(inp.value, 10) || 0)); inp.value = state.retraite.pctImposable; });
+  document.getElementById('rFractionner').addEventListener('change', () => {
+    state.retraite.fractionner = document.getElementById('rFractionner').checked;
+    markDirty(); renderRetResultats();
+  });
+  document.getElementById('btnAddEvent').addEventListener('click', () => {
+    const nom = document.getElementById('evNom').value.trim();
+    const annee = parseInt(document.getElementById('evAnnee').value, 10);
+    const montant = parseFloat(document.getElementById('evMontant').value);
+    const pctDette = Math.min(100, Math.max(0, parseInt(document.getElementById('evPctDette').value, 10) || 0));
+    if(!nom){ toast('Donnez une description à l’entrée.'); return; }
+    if(!annee || annee < 2026 || annee > 2085){ toast('Année invalide (2026–2085).'); return; }
+    if(!montant || montant <= 0){ toast('Montant invalide.'); return; }
+    state.retraite.evenements.push({ id: 'ev' + (state.seq = (state.seq || 100) + 1), nom, annee, montant, pctDette });
+    ['evNom','evAnnee','evMontant'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('evPctDette').value = '0';
+    markDirty(); renderEvenements(); renderRetResultats();
+    toast('« ' + nom + ' » ajoutée en ' + annee + '.');
   });
 })();
 
