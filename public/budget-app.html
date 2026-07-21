@@ -647,7 +647,7 @@
     </div>
 
     <div class="panel">
-      <h2>Le film complet, année par année <span class="tip" tabindex="0" data-tip="Lignes pleines (axe de gauche) : revenus totaux (payes + rentes) et dépenses annuelles. Zone verte (axe de droite) : votre épargne accumulée. Les décrochages de revenus = départs à la retraite ; les remontées = RRQ/PSV qui embarquent.">?</span></h2>
+      <h2>Le film complet, année par année <span class="tip" tabindex="0" data-tip="Axe de gauche (flux annuels) : Revenus = payes + rentes (le vrai argent qui entre) ; Retraits = ce que vous sortez de l'épargne pour combler le reste ; Dépenses. Axe de droite (soldes) : Épargne (vert) qui monte puis se draine, Dette (rouge) qui descend. En retraite, les revenus (rentes) sont plus bas que les dépenses : l'écart est comblé par les retraits, et l'épargne baisse d'autant. C'est normal — le retrait n'est PAS un revenu, c'est votre propre argent qui sort.">?</span></h2>
       <p class="hint" id="retHint">—</p>
       <div class="chart-holder" style="height:360px;"><canvas id="chartRet"></canvas></div>
       <div class="ret-note" id="retResume">—</div>
@@ -739,7 +739,7 @@ function migrate(s){
   /* Paramètres retraite : défauts raisonnables, tout est modifiable dans l'onglet */
   const RET_DEF = {
     personnes: [
-      { id:'p1', nom:'Marie-Josée', revenuNom:'MJB', dob:'1985-01-01', ageRetraite:65, rrqAge:65, rrq65:1350 },
+      { id:'p1', nom:'Marie-Josée', revenuNom:'MJB', dob:'1979-02-05', ageRetraite:65, rrqAge:65, rrq65:1350 },
       { id:'p2', nom:'Martin', revenuNom:'Martin', dob:'1983-02-18', ageRetraite:65, rrqAge:65, rrq65:1100 }
     ],
     psv65: 734, epargneActuelle: 0, rendement: 4.0, pctEpargne: 50, pctDette: 0,
@@ -1882,6 +1882,12 @@ function simulateRetraite(){
       if(retraitCibleAn > 0 && m < retraitFinM){
         W = Math.max(W, retraitCibleAn / 12);
       }
+      /* On ne peut PAS retirer plus que ce qu'on a. Si le besoin dépasse
+         l'épargne disponible, elle est épuisée ce mois-là (plus de retraits
+         fantômes après le zéro). */
+      const besoin = W;
+      W = Math.min(W, Math.max(0, ep));
+      if(W < besoin - 0.01 && epuiseM === null) epuiseM = m;
       impotM = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
       const net = travail + rentes + W - impotM;
       retraitM = W;
@@ -1890,7 +1896,7 @@ function simulateRetraite(){
     }
 
     ep *= rMens;
-    if(ep < 0){ if(epuiseM === null) epuiseM = m; ep = 0; }
+    if(ep < 0.005) ep = 0;
 
     const detteTot = debts.reduce((s,x) => s + Math.max(0, x.bal), 0);
 
@@ -2114,10 +2120,12 @@ function renderRetResultats(){
             borderColor:'#0C6B4F', backgroundColor:'rgba(12,107,79,.12)', fill:true, tension:.3, pointRadius:0, borderWidth:2.5, order:1 },
           { type:'line', label:'Dette restante', yAxisID:'y2', data: ys.map(y => Math.round(y.dette)),
             borderColor:'#9C3D2E', backgroundColor:'#9C3D2E', tension:.2, pointRadius:0, borderWidth:2, order:2 },
-          { type:'line', label:'Revenus nets (payes + rentes + retraits − impôt)', data: ys.map(y => Math.round(y.travail + y.rentes + y.retrait - y.impot)),
+          { type:'line', label:'Revenus (payes + rentes)', data: ys.map(y => Math.round(y.travail + y.rentes)),
             borderColor:'#2E7DA1', backgroundColor:'#2E7DA1', tension:.25, pointRadius:0, borderWidth:2, order:3 },
+          { type:'line', label:'Retraits de l’épargne', data: ys.map(y => Math.round(y.retrait)),
+            borderColor:'#C99A2E', backgroundColor:'#C99A2E', borderDash:[3,3], tension:.25, pointRadius:0, borderWidth:1.5, order:4 },
           { type:'line', label:'Dépenses', data: ys.map(y => Math.round(y.dep)),
-            borderColor:'#B4553B', backgroundColor:'#B4553B', borderDash:[6,4], tension:.25, pointRadius:0, borderWidth:2, order:4 }
+            borderColor:'#B4553B', backgroundColor:'#B4553B', borderDash:[6,4], tension:.25, pointRadius:0, borderWidth:2, order:5 }
         ]
       },
       options: { maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
