@@ -585,7 +585,7 @@
           <input id="rRetraitAnnuel" type="number" inputmode="decimal" min="0" step="5000">
         </div>
         <div class="field">
-          <label for="rRetraitAnnees">Pendant (ans) <span class="tip" tabindex="0" data-tip="Nombre d'années où le retrait imposé ci-contre s'applique, à partir d'aujourd'hui. 0 = jusqu'à la fin. Après cette période, la simulation revient au mode automatique.">?</span></label>
+          <label for="rRetraitAnnees">Pendant (ans) <span class="tip" tabindex="0" data-tip="Nombre d'années où le retrait imposé s'applique, à partir du moment où vous êtes TOUS LES DEUX à la retraite. 0 = jusqu'à la fin. Après cette période, la simulation revient au mode automatique (elle retire juste ce qu'il faut).">?</span></label>
           <input id="rRetraitAnnees" type="number" inputmode="numeric" min="0" max="60" step="1">
         </div>
         <div class="field">
@@ -1731,7 +1731,6 @@ function simulateRetraite(){
   const pctImp = Math.max(0, Math.min(100, r.pctImposable !== undefined ? r.pctImposable : 100)) / 100;
   const fractionner = r.fractionner !== false;
   const retraitCibleAn = Math.max(0, r.retraitAnnuel || 0);
-  const retraitFinM = (r.retraitAnnees && r.retraitAnnees > 0) ? m0 + Math.round(r.retraitAnnees * 12) : Infinity;
 
   const persons = r.personnes.map(x => {
     const mNaiss = isoToM(x.dob || '1984-01-01');
@@ -1748,6 +1747,9 @@ function simulateRetraite(){
   });
   const lastRet = Math.max(m0, ...persons.map(x => x.mRetraite));
   const mEnd = Math.max(...persons.map(x => x.mNaiss)) + 95*12;
+  /* Fenêtre du retrait imposé : les X premières années DE RETRAITE
+     (pas à partir d'aujourd'hui — sinon la fenêtre expirait avant la retraite). */
+  const retraitFinM = (r.retraitAnnees && r.retraitAnnees > 0) ? lastRet + Math.round(r.retraitAnnees * 12) : Infinity;
 
   /* Dettes accélérables — modèle avec INTÉRÊTS : le solde de départ est la
      valeur actualisée des paiements restants au taux de la dette. Chaque mois,
@@ -1878,8 +1880,9 @@ function simulateRetraite(){
         const tax = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
         (travail + rentes + W - tax >= dep) ? (hi = W) : (lo = W);
       }
-      /* Retrait EXPLICITE choisi par Martin : on pige au moins ce montant. */
-      if(retraitCibleAn > 0 && m < retraitFinM){
+      /* Retrait EXPLICITE choisi par Martin : on pige au moins ce montant,
+         durant les X premières années de retraite. */
+      if(retraitCibleAn > 0 && m >= lastRet && m < retraitFinM){
         W = Math.max(W, retraitCibleAn / 12);
       }
       /* On ne peut PAS retirer plus que ce qu'on a. Si le besoin dépasse
