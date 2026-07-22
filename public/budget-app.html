@@ -584,7 +584,14 @@
       <p class="hint">Le vrai portrait : combien sortir des placements, l'impôt payé dessus, et l'effet sur l'épargne.</p>
       <div class="prev-params">
         <div class="field">
-          <label for="rRetraitAnnuel">Retrait annuel imposé ($) <span class="tip" tabindex="0" data-tip="Laissez 0 = mode automatique (la simulation retire juste ce qu'il faut pour couvrir les dépenses après impôt). Mettez un montant (ex. 200 000 $) pour imposer VOTRE stratégie : la simulation sortira au moins ce montant/an, paiera l'impôt, et rebancarisera le net non dépensé. Parfait pour tester « je sors 200 k pendant 5 ans ».">?</span></label>
+          <label for="rRetraitMode">Mode de retrait <span class="tip" tabindex="0" data-tip="AUTOMATIQUE : la simulation retire juste ce qu'il faut pour couvrir les dépenses après impôt (le retrait ci-contre devient un plancher). MANUEL : la simulation retire EXACTEMENT le montant que tu choisis, jamais plus — si ça ne couvre pas les dépenses, le manque s'affiche dans le tableau au lieu d'être comblé en cachette. C'est TOI qui décides.">?</span></label>
+          <select id="rRetraitMode">
+            <option value="auto">Automatique — couvrir les dépenses</option>
+            <option value="manuel">Manuel — je décide du montant</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rRetraitAnnuel">Retrait annuel ($) <span class="tip" tabindex="0" data-tip="En mode MANUEL : le montant exact retiré chaque année de retraite (rien de plus). En mode AUTO : un plancher (la simulation retire au moins ça). S'applique durant les X premières années de retraite (champ ci-contre), ensuite retour à l'automatique. Le net non dépensé retourne à l'épargne — tu vois alors le coût d'impôt du sur-retrait.">?</span></label>
           <input id="rRetraitAnnuel" type="number" inputmode="decimal" min="0" step="5000">
         </div>
         <div class="field">
@@ -647,6 +654,11 @@
         <div class="value num neg" id="rtImpot">—</div>
         <div class="sub" id="rtImpotSub">—</div>
       </div>
+      <div class="card">
+        <div class="label">Cible « rentes + intérêts » <span class="tip" tabindex="0" data-tip="LE chiffre pour vivre indéfiniment sans gruger le capital : l'épargne qu'il te faut à ta retraite pour que les INTÉRÊTS RÉELS (rendement − inflation, pour préserver le pouvoir d'achat du capital) + RRQ/PSV couvrent tes dépenses ET l'impôt, pour toujours. Sous la cible = le capital s'érode ; au-dessus = il grossit même en en vivant.">?</span></div>
+        <div class="value num" id="rtCible">—</div>
+        <div class="sub" id="rtCibleSub">—</div>
+      </div>
     </div>
 
     <div class="panel">
@@ -660,7 +672,7 @@
       <h2>Tableau détaillé</h2>
       <p class="hint">Toutes les années jusqu'à 5 ans après la dernière retraite, puis aux 5 ans. Montants annuels indexés.</p>
       <table class="rwd" id="retTable">
-        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Retrait</th><th>Impôt</th><th>Dépenses</th><th>Dette</th><th>Épargne au 31 déc.</th></tr></thead>
+        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Retrait</th><th>Intérêts gagnés <span class="tip" tabindex="0" data-tip="Ce que ton épargne a rapporté dans l'année. VERT quand les intérêts couvrent le retrait (le capital grossit même en en vivant) ; ORANGE quand tu sors plus que ce que ça rapporte (le capital s'érode).">?</span></th><th>Impôt</th><th>Dépenses</th><th>Dette</th><th>Épargne au 31 déc.</th></tr></thead>
         <tbody id="retTableBody"></tbody>
       </table>
       <div class="ret-note">Estimation pour explorer des scénarios — <strong>pas un conseil financier</strong>. L'impôt utilise les tranches marginales combinées Québec ~2025 (seuils indexés à l'inflation) sur le revenu ordinaire ; la vraie facture dépend de la nature des revenus (gains en capital, dividendes, REER/FERR, CELI), du fractionnement réel et de crédits non modélisés. Les payes en emploi sont vos montants nets actuels. Valide avec ton fiscaliste.</div>
@@ -777,7 +789,8 @@ function migrate(s){
     ],
     psv65: 734, epargneActuelle: 0, rendement: 4.0, pctEpargne: 50, pctDette: 0,
     // Retraits de placement à la retraite (portrait fiscal)
-    retraitAnnuel: 0,      // $ retirés/an des placements (0 = automatique : juste de quoi couvrir les dépenses)
+    retraitMode: 'auto',   // 'auto' = la sim retire juste assez pour couvrir les dépenses ; 'manuel' = seulement le montant choisi
+    retraitAnnuel: 0,      // $ retirés/an des placements
     retraitAnnees: 0,      // pendant combien d'années ce retrait s'applique (0 = jusqu'à la fin)
     pctImposable: 100,     // % du retrait qui est imposable (REER 100 %, non-enregistré souvent moins, CELI 0 %)
     fractionner: true,     // fractionner le revenu de retraite entre conjoints (réaliste après 65 ans)
@@ -785,7 +798,7 @@ function migrate(s){
   };
   if(!s.retraite) s.retraite = JSON.parse(JSON.stringify(RET_DEF));
   else{
-    ['psv65','epargneActuelle','rendement','pctEpargne','pctDette','retraitAnnuel','retraitAnnees','pctImposable','fractionner'].forEach(k => {
+    ['psv65','epargneActuelle','rendement','pctEpargne','pctDette','retraitMode','retraitAnnuel','retraitAnnees','pctImposable','fractionner'].forEach(k => {
       if(s.retraite[k] === undefined) s.retraite[k] = RET_DEF[k];
     });
     if(!Array.isArray(s.retraite.personnes) || !s.retraite.personnes.length) s.retraite.personnes = JSON.parse(JSON.stringify(RET_DEF.personnes));
@@ -1772,6 +1785,7 @@ function simulateRetraite(){
   const m0 = now.getFullYear()*12 + now.getMonth();
   const pctImp = Math.max(0, Math.min(100, r.pctImposable !== undefined ? r.pctImposable : 100)) / 100;
   const fractionner = r.fractionner !== false;
+  const modeManuel = r.retraitMode === 'manuel';
   const retraitCibleAn = Math.max(0, r.retraitAnnuel || 0);
 
   const persons = r.personnes.map(x => {
@@ -1788,10 +1802,12 @@ function simulateRetraite(){
     };
   });
   const lastRet = Math.max(m0, ...persons.map(x => x.mRetraite));
+  const firstRet = Math.max(m0, Math.min(...persons.map(x => x.mRetraite)));
   const mEnd = Math.max(...persons.map(x => x.mNaiss)) + 95*12;
-  /* Fenêtre du retrait imposé : les X premières années DE RETRAITE
-     (pas à partir d'aujourd'hui — sinon la fenêtre expirait avant la retraite). */
-  const retraitFinM = (r.retraitAnnees && r.retraitAnnees > 0) ? lastRet + Math.round(r.retraitAnnees * 12) : Infinity;
+  /* Fenêtre du retrait choisi : dès le PREMIER départ à la retraite (sinon,
+     pendant les années d'écart entre les deux départs, aucun retrait ne serait
+     possible en mode manuel), pour X années. */
+  const retraitFinM = (r.retraitAnnees && r.retraitAnnees > 0) ? firstRet + Math.round(r.retraitAnnees * 12) : Infinity;
 
   /* Dettes accélérables — modèle avec INTÉRÊTS : le solde de départ est la
      valeur actualisée des paiements restants au taux de la dette. Chaque mois,
@@ -1841,8 +1857,9 @@ function simulateRetraite(){
   const pctD = Math.max(0, Math.min(100, r.pctDette || 0))/100;
 
   let epuiseM = null, epRetraite = null, renteRetraite = null, retraitRetraite = null;
+  let depAnRet = null, rentesAnRet = null, inflRet = 1; /* capturés au dernier départ (pour la cible d'autonomie) */
   const years = [];
-  let acc = { travail:0, rentes:0, dep:0, retrait:0, impot:0, entrees:0 };
+  let acc = { travail:0, rentes:0, dep:0, retrait:0, impot:0, entrees:0, interets:0, manque:0 };
 
   for(let m = m0; m <= mEnd; m++){
     const k = Math.floor((m - m0)/12);
@@ -1900,11 +1917,12 @@ function simulateRetraite(){
        Impôt calculé sur le revenu IMPOSABLE (rentes + part imposable du retrait),
        seuils indexés à l'inflation, fractionnement optionnel entre conjoints.
        On résout le retrait qui couvre les dépenses APRÈS impôt. */
-    let retraitM = 0, impotM = 0;
+    let retraitM = 0, impotM = 0, manqueM = 0;
     const taxRentesM = impotMenage(rentes * 12, fractionner, infl) / 12;
     const netSansRetrait = travail + rentes - taxRentesM;
+    const retraitVoulu = (retraitCibleAn > 0 && m >= firstRet && m < retraitFinM) ? retraitCibleAn / 12 : 0;
 
-    if(netSansRetrait >= dep){
+    if(netSansRetrait >= dep && retraitVoulu <= 0){
       /* Surplus (années de travail surtout) : impôt = sur les rentes seules,
          le surplus net est réparti épargne / dettes comme avant. */
       impotM = taxRentesM;
@@ -1914,52 +1932,62 @@ function simulateRetraite(){
       extra = attaquerDettes(extra, m);
       ep += vers + extra;
     }else{
-      /* Il faut piger dans les placements. On résout le retrait brut W tel que
-         travail + rentes + W − impôt(rentes + W·%imp) = dépenses (bissection). */
-      let lo = 0, hi = Math.max(dep * 4, 100000/12), W = 0;
-      for(let it = 0; it < 44; it++){
-        W = (lo + hi) / 2;
-        const tax = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
-        (travail + rentes + W - tax >= dep) ? (hi = W) : (lo = W);
+      let W = 0;
+      if(modeManuel){
+        /* MODE MANUEL : on retire EXACTEMENT le montant choisi par Martin —
+           jamais un sou de plus. Si ça ne couvre pas les dépenses, le manque
+           est AFFICHÉ (colonne Manque), pas comblé en cachette. */
+        W = retraitVoulu;
+      }else{
+        /* MODE AUTO : retrait brut W tel que
+           travail + rentes + W − impôt(rentes + W·%imp) = dépenses (bissection). */
+        let lo = 0, hi = Math.max(dep * 4, 100000/12);
+        for(let it = 0; it < 44; it++){
+          W = (lo + hi) / 2;
+          const tax = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
+          (travail + rentes + W - tax >= dep) ? (hi = W) : (lo = W);
+        }
+        W = Math.max(W, retraitVoulu); /* plancher : le retrait choisi */
       }
-      /* Retrait EXPLICITE choisi par Martin : on pige au moins ce montant,
-         durant les X premières années de retraite. */
-      if(retraitCibleAn > 0 && m >= lastRet && m < retraitFinM){
-        W = Math.max(W, retraitCibleAn / 12);
-      }
-      /* On ne peut PAS retirer plus que ce qu'on a. Si le besoin dépasse
-         l'épargne disponible, elle est épuisée ce mois-là (plus de retraits
-         fantômes après le zéro). */
-      const besoin = W;
+      /* On ne peut PAS retirer plus que ce qu'on a. */
       W = Math.min(W, Math.max(0, ep));
-      if(W < besoin - 0.01 && epuiseM === null) epuiseM = m;
       impotM = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
       const net = travail + rentes + W - impotM;
       retraitM = W;
       ep -= W;
-      if(net > dep) ep += (net - dep); /* revenu net non dépensé → retourne à l'épargne */
+      if(net > dep){
+        ep += (net - dep); /* revenu net non dépensé → retourne à l'épargne */
+      }else if(net < dep - 0.5){
+        manqueM = dep - net; /* dépenses non couvertes ce mois-ci */
+        if(ep <= 0.01 && epuiseM === null) epuiseM = m; /* épargne vide ET besoin non couvert */
+      }
     }
 
-    ep *= rMens;
-    if(ep < 0.005) ep = 0;
+    /* Intérêts du mois — tracés pour comparer « entrées d'intérêts » vs « sorties » */
+    const gainM = Math.max(0, ep) * (rMens - 1);
+    ep = Math.max(0, ep) + gainM;
 
     const detteTot = debts.reduce((s,x) => s + Math.max(0, x.bal), 0);
 
-    /* Jalons au dernier départ à la retraite */
+    /* Jalons au dernier départ à la retraite (+ données pour la cible d'autonomie) */
     if(m === lastRet){
       epRetraite = ep;
       renteRetraite = rentes;
       retraitRetraite = retraitM;
+      depAnRet = dep * 12;
+      rentesAnRet = rentes * 12;
+      inflRet = infl;
     }
 
     /* Agrégats annuels */
     acc.travail += travail; acc.rentes += rentes; acc.dep += dep;
     acc.retrait += retraitM; acc.impot += impotM; acc.entrees += entreeMois;
+    acc.interets += gainM; acc.manque += manqueM;
     if(m % 12 === 11 || m === mEnd){
       years.push({ year: mToLabel(m), travail: acc.travail, rentes: acc.rentes, dep: acc.dep,
-        retrait: acc.retrait, impot: acc.impot, entrees: acc.entrees, ep, dette: detteTot,
+        retrait: acc.retrait, impot: acc.impot, entrees: acc.entrees, interets: acc.interets, manque: acc.manque, ep, dette: detteTot,
         ages: persons.map(x => ({ nom: x.nom, age: Math.floor((m - x.mNaiss)/12) })) });
-      acc = { travail:0, rentes:0, dep:0, retrait:0, impot:0, entrees:0 };
+      acc = { travail:0, rentes:0, dep:0, retrait:0, impot:0, entrees:0, interets:0, manque:0 };
     }
   }
 
@@ -1967,7 +1995,29 @@ function simulateRetraite(){
   const interetsEvites = debts.reduce((s,x) => s + (x.mort !== null ? Math.max(0, x.nominal - x.paye) : 0), 0);
   const detteInitiale = debts.reduce((s,x) => s + x.bal0, 0);
 
-  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites, detteInitiale };
+  /* ── Cible « vivre de rentes + intérêts indéfiniment » ──
+     Capital C tel que, à votre retraite : rentes + intérêts RÉELS de C
+     (rendement − inflation, pour que le capital garde son pouvoir d'achat)
+     couvrent dépenses + impôt, pour toujours, sans jamais gruger C. */
+  let cibleAutonomie = null;
+  const rendReel = Math.max(0.05, (r.rendement || 0) - (p.inflation || 0)) / 100;
+  if(depAnRet !== null){
+    const netRentesSeules = rentesAnRet - impotMenage(rentesAnRet, fractionner, inflRet);
+    if(netRentesSeules >= depAnRet){
+      cibleAutonomie = 0;
+    }else{
+      let lo = 0, hi = 200000000, C = 0;
+      for(let it = 0; it < 60; it++){
+        C = (lo + hi) / 2;
+        const rev = rentesAnRet + C * rendReel;
+        const tax = impotMenage(rentesAnRet + C * rendReel * pctImp, fractionner, inflRet);
+        (rev - tax >= depAnRet) ? (hi = C) : (lo = C);
+      }
+      cibleAutonomie = C;
+    }
+  }
+
+  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites, detteInitiale, cibleAutonomie, rendReel, depAnRet, rentesAnRet };
 }
 
 /* Construction des cartes-personnes et de la liste des dettes (une fois par affichage d'onglet) */
@@ -2013,6 +2063,7 @@ function buildRetParams(){
   document.getElementById('rPctEpargne').value = r.pctEpargne;
   document.getElementById('rPctDette').value = r.pctDette;
   document.getElementById('rPsv').value = r.psv65;
+  document.getElementById('rRetraitMode').value = r.retraitMode === 'manuel' ? 'manuel' : 'auto';
   document.getElementById('rRetraitAnnuel').value = r.retraitAnnuel || 0;
   document.getElementById('rRetraitAnnees').value = r.retraitAnnees || 0;
   document.getElementById('rPctImposable').value = r.pctImposable !== undefined ? r.pctImposable : 100;
@@ -2148,6 +2199,21 @@ function renderRetResultats(){
     ? 'sur ' + fmt$(yRet.rentes + retraitRet) + ' de revenu imposable' + (r.fractionner !== false ? ' (fractionné)' : '')
     : (impotRet > 0 ? 'sur les rentes' : 'pas encore de retrait imposable');
 
+  /* Carte cible « vivre de rentes + intérêts » */
+  const cbEl = document.getElementById('rtCible');
+  const cbSub = document.getElementById('rtCibleSub');
+  if(sim.cibleAutonomie !== null){
+    cbEl.textContent = fmt$(sim.cibleAutonomie);
+    const atteint = (sim.epRetraite || 0) >= sim.cibleAutonomie;
+    cbEl.className = 'value num ' + (atteint ? 'pos' : 'neg');
+    cbSub.textContent = atteint
+      ? '✅ atteinte — votre ' + fmt$(sim.epRetraite || 0) + ' à la retraite dépasse la cible (rendement réel ' + (sim.rendReel*100).toFixed(1).replace('.', ',') + ' %)'
+      : 'il manquerait ' + fmt$(sim.cibleAutonomie - (sim.epRetraite || 0)) + ' à votre retraite (' + lastYear + ') — rendement réel ' + (sim.rendReel*100).toFixed(1).replace('.', ',') + ' %';
+  }else{
+    cbEl.textContent = '—';
+    cbSub.textContent = '';
+  }
+
   document.getElementById('retHint').textContent =
     r.pctEpargne + ' % du surplus épargné à ' + String(r.rendement).replace('.', ',') + ' %/an · ' + r.pctDette + ' % → dettes (taux le + élevé d’abord) · ' +
     (r.retraitAnnuel > 0 ? 'retrait imposé ' + fmt$(r.retraitAnnuel) + '/an' + (r.retraitAnnees > 0 ? ' sur ' + r.retraitAnnees + ' ans' : '') : 'retrait auto') +
@@ -2201,13 +2267,22 @@ function renderRetResultats(){
     const tr = document.createElement('tr');
     const ages = y.ages.map(a => a.nom.slice(0, 6) + ' ' + a.age).join(' · ');
     const evTip = y.entrees > 0 ? ' <span class="tip" tabindex="0" data-tip="Entrée d’argent de ' + fmt$(y.entrees) + ' cette année.">💰</span>' : '';
+    /* Intérêts vs sorties : VERT = les intérêts couvrent le retrait (capital croît
+       même en en vivant) ; ORANGE = on sort plus que le gain (capital s'érode) */
+    const couvre = y.retrait <= 0 || y.interets >= y.retrait;
+    const intStyle = y.retrait > 0
+      ? 'font-weight:600; color:' + (couvre ? 'var(--primary)' : 'var(--amber)') + ';'
+      : '';
+    const intNote = y.retrait > 0 ? (couvre ? ' ✓' : ' ⚠') : '';
+    const manqueNote = y.manque > 1 ? '<span class="date-sub" style="color:var(--neg);">manque ' + fmt$(y.manque) + '</span>' : '';
     tr.innerHTML = '<td style="text-align:left; font-weight:600;">' + y.year + evTip + '</td>' +
       '<td style="text-align:left;" data-l="Âges">' + esc(ages) + '</td>' +
       '<td class="num" data-l="Payes">' + fmt$(y.travail) + '</td>' +
       '<td class="num" data-l="RRQ + PSV">' + fmt$(y.rentes) + '</td>' +
       '<td class="num" data-l="Retrait">' + (y.retrait > 0 ? fmt$(y.retrait) : '—') + '</td>' +
+      '<td class="num" data-l="Intérêts gagnés" style="' + intStyle + '" title="Intérêts ' + fmt$(y.interets) + ' vs retraits ' + fmt$(y.retrait) + ' — le capital ' + (couvre ? 'croît' : 's’érode') + '">' + fmt$(y.interets) + intNote + '</td>' +
       '<td class="num" data-l="Impôt" style="color:var(--neg);">' + (y.impot > 0 ? fmt$(y.impot) : '—') + '</td>' +
-      '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + '</td>' +
+      '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + manqueNote + '</td>' +
       '<td class="num" data-l="Dette" style="color:' + (y.dette > 0 ? 'var(--neg)' : 'var(--muted)') + ';">' + (y.dette > 0 ? fmt$(y.dette) : '0 $') + '</td>' +
       '<td class="num" data-l="Épargne au 31 déc." style="font-weight:600; color:' + (y.ep > 0 ? 'var(--primary)' : 'var(--neg)') + ';">' + fmt$(y.ep) + '</td>';
     tb.appendChild(tr);
@@ -2242,6 +2317,7 @@ function renderRetraite(){
     if(r.pctEpargne + r.pctDette > 100){ r.pctEpargne = 100 - r.pctDette; document.getElementById('rPctEpargne').value = r.pctEpargne; }
     inp.value = r.pctDette;
   });
+  bind('rRetraitMode', inp => { state.retraite.retraitMode = inp.value === 'manuel' ? 'manuel' : 'auto'; });
   bind('rRetraitAnnuel', inp => { state.retraite.retraitAnnuel = Math.max(0, parseFloat(inp.value) || 0); });
   bind('rRetraitAnnees', inp => { state.retraite.retraitAnnees = Math.max(0, Math.min(60, parseInt(inp.value, 10) || 0)); inp.value = state.retraite.retraitAnnees; });
   bind('rPctImposable', inp => { state.retraite.pctImposable = Math.min(100, Math.max(0, parseInt(inp.value, 10) || 0)); inp.value = state.retraite.pctImposable; });
