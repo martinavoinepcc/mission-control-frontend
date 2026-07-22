@@ -346,6 +346,7 @@
           <select id="fFreq">
             <option value="mensuel">Mensuelle</option>
             <option value="bihebdo">Aux 2 semaines</option>
+            <option value="hebdo">Hebdomadaire</option>
             <option value="annuel">Annuelle</option>
           </select>
         </div>
@@ -497,6 +498,8 @@
               <option value="mensuel">Mensuelle (12/an)</option>
               <option value="bihebdo">Aux 2 semaines (26/an)</option>
               <option value="accelere" selected>Aux 2 semaines accéléré</option>
+              <option value="hebdo">À la semaine (52/an)</option>
+              <option value="accelere-hebdo">À la semaine accéléré</option>
             </select>
           </div>
           <div class="field">
@@ -904,7 +907,7 @@ function importState(file){
 }
 
 /* ═══════════════ Calculs de base ═══════════════ */
-const F = { mensuel:{an:12, label:'Mensuelle'}, bihebdo:{an:26, label:'Aux 2 semaines'}, annuel:{an:1, label:'Annuelle'} };
+const F = { mensuel:{an:12, label:'Mensuelle'}, bihebdo:{an:26, label:'Aux 2 semaines'}, hebdo:{an:52, label:'Hebdomadaire'}, annuel:{an:1, label:'Annuelle'} };
 const annualise = d => d.montant * F[d.freq].an;
 const mensualise = d => annualise(d) / 12;
 const fmt$ = (v, dec=0) => v.toLocaleString('fr-CA', { style:'currency', currency:'CAD', minimumFractionDigits:dec, maximumFractionDigits:dec });
@@ -1119,7 +1122,7 @@ function renderRegistry(){
     root.appendChild(blk);
   }
 
-  const ordre = [['mensuel','Dépenses mensuelles'],['bihebdo','Dépenses aux 2 semaines'],['annuel','Dépenses annuelles']];
+  const ordre = [['mensuel','Dépenses mensuelles'],['bihebdo','Dépenses aux 2 semaines'],['hebdo','Dépenses hebdomadaires'],['annuel','Dépenses annuelles']];
   ordre.forEach(([freq, titre]) => {
     const rows = actives.filter(d => d.freq === freq).sort((a,b) => mensualise(b) - mensualise(a));
     if(!rows.length) return;
@@ -1610,7 +1613,7 @@ function computeMortgage(){
     schlLabel.textContent = prix > 0 ? 'Mise de fonds ' + downPct.toFixed(1).replace('.', ',') + ' % (≥ 20 %) — aucune prime SCHL requise.' : '—';
   }
 
-  const perYear = freq === 'mensuel' ? 12 : 26;
+  const perYear = freq === 'mensuel' ? 12 : (freq === 'hebdo' || freq === 'accelere-hebdo') ? 52 : 26;
   let payment, sim, freqLabel, budgetFreq;
   if(freq === 'mensuel'){
     payment = levelPayment(loan, taux, amort, 12);
@@ -1620,6 +1623,15 @@ function computeMortgage(){
     payment = levelPayment(loan, taux, amort, 26);
     sim = simulate(loan, taux, 26, payment);
     freqLabel = 'aux 2 semaines'; budgetFreq = 'bihebdo';
+  }else if(freq === 'hebdo'){
+    payment = levelPayment(loan, taux, amort, 52);
+    sim = simulate(loan, taux, 52, payment);
+    freqLabel = 'à la semaine'; budgetFreq = 'hebdo';
+  }else if(freq === 'accelere-hebdo'){
+    /* accéléré hebdo : quart du paiement mensuel, payé 52 fois par année */
+    payment = levelPayment(loan, taux, amort, 12) / 4;
+    sim = simulate(loan, taux, 52, payment);
+    freqLabel = 'à la semaine (accéléré)'; budgetFreq = 'hebdo';
   }else{
     /* accéléré : moitié du paiement mensuel, payée 26 fois par année */
     payment = levelPayment(loan, taux, amort, 12) / 2;
@@ -1654,7 +1666,7 @@ function renderHypo(){
 
   /* Gain du mode accéléré vs mensuel classique */
   const accelLine = document.getElementById('hAccelLine');
-  if(m.freq === 'accelere' && m.loan > 0){
+  if((m.freq === 'accelere' || m.freq === 'accelere-hebdo') && m.loan > 0){
     const simM = simulate(m.loan, m.taux, 12, levelPayment(m.loan, m.taux, m.amort, 12));
     const gainInt = simM.interest - m.sim.interest;
     const gainYears = m.amort - m.yearsReal;
