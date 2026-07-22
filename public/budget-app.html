@@ -722,9 +722,39 @@ let charts = {};
 let saveTimer = null;
 let activeTab = 'budget';
 
+/* ── Auto-réparation mojibake (incident 2026-07-21) ──
+   Si des chaînes ont été corrompues par un décodage cp1252 de bytes UTF-8
+   (« é » → « Ã© », « — » → « â€" »), on inverse la corruption au chargement.
+   Réversion exacte : caractères → bytes cp1252 → décodage UTF-8 strict.
+   Appliquée seulement aux chaînes suspectes, avec échec silencieux = intact. */
+const CP1252_REV = {8364:128,8218:130,402:131,8222:132,8230:133,8224:134,8225:135,710:136,8240:137,352:138,8249:139,338:140,381:142,8216:145,8217:146,8220:147,8221:148,8226:149,8211:150,8212:151,732:152,8482:153,353:154,8250:155,339:156,382:158,376:159};
+function fixMojibake(s){
+  if(typeof s !== 'string' || !/Ã|â€/.test(s)) return s;
+  try{
+    const bytes = new Uint8Array(s.length);
+    for(let i = 0; i < s.length; i++){
+      const c = s.charCodeAt(i);
+      if(c <= 255) bytes[i] = c;
+      else if(CP1252_REV[c] !== undefined) bytes[i] = CP1252_REV[c];
+      else return s; /* caractère hors profil mojibake → on ne touche pas */
+    }
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  }catch(e){ return s; }
+}
+function fixMojibakeDeep(o){
+  if(typeof o === 'string') return fixMojibake(o);
+  if(Array.isArray(o)) return o.map(fixMojibakeDeep);
+  if(o && typeof o === 'object'){
+    for(const k of Object.keys(o)) o[k] = fixMojibakeDeep(o[k]);
+    return o;
+  }
+  return o;
+}
+
 /* Migration : garantit que chaque dépense a fin/idx et que previsions existe. */
 function migrate(s){
   if(!s || !Array.isArray(s.depenses) || !Array.isArray(s.revenus)) throw new Error('format invalide');
+  fixMojibakeDeep(s);
   s.depenses.forEach(d => {
     if(d.fin === undefined) d.fin = '';
     if(d.debut === undefined) d.debut = '';
