@@ -9,6 +9,7 @@ import {
   type Overview, type JalonLite, type JalonDetail, type Contact, type Soumission,
   type Depense, type Doc, type Trade, type JalonStatus, type SoumissionStatus,
   type DocKind, type ContactStatus, type DepenseType, type ChantierPhase,
+  type DebourseBanque,
 } from '@/lib/chantier-api';
 
 const ACCENT = '#D97706';
@@ -483,6 +484,14 @@ function JalonGroup({ title, jalons, onOpen }: { title: string; jalons: JalonLit
   );
 }
 
+function extUrl(raw: string, base?: 'facebook' | 'instagram'): string {
+  const v = raw.trim();
+  if (/^https?:\/\//i.test(v)) return v;
+  if (base && v.startsWith('@')) return `https://www.${base}.com/${v.slice(1)}`;
+  if (base && !v.includes('.')) return `https://www.${base}.com/${v}`;
+  return `https://${v}`;
+}
+
 function ContactsView({ contacts, onAdd, onEdit }: { contacts: Contact[]; onAdd: () => void; onEdit: (c: Contact) => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -501,8 +510,18 @@ function ContactsView({ contacts, onAdd, onEdit }: { contacts: Contact[]; onAdd:
             <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               {c.phone && <a href={`tel:${c.phone}`} style={pillLink}>📞 {c.phone}</a>}
               {c.email && <a href={`mailto:${c.email}`} style={pillLink}>✉️ {c.email}</a>}
+              {c.website && <a href={extUrl(c.website)} target="_blank" rel="noreferrer" style={pillLink}>🌐 Site web</a>}
+              {c.facebook && <a href={extUrl(c.facebook, 'facebook')} target="_blank" rel="noreferrer" style={pillLink}>📘 Facebook</a>}
+              {c.instagram && <a href={extUrl(c.instagram, 'instagram')} target="_blank" rel="noreferrer" style={pillLink}>📸 Instagram</a>}
               <span style={{ fontSize: 12, color: st.color, alignSelf: 'center' }}>● {st.label}</span>
             </div>
+            {(c.address || c.rbq) && (
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 8 }}>
+                {c.address && <span>📍 {c.address}</span>}
+                {c.address && c.rbq && <span> · </span>}
+                {c.rbq && <span>RBQ {c.rbq}</span>}
+              </div>
+            )}
             {c.notes && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>{c.notes}</div>}
           </div>
         );
@@ -564,6 +583,7 @@ function BudgetView({ ov, depenses, onAdd, onEditBudget, onDelete }: {
         <BudgetCard label="Payé" value={fmtMoney(b.paye)} />
         <BudgetCard label="Restant" value={fmtMoney(b.restant)} danger={b.restant < 0} />
       </div>
+      <BanqueSection budgetTotal={b.total} />
       <button onClick={onAdd} style={primaryBtnStyle}><FontAwesomeIcon icon={UI.plus} /> Ajouter un déboursé</button>
       <div style={card}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Déboursés</div>
@@ -582,6 +602,99 @@ function BudgetView({ ov, depenses, onAdd, onEditBudget, onDelete }: {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ===== Déboursés progressifs de la banque (financement construction) =====
+function BanqueSection({ budgetTotal }: { budgetTotal: number }) {
+  const [debourses, setDebourses] = useState<DebourseBanque[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [label, setLabel] = useState('');
+  const [amount, setAmount] = useState('');
+  const [datePrevue, setDatePrevue] = useState('');
+  const [condition, setCondition] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const reload = useCallback(async () => {
+    try { setDebourses((await ChantierAPI.debourses()).debourses); } catch {}
+    setLoaded(true);
+  }, []);
+  useEffect(() => { reload(); }, [reload]);
+
+  const totalPrevu = debourses.reduce((a, d) => a + (d.amount || 0), 0);
+  const totalRecu = debourses.filter((d) => d.recu).reduce((a, d) => a + (d.amount || 0), 0);
+
+  async function add() {
+    if (!label.trim()) { alert('Donne un nom au déboursé (ex. « Déboursé 2 — toit fermé »).'); return; }
+    setBusy(true);
+    try {
+      await ChantierAPI.createDebourse({ label: label.trim(), amount: Number(amount) || 0, datePrevue: datePrevue || undefined, condition: condition || undefined } as any);
+      setLabel(''); setAmount(''); setDatePrevue(''); setCondition(''); setShowForm(false);
+      await reload();
+    } catch (e: any) { alert(e?.message || 'Erreur'); }
+    setBusy(false);
+  }
+  async function toggleRecu(d: DebourseBanque) {
+    try { await ChantierAPI.updateDebourse(d.id, { recu: !d.recu } as any); await reload(); }
+    catch (e: any) { alert(e?.message || 'Erreur'); }
+  }
+  async function remove(d: DebourseBanque) {
+    if (!confirm(`Supprimer « ${d.label} » ?`)) return;
+    try { await ChantierAPI.deleteDebourse(d.id); await reload(); }
+    catch (e: any) { alert(e?.message || 'Erreur'); }
+  }
+
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>🏦 Déboursés de la banque</div>
+        <button onClick={() => setShowForm((v) => !v)} style={tinyBtn}>{showForm ? 'Annuler' : '+ Ajouter'}</button>
+      </div>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>
+        Reçu {fmtMoney(totalRecu)} / prévu {fmtMoney(totalPrevu)}
+        {budgetTotal > 0 && totalPrevu > 0 && ` · ${Math.round((totalPrevu / budgetTotal) * 100)} % du budget couvert par le financement`}
+      </div>
+      {totalPrevu > 0 && (
+        <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${Math.min(100, Math.round((totalRecu / totalPrevu) * 100))}%`, background: '#34d399', borderRadius: 3 }} />
+        </div>
+      )}
+      {showForm && (
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 10, marginBottom: 12 }}>
+          <Field label="Nom du déboursé"><input style={inputStyle} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="ex. Déboursé 1 — fondations coulées" /></Field>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Field label="Montant ($)" flex><input style={inputStyle} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="ex. 95000" /></Field>
+            <Field label="Date prévue" flex><input type="date" style={inputStyle} value={datePrevue} onChange={(e) => setDatePrevue(e.target.value)} /></Field>
+          </div>
+          <Field label="Condition de la banque (optionnel)"><input style={inputStyle} value={condition} onChange={(e) => setCondition(e.target.value)} placeholder="ex. inspection fondations + facture" /></Field>
+          <button disabled={busy} onClick={add} style={primaryBtnStyle}>{busy ? 'Ajout…' : 'Ajouter le déboursé'}</button>
+        </div>
+      )}
+      {loaded && debourses.length === 0 && !showForm && <Empty text="Aucun déboursé banque. Ajoute les tranches de ton financement." />}
+      {debourses.map((d) => (
+        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <button
+            onClick={() => toggleRecu(d)}
+            style={{
+              width: 24, height: 24, borderRadius: 12, flexShrink: 0, cursor: 'pointer',
+              border: d.recu ? 'none' : '2px solid rgba(255,255,255,0.3)',
+              background: d.recu ? '#34d399' : 'transparent', color: '#0d1117', fontWeight: 800,
+            }}
+            aria-label={d.recu ? 'Marquer non reçu' : 'Marquer reçu'}
+          >{d.recu ? '✓' : ''}</button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, textDecoration: d.recu ? 'none' : undefined }}>{d.label}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+              {d.recu ? `Reçu le ${fmtDate(d.dateRecu)}` : `Prévu : ${fmtDate(d.datePrevue)}`}
+              {d.condition ? ` · ${d.condition}` : ''}
+            </div>
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: d.recu ? '#34d399' : undefined }}>{fmtMoney(d.amount)}</div>
+          <button onClick={() => remove(d)} style={ghostIconBtn} aria-label="Supprimer"><FontAwesomeIcon icon={UI.trash} style={{ fontSize: 12 }} /></button>
+        </div>
+      ))}
     </div>
   );
 }
@@ -791,6 +904,11 @@ function ContactFormModal({ contact, onClose, onSaved, onDelete }: { contact: Co
   const [person, setPerson] = useState(contact?.person || '');
   const [phone, setPhone] = useState(contact?.phone || '');
   const [email, setEmail] = useState(contact?.email || '');
+  const [website, setWebsite] = useState(contact?.website || '');
+  const [facebook, setFacebook] = useState(contact?.facebook || '');
+  const [instagram, setInstagram] = useState(contact?.instagram || '');
+  const [address, setAddress] = useState(contact?.address || '');
+  const [rbq, setRbq] = useState(contact?.rbq || '');
   const [trade, setTrade] = useState(contact?.trade || '');
   const [status, setStatus] = useState<ContactStatus>(contact?.status || 'PRESSENTI');
   const [notes, setNotes] = useState(contact?.notes || '');
@@ -799,7 +917,7 @@ function ContactFormModal({ contact, onClose, onSaved, onDelete }: { contact: Co
     if (!company.trim()) return;
     setBusy(true);
     try {
-      const body = { company, person, phone, email, trade, status, notes } as any;
+      const body = { company, person, phone, email, website, facebook, instagram, address, rbq, trade, status, notes } as any;
       if (contact) await ChantierAPI.updateContact(contact.id, body);
       else await ChantierAPI.createContact(body);
       onSaved();
@@ -815,6 +933,13 @@ function ContactFormModal({ contact, onClose, onSaved, onDelete }: { contact: Co
         <Field label="Métier" flex><input style={inputStyle} value={trade} onChange={(e) => setTrade(e.target.value)} placeholder="ex. Plombier" /></Field>
       </div>
       <Field label="Courriel"><input style={inputStyle} inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+      <Field label="Site web"><input style={inputStyle} inputMode="url" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="ex. https://entreprise.ca" /></Field>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Field label="Facebook" flex><input style={inputStyle} value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="lien ou @page" /></Field>
+        <Field label="Instagram" flex><input style={inputStyle} value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="lien ou @compte" /></Field>
+      </div>
+      <Field label="Adresse"><input style={inputStyle} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="ex. 123 rue Principale, Shawinigan" /></Field>
+      <Field label="Licence RBQ"><input style={inputStyle} value={rbq} onChange={(e) => setRbq(e.target.value)} placeholder="ex. 5678-1234-01" /></Field>
       <Field label="Statut">
         <select style={inputStyle} value={status} onChange={(e) => setStatus(e.target.value as ContactStatus)}>
           {(Object.keys(CONTACT_STATUS) as ContactStatus[]).map((s) => <option key={s} value={s}>{CONTACT_STATUS[s].label}</option>)}
@@ -947,11 +1072,17 @@ function PhotoFormModal({ jalons, defaultJalonId, lockJalon, ensureJalons, onClo
 
   useEffect(() => { if (!lockJalon && !jalons.length) ensureJalons().then(setLocalJalons).catch(() => {}); }, [lockJalon, jalons.length, ensureJalons]);
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const MAX_FILE_MB = 40;
+  const [dragOver, setDragOver] = useState(false);
+
+  async function handleFile(f: File) {
+    if (f.size > MAX_FILE_MB * 1024 * 1024) {
+      alert(`Fichier trop gros (${Math.round(f.size / 1024 / 1024)} Mo). Maximum : ${MAX_FILE_MB} Mo.`);
+      return;
+    }
     setFile(f);
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
+    if (f.type === 'application/pdf' && kind === 'PHOTO') setKind('PLAN');
     try {
       if (f.type.startsWith('image/')) {
         const { dataUrl } = await compressImage(f);
@@ -960,6 +1091,11 @@ function PhotoFormModal({ jalons, defaultJalonId, lockJalon, ensureJalons, onClo
         setPreview(null);
       }
     } catch { setPreview(null); }
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) await handleFile(f);
   }
 
   async function save() {
@@ -987,15 +1123,34 @@ function PhotoFormModal({ jalons, defaultJalonId, lockJalon, ensureJalons, onClo
   return (
     <ModalShell onClose={onClose}>
       <FormTitle title="Ajouter un document / photo" onClose={onClose} />
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-        <label style={{ ...secondaryBtnStyle, cursor: 'pointer' }}>
-          📷 Caméra
-          <input type="file" accept="image/*" capture="environment" onChange={onFile} style={{ display: 'none' }} />
-        </label>
-        <label style={{ ...secondaryBtnStyle, cursor: 'pointer' }}>
-          <FontAwesomeIcon icon={UI.upload} /> Fichier
-          <input type="file" accept="image/*,application/pdf" onChange={onFile} style={{ display: 'none' }} />
-        </label>
+      <div
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+        onDrop={async (e) => {
+          e.preventDefault(); e.stopPropagation(); setDragOver(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) await handleFile(f);
+        }}
+        style={{
+          border: `2px dashed ${dragOver ? ACCENT : 'rgba(255,255,255,0.2)'}`,
+          background: dragOver ? 'rgba(217,119,6,0.08)' : 'rgba(255,255,255,0.03)',
+          borderRadius: 14, padding: '18px 12px', textAlign: 'center', marginBottom: 10,
+          transition: 'all .15s',
+        }}
+      >
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 10 }}>
+          {dragOver ? 'Dépose le fichier ici 👇' : `Glisse-dépose une facture, un plan PDF ou une photo (max ${MAX_FILE_MB} Mo)`}
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <label style={{ ...secondaryBtnStyle, cursor: 'pointer' }}>
+            📷 Caméra
+            <input type="file" accept="image/*" capture="environment" onChange={onFile} style={{ display: 'none' }} />
+          </label>
+          <label style={{ ...secondaryBtnStyle, cursor: 'pointer' }}>
+            <FontAwesomeIcon icon={UI.upload} /> Fichier
+            <input type="file" accept="image/*,application/pdf" onChange={onFile} style={{ display: 'none' }} />
+          </label>
+        </div>
       </div>
       {preview && <img src={preview} alt="aperçu" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 12, marginBottom: 10 }} />}
       {file && !preview && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 10 }}>Fichier : {file.name}</div>}
