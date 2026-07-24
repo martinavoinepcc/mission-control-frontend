@@ -67,10 +67,25 @@ export type ContactLite = {
 
 export type Contact = ContactLite & {
   website: string | null;
+  facebook: string | null;
+  instagram: string | null;
+  address: string | null;
+  rbq: string | null;
   trade: string | null;
   status: ContactStatus;
   notes: string | null;
   soumissions?: Array<{ id: number; amount: number; status: SoumissionStatus }>;
+};
+
+export type DebourseBanque = {
+  id: number;
+  label: string;
+  amount: number;
+  condition: string | null;
+  datePrevue: string | null;
+  dateRecu: string | null;
+  recu: boolean;
+  order: number;
 };
 
 export type JalonLite = {
@@ -134,6 +149,7 @@ export type Doc = {
 export type Overview = {
   project: Project;
   budget: { total: number; engage: number; paye: number; restant: number };
+  banque?: { totalPrevu: number; totalRecu: number; count: number; countRecu: number };
   globalProgress: number;
   counts: {
     trades: number;
@@ -196,6 +212,13 @@ export const ChantierAPI = {
   updateSoumission: (id: number, body: Partial<Soumission>) =>
     req<{ soumission: Soumission }>(`/chantier/soumissions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteSoumission: (id: number) => req<{ ok: true }>(`/chantier/soumissions/${id}`, { method: 'DELETE' }),
+
+  debourses: () => req<{ debourses: DebourseBanque[] }>('/chantier/debourses'),
+  createDebourse: (body: Partial<DebourseBanque>) =>
+    req<{ debourse: DebourseBanque }>('/chantier/debourses', { method: 'POST', body: JSON.stringify(body) }),
+  updateDebourse: (id: number, body: Partial<DebourseBanque>) =>
+    req<{ debourse: DebourseBanque }>(`/chantier/debourses/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteDebourse: (id: number) => req<{ ok: true }>(`/chantier/debourses/${id}`, { method: 'DELETE' }),
 
   depenses: () => req<{ depenses: Depense[] }>('/chantier/depenses'),
   createDepense: (body: Partial<Depense>) =>
