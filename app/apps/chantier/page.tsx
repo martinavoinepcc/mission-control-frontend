@@ -9,7 +9,7 @@ import {
   type Overview, type JalonLite, type JalonDetail, type Contact, type Soumission,
   type Depense, type Doc, type Trade, type JalonStatus, type SoumissionStatus,
   type DocKind, type ContactStatus, type DepenseType, type ChantierPhase,
-  type DebourseBanque,
+  type DebourseBanque, type AvancementItem,
 } from '@/lib/chantier-api';
 
 const ACCENT = '#D97706';
@@ -381,6 +381,29 @@ function ApercuView({ ov, onOpenJalon, onAddSoumission, onAddPhoto, onGoJalons }
         </div>
       </div>
 
+      {/* Avancement officiel banque + prochain déboursé */}
+      {ov.avancementBanque !== undefined && (
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>🏦 Avancement officiel (banque)</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: '#34d399' }}>{ov.avancementBanque} %</span>
+          </div>
+          <div style={{ height: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, ov.avancementBanque)}%`, background: 'linear-gradient(90deg, #34d399, #10b981)' }} />
+          </div>
+          {ov.banque?.prochain && (
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>
+              Prochain déboursé : <strong style={{ color: 'rgba(255,255,255,0.85)' }}>{fmtMoney(ov.banque.prochain.amount)}</strong> — {ov.banque.prochain.label}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+            Grille d'inspection progressive · coche les postes dans l'onglet Jalons
+          </div>
+        </div>
+      )}
+
+      <AgendaCard nextJalons={ov.nextJalons} onOpenJalon={onOpenJalon} />
+
       {/* Prochains jalons */}
       <div style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -442,11 +465,134 @@ function ApercuView({ ov, onOpenJalon, onAddSoumission, onAddPhoto, onGoJalons }
   );
 }
 
+// ===== Agenda des échéances (jalons à venir + déboursés banque prévus) =====
+function AgendaCard({ nextJalons, onOpenJalon }: { nextJalons: JalonLite[]; onOpenJalon: (id: number) => void }) {
+  const [debourses, setDebourses] = useState<DebourseBanque[]>([]);
+  useEffect(() => { ChantierAPI.debourses().then((r) => setDebourses(r.debourses)).catch(() => {}); }, []);
+
+  type Ev = { key: string; date: string | null; label: string; kind: 'jalon' | 'banque'; done: boolean; jalonId?: number };
+  const events: Ev[] = [
+    ...nextJalons.map((j): Ev => ({ key: `j${j.id}`, date: j.dueDate, label: j.name, kind: 'jalon', done: j.status === 'COMPLETE', jalonId: j.id })),
+    ...debourses.filter((d) => !d.recu).map((d): Ev => ({ key: `d${d.id}`, date: d.datePrevue, label: `${d.label} (${fmtMoney(d.amount)})`, kind: 'banque', done: false })),
+  ]
+    .sort((a, b) => {
+      const ta = a.date ? new Date(a.date).getTime() : Infinity;
+      const tb = b.date ? new Date(b.date).getTime() : Infinity;
+      return ta - tb;
+    })
+    .slice(0, 6);
+
+  if (!events.length) return null;
+  const now = Date.now();
+  return (
+    <div style={card}>
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>📅 Échéancier à confirmer</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {events.map((ev) => {
+          const late = ev.date && new Date(ev.date).getTime() < now && !ev.done;
+          return (
+            <button
+              key={ev.key}
+              onClick={() => ev.jalonId && onOpenJalon(ev.jalonId)}
+              style={{ ...rowBtnStyle, cursor: ev.jalonId ? 'pointer' : 'default' }}
+            >
+              <span style={{ fontSize: 14 }}>{ev.kind === 'banque' ? '🏦' : '🔨'}</span>
+              <span style={{ flex: 1, textAlign: 'left', fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: late ? '#f87171' : 'rgba(255,255,255,0.55)' }}>
+                {ev.date ? fmtDate(ev.date) : 'à dater'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ===== Grille d'inspection progressive de la banque (avancement officiel) =====
+const STADES: Record<number, string> = {
+  1: 'Stade 1 — Fondation et charpente',
+  2: 'Stade 2 — Systèmes et recouvrements',
+  3: 'Stade 3 — Finition',
+};
+const PCT_STEPS = [0, 25, 50, 75, 100];
+
+function GrilleBanque() {
+  const [items, setItems] = useState<AvancementItem[]>([]);
+  const [global, setGlobal] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [openStade, setOpenStade] = useState<number | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      const r = await ChantierAPI.avancement();
+      setItems(r.items); setGlobal(r.global);
+    } catch {}
+  }, []);
+  useEffect(() => { reload(); }, [reload]);
+
+  async function setPct(it: AvancementItem, pct: number) {
+    setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, pct } : x)));
+    try { await ChantierAPI.updateAvancement(it.id, pct); await reload(); }
+    catch (e: any) { alert(e?.message || 'Erreur'); await reload(); }
+  }
+
+  if (!items.length) return null;
+  const stades = [1, 2, 3];
+  return (
+    <div style={card}>
+      <button onClick={() => setOpen((v) => !v)} style={{ ...rowBtnStyle, padding: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, flex: 1, textAlign: 'left' }}>🏦 Grille banque — avancement officiel</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: '#34d399' }}>{global} %</span>
+        <FontAwesomeIcon icon={UI.chevronRight} style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }} />
+      </button>
+      {open && stades.map((s) => {
+        const sItems = items.filter((i) => i.stade === s);
+        const sWeight = sItems.reduce((a, i) => a + i.weight, 0);
+        const sDone = sItems.reduce((a, i) => a + (i.weight * i.pct) / 100, 0);
+        const isOpen = openStade === s;
+        return (
+          <div key={s} style={{ marginTop: 10 }}>
+            <button onClick={() => setOpenStade(isOpen ? null : s)} style={{ ...rowBtnStyle, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px' }}>
+              <span style={{ flex: 1, textAlign: 'left', fontSize: 13, fontWeight: 600 }}>{STADES[s]}</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{Math.round((sDone / sWeight) * 100) || 0} % · pèse {Math.round(sWeight * 10) / 10} %</span>
+            </button>
+            {isOpen && sItems.map((it) => (
+              <div key={it.id} style={{ padding: '8px 4px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 13 }}>{it.name}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{it.weight} %</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {PCT_STEPS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPct(it, p)}
+                      style={{
+                        flex: 1, padding: '5px 0', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+                        border: '1px solid ' + (it.pct === p ? '#34d399' : 'rgba(255,255,255,0.12)'),
+                        background: it.pct === p ? 'rgba(52,211,153,0.18)' : 'rgba(255,255,255,0.04)',
+                        color: it.pct === p ? '#34d399' : 'rgba(255,255,255,0.7)',
+                        fontWeight: it.pct === p ? 700 : 400,
+                      }}
+                    >{p}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function JalonsView({ jalons, onOpen, onAdd }: { jalons: JalonLite[]; onOpen: (id: number) => void; onAdd: () => void }) {
   const pre = jalons.filter((j) => j.phase === 'PRE_CONSTRUCTION');
   const cons = jalons.filter((j) => j.phase === 'CONSTRUCTION');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <GrilleBanque />
       <button onClick={onAdd} style={primaryBtnStyle}><FontAwesomeIcon icon={UI.plus} /> Nouveau jalon</button>
       <JalonGroup title="Pré-construction" jalons={pre} onOpen={onOpen} />
       <JalonGroup title="Construction" jalons={cons} onOpen={onOpen} />
