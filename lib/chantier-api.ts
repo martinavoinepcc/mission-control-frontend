@@ -77,6 +77,15 @@ export type Contact = ContactLite & {
   soumissions?: Array<{ id: number; amount: number; status: SoumissionStatus }>;
 };
 
+export type AvancementItem = {
+  id: number;
+  stade: number;
+  name: string;
+  weight: number;
+  pct: number;
+  order: number;
+};
+
 export type DebourseBanque = {
   id: number;
   label: string;
@@ -149,7 +158,8 @@ export type Doc = {
 export type Overview = {
   project: Project;
   budget: { total: number; engage: number; paye: number; restant: number };
-  banque?: { totalPrevu: number; totalRecu: number; count: number; countRecu: number };
+  banque?: { totalPrevu: number; totalRecu: number; count: number; countRecu: number; prochain?: DebourseBanque | null };
+  avancementBanque?: number;
   globalProgress: number;
   counts: {
     trades: number;
@@ -212,6 +222,10 @@ export const ChantierAPI = {
   updateSoumission: (id: number, body: Partial<Soumission>) =>
     req<{ soumission: Soumission }>(`/chantier/soumissions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteSoumission: (id: number) => req<{ ok: true }>(`/chantier/soumissions/${id}`, { method: 'DELETE' }),
+
+  avancement: () => req<{ items: AvancementItem[]; global: number }>('/chantier/avancement'),
+  updateAvancement: (id: number, pct: number) =>
+    req<{ item: AvancementItem }>(`/chantier/avancement/${id}`, { method: 'PATCH', body: JSON.stringify({ pct }) }),
 
   debourses: () => req<{ debourses: DebourseBanque[] }>('/chantier/debourses'),
   createDebourse: (body: Partial<DebourseBanque>) =>
