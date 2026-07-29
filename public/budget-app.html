@@ -681,7 +681,7 @@
       <h2>Tableau détaillé</h2>
       <p class="hint">Toutes les années jusqu'à 5 ans après la dernière retraite, puis aux 5 ans. Montants annuels indexés.</p>
       <table class="rwd" id="retTable">
-        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Retrait</th><th>Intérêts gagnés <span class="tip" tabindex="0" data-tip="Ce que ton épargne a rapporté dans l'année. VERT quand les intérêts couvrent le retrait (le capital grossit même en en vivant) ; ORANGE quand tu sors plus que ce que ça rapporte (le capital s'érode).">?</span></th><th>Impôt</th><th>Dépenses</th><th>Dette</th><th>Épargne au 31 déc. <span class="tip" tabindex="0" data-tip="Le capital à la fin de chaque année. La petite ligne ⇢ dessous répond à « qu'est-ce que je tire de ce capital ? » : le revenu annuel NET (après impôt marginal par-dessus les rentes) si tu ne retirais QUE ses intérêts — un revenu à perpétuité, le capital resterait intact.">?</span></th></tr></thead>
+        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Retrait <span class="tip" tabindex="0" data-tip="Ce qui sort de l'épargne. La ligne dessous montre le calcul : dépenses − rentes (RRQ+PSV) − payes = BESOIN NET ; le retrait couvre ce besoin plus l'impôt qu'il déclenche. Les rentes sont donc TOUJOURS déduites avant de piger dans l'épargne — jamais les dépenses brutes.">?</span></th><th>Intérêts gagnés <span class="tip" tabindex="0" data-tip="Ce que ton épargne a rapporté dans l'année. VERT quand les intérêts couvrent le retrait (le capital grossit même en en vivant) ; ORANGE quand tu sors plus que ce que ça rapporte (le capital s'érode).">?</span></th><th>Impôt</th><th>Dépenses <span class="tip" tabindex="0" data-tip="Total de l'année, avec débuts/fins et inflation. La ligne ▼ verte indique les paiements TERMINÉS cette année-là (hypothèque payée, plan fini) : les dépenses baissent d'autant. Si le total continue de monter quand même, c'est l'inflation qui gonfle tout le reste — pas des paiements fantômes.">?</span></th><th>Dette</th><th>Épargne au 31 déc. <span class="tip" tabindex="0" data-tip="Le capital à la fin de chaque année. La petite ligne ⇢ dessous répond à « qu'est-ce que je tire de ce capital ? » : le revenu annuel NET (après impôt marginal par-dessus les rentes) si tu ne retirais QUE ses intérêts — un revenu à perpétuité, le capital resterait intact.">?</span></th></tr></thead>
         <tbody id="retTableBody"></tbody>
       </table>
       <div class="ret-note">Estimation pour explorer des scénarios — <strong>pas un conseil financier</strong>. L'impôt utilise les tranches marginales combinées Québec + fédéral 2026 (seuils réels, indexés à l'inflation) sur le revenu ordinaire ; la vraie facture dépend de la nature des revenus (gains en capital, dividendes, REER/FERR, CELI), du fractionnement réel et de crédits non modélisés. Les payes en emploi sont vos montants nets actuels. Valide avec ton fiscaliste.</div>
@@ -2017,6 +2017,24 @@ function simulateRetraite(){
     }
   }
 
+  /* Paiements LIBÉRÉS par année : somme annualisée des dépenses qui finissent
+     cette année-là (fin prévue, ou mort anticipée pour les dettes accélérées) —
+     pour montrer noir sur blanc que les dépenses TOMBENT quand une hypothèque
+     se termine, même si l'inflation sur le reste masque la baisse. */
+  const libereParAn = {};
+  state.depenses.forEach(d => {
+    const dl = debts.find(x => x.d === d);
+    let mFin = null;
+    if(dl) mFin = dl.mort !== null ? dl.mort - 1 : dl.mFinOrig;
+    else if(d.fin) mFin = isoToM(d.fin);
+    if(mFin === null || mFin < m0 || mFin > mEnd) return;
+    const kf = Math.floor((mFin - m0)/12);
+    const inflF = Math.pow(1 + (p.inflation || 0)/100, kf);
+    const mont = mensualise(d) * 12 * (d.idx === false ? 1 : inflF);
+    const yr = mToLabel(mFin);
+    libereParAn[yr] = (libereParAn[yr] || 0) + mont;
+  });
+
   /* Intérêts réellement évités : total nominal des paiements prévus − total payé */
   const interetsEvites = debts.reduce((s,x) => s + (x.mort !== null ? Math.max(0, x.nominal - x.paye) : 0), 0);
   const detteInitiale = debts.reduce((s,x) => s + x.bal0, 0);
@@ -2043,7 +2061,7 @@ function simulateRetraite(){
     }
   }
 
-  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites, detteInitiale, cibleAutonomie, rendReel, depAnRet, rentesAnRet, inflRet, pctImp, fractionner, modePerpetuite };
+  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites, detteInitiale, cibleAutonomie, rendReel, depAnRet, rentesAnRet, inflRet, pctImp, fractionner, modePerpetuite, libereParAn };
 }
 
 /* Construction des cartes-personnes et de la liste des dettes (une fois par affichage d'onglet) */
@@ -2350,14 +2368,24 @@ function renderRetResultats(){
       : '';
     const intNote = y.retrait > 0 ? (couvre ? ' ✓' : ' ⚠') : '';
     const manqueNote = y.manque > 1 ? '<span class="date-sub" style="color:var(--neg);">manque ' + fmt$(y.manque) + '</span>' : '';
+    /* Le calcul du retrait, noir sur blanc : dépenses − rentes − payes = besoin
+       net, que le retrait couvre (impôt en sus). Prouve que les rentes SONT
+       déduites avant de piger dans l'épargne. */
+    const besoinNet = Math.max(0, y.dep - y.rentes - y.travail);
+    const retraitNote = y.retrait > 0
+      ? '<span class="date-sub" title="Dépenses ' + fmt$(y.dep) + ' − rentes ' + fmt$(y.rentes) + (y.travail > 1 ? ' − payes ' + fmt$(y.travail) : '') + ' = besoin net ' + fmt$(besoinNet) + '. Le retrait le couvre, impôt en sus.">= besoin ' + fmt$(besoinNet) + ' + impôt</span>'
+      : '';
+    /* Paiements qui se terminent cette année (hypothèques, plans…) */
+    const libere = sim.libereParAn[y.year] || 0;
+    const libereNote = libere > 1 ? '<span class="date-sub" style="color:var(--primary);" title="Paiements terminés cette année (hypothèques, prêts, plans à échéance) : les dépenses baissent d’autant par la suite.">▼ ' + fmt$(libere) + ' /an libérés</span>' : '';
     tr.innerHTML = '<td style="text-align:left; font-weight:600;">' + y.year + evTip + '</td>' +
       '<td style="text-align:left;" data-l="Âges">' + esc(ages) + '</td>' +
       '<td class="num" data-l="Payes">' + fmt$(y.travail) + '</td>' +
       '<td class="num" data-l="RRQ + PSV">' + fmt$(y.rentes) + '</td>' +
-      '<td class="num" data-l="Retrait">' + (y.retrait > 0 ? fmt$(y.retrait) : '—') + '</td>' +
+      '<td class="num" data-l="Retrait">' + (y.retrait > 0 ? fmt$(y.retrait) + retraitNote : '—') + '</td>' +
       '<td class="num" data-l="Intérêts gagnés" style="' + intStyle + '" title="Intérêts ' + fmt$(y.interets) + ' vs retraits ' + fmt$(y.retrait) + ' — le capital ' + (couvre ? 'croît' : 's’érode') + '">' + fmt$(y.interets) + intNote + '</td>' +
       '<td class="num" data-l="Impôt" style="color:var(--neg);">' + (y.impot > 0 ? fmt$(y.impot) : '—') + '</td>' +
-      '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + manqueNote + '</td>' +
+      '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + libereNote + manqueNote + '</td>' +
       '<td class="num" data-l="Dette" style="color:' + (y.dette > 0 ? 'var(--neg)' : 'var(--muted)') + ';">' + (y.dette > 0 ? fmt$(y.dette) : '0 $') + '</td>' +
       '<td class="num" data-l="Épargne au 31 déc." style="font-weight:600; color:' + (y.ep > 0 ? 'var(--primary)' : 'var(--neg)') + ';">' + fmt$(y.ep) +
         (y.ep > 1000 ? '<span class="date-sub" title="Intérêts bruts ' + fmt$(y.perpBrut || 0) + ' − impôt = revenu net si tu ne retires que les intérêts (capital intact)">⇢ ' + fmt$(y.perpNet || 0) + ' /an net à perpétuité</span>' : '') + '</td>';
