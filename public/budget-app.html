@@ -584,9 +584,10 @@
       <p class="hint">Le vrai portrait : combien sortir des placements, l'impôt payé dessus, et l'effet sur l'épargne.</p>
       <div class="prev-params">
         <div class="field">
-          <label for="rRetraitMode">Mode de retrait <span class="tip" tabindex="0" data-tip="AUTOMATIQUE : la simulation retire juste ce qu'il faut pour couvrir les dépenses après impôt (le retrait ci-contre devient un plancher). MANUEL : la simulation retire EXACTEMENT le montant que tu choisis, jamais plus — si ça ne couvre pas les dépenses, le manque s'affiche dans le tableau au lieu d'être comblé en cachette. C'est TOI qui décides.">?</span></label>
+          <label for="rRetraitMode">Mode de retrait <span class="tip" tabindex="0" data-tip="AUTOMATIQUE : la simulation combine d'abord tes rentes (RRQ + PSV), puis retire de l'épargne JUSTE le manque pour couvrir les dépenses après impôt (le retrait ci-contre devient un plancher). PERPÉTUITÉ : même calcul du manque, mais le retrait est PLAFONNÉ aux intérêts gagnés par le capital — le capital reste intact pour toujours ; si rentes + intérêts ne suffisent pas, le manque s'affiche au lieu de gruger le capital. MANUEL : la simulation retire EXACTEMENT le montant que tu choisis, jamais plus. C'est TOI qui décides.">?</span></label>
           <select id="rRetraitMode">
             <option value="auto">Automatique — couvrir les dépenses</option>
+            <option value="perpetuite">Perpétuité — intérêts seulement, capital intact</option>
             <option value="manuel">Manuel — je décide du montant</option>
           </select>
         </div>
@@ -659,12 +660,20 @@
         <div class="value num" id="rtCible">—</div>
         <div class="sub" id="rtCibleSub">—</div>
       </div>
+      <div class="card">
+        <div class="label">Revenu de ton capital <span class="tip" tabindex="0" data-tip="Le calcul, noir sur blanc, avec ton épargne au moment de la retraite : Capital × rendement = intérêts annuels BRUTS. On ajoute ensuite l'impôt marginal (les intérêts retirés s'empilent PAR-DESSUS tes rentes dans les tranches, selon le % imposable choisi) pour donner le NET dans tes poches. Deux façons d'en vivre : À PERPÉTUITÉ = tu ne retires que les intérêts, le capital reste intact pour toujours. EN GRUGEANT = tu vides capital + intérêts d'ici 95 ans : rente annuelle plus grosse, mais limitée dans le temps et il ne reste rien après.">?</span></div>
+        <div class="value num pos" id="rtRevCapital">—</div>
+        <div class="sub" id="rtRevCapitalSub">—</div>
+      </div>
     </div>
 
     <div class="panel">
-      <h2>Le film complet, année par année <span class="tip" tabindex="0" data-tip="Axe de gauche (flux annuels) : Revenus = payes + rentes (le vrai argent qui entre) ; Retraits = ce que vous sortez de l'épargne pour combler le reste ; Dépenses. Axe de droite (soldes) : Épargne (vert) qui monte puis se draine, Dette (rouge) qui descend. En retraite, les revenus (rentes) sont plus bas que les dépenses : l'écart est comblé par les retraits, et l'épargne baisse d'autant. C'est normal — le retrait n'est PAS un revenu, c'est votre propre argent qui sort.">?</span></h2>
+      <h2>Le film complet, année par année <span class="tip" tabindex="0" data-tip="Deux graphiques pour ne plus rien mélanger. EN HAUT, l'argent qui BOUGE chaque année : Revenus = payes + rentes (le vrai argent qui entre) ; Intérêts gagnés = ce que le capital rapporte ; Retraits = ce que vous sortez de l'épargne ; Dépenses. EN BAS, ce que vous POSSÉDEZ : l'épargne (vert) qui monte puis se draine, la dette (rouge) qui descend. Le retrait n'est PAS un revenu — c'est votre propre argent qui sort du coffre du bas.">?</span></h2>
       <p class="hint" id="retHint">—</p>
-      <div class="chart-holder" style="height:360px;"><canvas id="chartRet"></canvas></div>
+      <p class="hint" style="margin-bottom:4px; font-weight:600;">💸 L'argent qui bouge chaque année (revenus, intérêts, retraits, dépenses)</p>
+      <div class="chart-holder" style="height:240px;"><canvas id="chartRet"></canvas></div>
+      <p class="hint" style="margin:14px 0 4px; font-weight:600;">🏦 Ce que vous possédez (épargne et dette, au 31 décembre)</p>
+      <div class="chart-holder" style="height:200px;"><canvas id="chartRetSoldes"></canvas></div>
       <div class="ret-note" id="retResume">—</div>
     </div>
 
@@ -672,10 +681,10 @@
       <h2>Tableau détaillé</h2>
       <p class="hint">Toutes les années jusqu'à 5 ans après la dernière retraite, puis aux 5 ans. Montants annuels indexés.</p>
       <table class="rwd" id="retTable">
-        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Retrait</th><th>Intérêts gagnés <span class="tip" tabindex="0" data-tip="Ce que ton épargne a rapporté dans l'année. VERT quand les intérêts couvrent le retrait (le capital grossit même en en vivant) ; ORANGE quand tu sors plus que ce que ça rapporte (le capital s'érode).">?</span></th><th>Impôt</th><th>Dépenses</th><th>Dette</th><th>Épargne au 31 déc.</th></tr></thead>
+        <thead><tr><th style="text-align:left;">Année</th><th style="text-align:left;">Âges</th><th>Payes</th><th>RRQ + PSV</th><th>Retrait</th><th>Intérêts gagnés <span class="tip" tabindex="0" data-tip="Ce que ton épargne a rapporté dans l'année. VERT quand les intérêts couvrent le retrait (le capital grossit même en en vivant) ; ORANGE quand tu sors plus que ce que ça rapporte (le capital s'érode).">?</span></th><th>Impôt</th><th>Dépenses</th><th>Dette</th><th>Épargne au 31 déc. <span class="tip" tabindex="0" data-tip="Le capital à la fin de chaque année. La petite ligne ⇢ dessous répond à « qu'est-ce que je tire de ce capital ? » : le revenu annuel NET (après impôt marginal par-dessus les rentes) si tu ne retirais QUE ses intérêts — un revenu à perpétuité, le capital resterait intact.">?</span></th></tr></thead>
         <tbody id="retTableBody"></tbody>
       </table>
-      <div class="ret-note">Estimation pour explorer des scénarios — <strong>pas un conseil financier</strong>. L'impôt utilise les tranches marginales combinées Québec ~2025 (seuils indexés à l'inflation) sur le revenu ordinaire ; la vraie facture dépend de la nature des revenus (gains en capital, dividendes, REER/FERR, CELI), du fractionnement réel et de crédits non modélisés. Les payes en emploi sont vos montants nets actuels. Valide avec ton fiscaliste.</div>
+      <div class="ret-note">Estimation pour explorer des scénarios — <strong>pas un conseil financier</strong>. L'impôt utilise les tranches marginales combinées Québec + fédéral 2026 (seuils réels, indexés à l'inflation) sur le revenu ordinaire ; la vraie facture dépend de la nature des revenus (gains en capital, dividendes, REER/FERR, CELI), du fractionnement réel et de crédits non modélisés. Les payes en emploi sont vos montants nets actuels. Valide avec ton fiscaliste.</div>
     </div>
   </div>
 
@@ -1753,13 +1762,14 @@ function isoToM(iso){ return parseInt(iso.slice(0,4),10)*12 + (parseInt(iso.slic
 function mToLabel(m){ return Math.floor(m/12); }
 
 /* Tranches marginales d'imposition COMBINÉES fédéral + Québec, revenu ordinaire
-   (~2025, source Raymond Chabot / CFFP). [seuil, taux]. Le premier ~18 000 $ est
-   quasi exonéré par les crédits personnels de base. Les seuils sont indexés à
-   l'inflation dans les projections (comme dans la vraie vie) pour éviter que
-   l'inflation pousse artificiellement tout le monde dans les hautes tranches. */
+   2026 (fédéral 1re tranche à 14 % dès 2026, abattement du Québec 16,5 % appliqué ;
+   seuils réels 2025-2026, source Raymond Chabot / CFFP). [seuil, taux]. Le premier
+   ~18 000 $ est quasi exonéré par les crédits personnels de base. Les seuils sont
+   indexés à l'inflation dans les projections (comme dans la vraie vie) pour éviter
+   que l'inflation pousse artificiellement tout le monde dans les hautes tranches. */
 const TRANCHES_QC = [
-  [0, 0], [18000, 0.2653], [53000, 0.3212], [57000, 0.3612],
-  [106000, 0.4112], [115000, 0.4571], [132000, 0.4746], [178000, 0.5023], [253000, 0.5331]
+  [0, 0], [18000, 0.2569], [53255, 0.3069], [57375, 0.3612],
+  [106495, 0.4112], [114750, 0.4571], [129590, 0.4746], [177882, 0.4997], [253414, 0.5331]
 ];
 function impotSurRevenu(revenu, f){
   if(revenu <= 0) return 0;
@@ -1786,7 +1796,9 @@ function simulateRetraite(){
   const pctImp = Math.max(0, Math.min(100, r.pctImposable !== undefined ? r.pctImposable : 100)) / 100;
   const fractionner = r.fractionner !== false;
   const modeManuel = r.retraitMode === 'manuel';
-  const retraitCibleAn = Math.max(0, r.retraitAnnuel || 0);
+  const modePerpetuite = r.retraitMode === 'perpetuite';
+  /* En perpétuité, le plancher de retrait n'a pas de sens (il forcerait à gruger) */
+  const retraitCibleAn = modePerpetuite ? 0 : Math.max(0, r.retraitAnnuel || 0);
 
   const persons = r.personnes.map(x => {
     const mNaiss = isoToM(x.dob || '1984-01-01');
@@ -1949,6 +1961,13 @@ function simulateRetraite(){
         }
         W = Math.max(W, retraitVoulu); /* plancher : le retrait choisi */
       }
+      /* MODE PERPÉTUITÉ : retrait plafonné aux intérêts du mois — le capital
+         ne descend jamais ; si rentes + intérêts ne couvrent pas, le manque
+         est AFFICHÉ (colonne Manque) au lieu de gruger le capital.
+         Plafond = ep·(1 − 1/rMens) : ce qu'on peut sortir MAINTENANT pour que
+         le reste, une fois les intérêts du mois composés, revienne exactement
+         au capital de départ (retirer ep·(rMens−1) éroderait un poil). */
+      if(modePerpetuite) W = Math.min(W, rMens > 1 ? Math.max(0, ep) * (1 - 1/rMens) : 0);
       /* On ne peut PAS retirer plus que ce qu'on a. */
       W = Math.min(W, Math.max(0, ep));
       impotM = impotMenage((rentes + W * pctImp) * 12, fractionner, infl) / 12;
@@ -1984,8 +2003,15 @@ function simulateRetraite(){
     acc.retrait += retraitM; acc.impot += impotM; acc.entrees += entreeMois;
     acc.interets += gainM; acc.manque += manqueM;
     if(m % 12 === 11 || m === mEnd){
+      /* Revenu perpétuel net de l'épargne au 31 déc. : ce que le capital
+         donnerait par année si on ne retirait QUE ses intérêts — net de
+         l'impôt marginal (les intérêts s'empilent par-dessus les rentes). */
+      const intAnBrut = Math.max(0, ep) * ((r.rendement || 0) / 100);
+      const perpNet = Math.max(0, intAnBrut -
+        (impotMenage(acc.rentes + intAnBrut * pctImp, fractionner, infl) - impotMenage(acc.rentes, fractionner, infl)));
       years.push({ year: mToLabel(m), travail: acc.travail, rentes: acc.rentes, dep: acc.dep,
         retrait: acc.retrait, impot: acc.impot, entrees: acc.entrees, interets: acc.interets, manque: acc.manque, ep, dette: detteTot,
+        perpBrut: intAnBrut, perpNet,
         ages: persons.map(x => ({ nom: x.nom, age: Math.floor((m - x.mNaiss)/12) })) });
       acc = { travail:0, rentes:0, dep:0, retrait:0, impot:0, entrees:0, interets:0, manque:0 };
     }
@@ -2017,7 +2043,7 @@ function simulateRetraite(){
     }
   }
 
-  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites, detteInitiale, cibleAutonomie, rendReel, depAnRet, rentesAnRet };
+  return { persons, debts, years, m0, lastRet, mEnd, epuiseM, epRetraite, renteRetraite, retraitRetraite, interetsEvites, detteInitiale, cibleAutonomie, rendReel, depAnRet, rentesAnRet, inflRet, pctImp, fractionner, modePerpetuite };
 }
 
 /* Construction des cartes-personnes et de la liste des dettes (une fois par affichage d'onglet) */
@@ -2063,7 +2089,7 @@ function buildRetParams(){
   document.getElementById('rPctEpargne').value = r.pctEpargne;
   document.getElementById('rPctDette').value = r.pctDette;
   document.getElementById('rPsv').value = r.psv65;
-  document.getElementById('rRetraitMode').value = r.retraitMode === 'manuel' ? 'manuel' : 'auto';
+  document.getElementById('rRetraitMode').value = (r.retraitMode === 'manuel' || r.retraitMode === 'perpetuite') ? r.retraitMode : 'auto';
   document.getElementById('rRetraitAnnuel').value = r.retraitAnnuel || 0;
   document.getElementById('rRetraitAnnees').value = r.retraitAnnees || 0;
   document.getElementById('rPctImposable').value = r.pctImposable !== undefined ? r.pctImposable : 100;
@@ -2152,7 +2178,12 @@ function renderRetResultats(){
 
   const v = document.getElementById('rtVerdict');
   const vs = document.getElementById('rtVerdictSub');
-  if(sim.epuiseM === null){
+  const manqueMax = sim.years.reduce((s,y) => Math.max(s, y.manque || 0), 0);
+  if(sim.epuiseM === null && sim.modePerpetuite && manqueMax > 1){
+    v.textContent = '🛡️ Capital intact, mais il manque';
+    v.style.color = 'var(--amber)';
+    vs.textContent = 'rentes + intérêts ne couvrent pas tout : jusqu’à ' + fmt$(manqueMax) + ' /an à combler (voir tableau) — le capital, lui, ne descend jamais';
+  }else if(sim.epuiseM === null){
     v.textContent = '✅ Épargne suffisante';
     v.style.color = 'var(--primary)';
     vs.textContent = 'elle tient jusqu’à 95 ans (fin de la projection)';
@@ -2214,38 +2245,82 @@ function renderRetResultats(){
     cbSub.textContent = '';
   }
 
+  /* Carte « Revenu de ton capital » : le calcul explicite, avec l’épargne au
+     moment de la retraite — perpétuité (intérêts seuls, capital intact) vs
+     gruger capital + intérêts jusqu’à 95 ans. Impôt marginal par-dessus les
+     rentes, % imposable appliqué. */
+  const rcEl = document.getElementById('rtRevCapital');
+  const rcSub = document.getElementById('rtRevCapitalSub');
+  if(sim.epRetraite !== null && sim.epRetraite > 1000 && sim.rentesAnRet !== null){
+    const C = sim.epRetraite;
+    const tR = (r.rendement || 0) / 100;
+    const intBrut = C * tR;
+    const taxRentes = impotMenage(sim.rentesAnRet, sim.fractionner, sim.inflRet);
+    const netPerp = Math.max(0, intBrut - (impotMenage(sim.rentesAnRet + intBrut * sim.pctImp, sim.fractionner, sim.inflRet) - taxRentes));
+    const nAns = Math.max(1, Math.round((sim.mEnd - sim.lastRet) / 12));
+    const annuite = tR > 0 ? C * tR / (1 - Math.pow(1 + tR, -nAns)) : C / nAns;
+    const netGruge = Math.max(0, annuite - (impotMenage(sim.rentesAnRet + annuite * sim.pctImp, sim.fractionner, sim.inflRet) - taxRentes));
+    rcEl.textContent = fmt$(netPerp) + ' /an net';
+    rcSub.innerHTML = fmt$(C) + ' × ' + String(r.rendement).replace('.', ',') + ' % = ' + fmt$(intBrut) +
+      ' d’intérêts bruts → <strong>' + fmt$(netPerp) + ' net à perpétuité</strong> (capital intact à jamais) · ou ' +
+      fmt$(netGruge) + ' /an net en grugeant tout d’ici 95 ans (' + nAns + ' ans, puis plus rien)';
+  }else{
+    rcEl.textContent = '—';
+    rcSub.textContent = 'aucune épargne au moment de la retraite';
+  }
+
   document.getElementById('retHint').textContent =
     r.pctEpargne + ' % du surplus épargné à ' + String(r.rendement).replace('.', ',') + ' %/an · ' + r.pctDette + ' % → dettes (taux le + élevé d’abord) · ' +
-    (r.retraitAnnuel > 0 ? 'retrait imposé ' + fmt$(r.retraitAnnuel) + '/an' + (r.retraitAnnees > 0 ? ' sur ' + r.retraitAnnees + ' ans' : '') : 'retrait auto') +
+    (r.retraitMode === 'perpetuite' ? 'retrait perpétuité (intérêts seulement, capital intact)'
+      : (r.retraitAnnuel > 0 ? 'retrait imposé ' + fmt$(r.retraitAnnuel) + '/an' + (r.retraitAnnees > 0 ? ' sur ' + r.retraitAnnees + ' ans' : '') : 'retrait auto')) +
     ' · impôt ' + (r.fractionner !== false ? 'fractionné' : 'non fractionné') + ' · inflation ' + String(state.previsions.inflation).replace('.', ',') + ' %.';
 
-  /* Graphique : flux annuels (gauche) + épargne (droite) */
+  /* Deux graphiques séparés : les FLUX annuels (milliers) en haut, les SOLDES
+     (épargne/dette, souvent en millions) en bas — plus de lignes écrasées par
+     l'échelle des millions sur un même graphique. Mêmes années en X. */
   if(typeof Chart !== 'undefined'){
     if(charts.ret) charts.ret.destroy();
+    if(charts.retSoldes) charts.retSoldes.destroy();
     const ys = sim.years;
+    const labels = ys.map(y => y.year);
     charts.ret = new Chart(document.getElementById('chartRet'), {
       data: {
-        labels: ys.map(y => y.year),
+        labels,
         datasets: [
-          { type:'line', label:'Épargne', yAxisID:'y2', data: ys.map(y => Math.round(y.ep)),
-            borderColor:'#0C6B4F', backgroundColor:'rgba(12,107,79,.12)', fill:true, tension:.3, pointRadius:0, borderWidth:2.5, order:1 },
-          { type:'line', label:'Dette restante', yAxisID:'y2', data: ys.map(y => Math.round(y.dette)),
-            borderColor:'#9C3D2E', backgroundColor:'#9C3D2E', tension:.2, pointRadius:0, borderWidth:2, order:2 },
           { type:'line', label:'Revenus (payes + rentes)', data: ys.map(y => Math.round(y.travail + y.rentes)),
-            borderColor:'#2E7DA1', backgroundColor:'#2E7DA1', tension:.25, pointRadius:0, borderWidth:2, order:3 },
+            borderColor:'#2E7DA1', backgroundColor:'#2E7DA1', tension:.25, pointRadius:0, borderWidth:2, order:1 },
+          { type:'line', label:'Intérêts gagnés par l’épargne', data: ys.map(y => Math.round(y.interets)),
+            borderColor:'#0C6B4F', backgroundColor:'#0C6B4F', borderDash:[5,3], tension:.25, pointRadius:0, borderWidth:2, order:2 },
           { type:'line', label:'Retraits de l’épargne', data: ys.map(y => Math.round(y.retrait)),
-            borderColor:'#C99A2E', backgroundColor:'#C99A2E', borderDash:[3,3], tension:.25, pointRadius:0, borderWidth:1.5, order:4 },
+            borderColor:'#C99A2E', backgroundColor:'#C99A2E', borderDash:[3,3], tension:.25, pointRadius:0, borderWidth:1.5, order:3 },
           { type:'line', label:'Dépenses', data: ys.map(y => Math.round(y.dep)),
-            borderColor:'#B4553B', backgroundColor:'#B4553B', borderDash:[6,4], tension:.25, pointRadius:0, borderWidth:2, order:5 }
+            borderColor:'#B4553B', backgroundColor:'#B4553B', borderDash:[6,4], tension:.25, pointRadius:0, borderWidth:2, order:4 }
         ]
       },
       options: { maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
         plugins: { legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, borderRadius:3, useBorderRadius:true, font:{size:10} } },
-          tooltip:{ callbacks:{ label: c => ' ' + c.dataset.label + ' : ' + fmt$(c.parsed.y) + (c.dataset.yAxisID === 'y2' ? '' : ' /an') } } },
+          tooltip:{ callbacks:{ label: c => ' ' + c.dataset.label + ' : ' + fmt$(c.parsed.y) + ' /an' } } },
         scales: {
           x:{ grid:{display:false}, ticks:{ maxTicksLimit:14 } },
-          y:{ position:'left', grid:{color:'#EDF1EC'}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Flux annuels' } },
-          y2:{ position:'right', grid:{display:false}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Épargne / Dette' } }
+          y:{ grid:{color:'#EDF1EC'}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'$ par année' } }
+        } }
+    });
+    charts.retSoldes = new Chart(document.getElementById('chartRetSoldes'), {
+      data: {
+        labels,
+        datasets: [
+          { type:'line', label:'Épargne', data: ys.map(y => Math.round(y.ep)),
+            borderColor:'#0C6B4F', backgroundColor:'rgba(12,107,79,.12)', fill:true, tension:.3, pointRadius:0, borderWidth:2.5, order:1 },
+          { type:'line', label:'Dette restante', data: ys.map(y => Math.round(y.dette)),
+            borderColor:'#9C3D2E', backgroundColor:'rgba(156,61,46,.10)', fill:true, tension:.2, pointRadius:0, borderWidth:2, order:2 }
+        ]
+      },
+      options: { maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+        plugins: { legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, borderRadius:3, useBorderRadius:true, font:{size:10} } },
+          tooltip:{ callbacks:{ label: c => ' ' + c.dataset.label + ' : ' + fmt$(c.parsed.y) } } },
+        scales: {
+          x:{ grid:{display:false}, ticks:{ maxTicksLimit:14 } },
+          y:{ grid:{color:'#EDF1EC'}, ticks:{ callback: v => fmt$(v) }, title:{ display:true, text:'Soldes' } }
         } }
     });
   }
@@ -2284,7 +2359,8 @@ function renderRetResultats(){
       '<td class="num" data-l="Impôt" style="color:var(--neg);">' + (y.impot > 0 ? fmt$(y.impot) : '—') + '</td>' +
       '<td class="num" data-l="Dépenses">' + fmt$(y.dep) + manqueNote + '</td>' +
       '<td class="num" data-l="Dette" style="color:' + (y.dette > 0 ? 'var(--neg)' : 'var(--muted)') + ';">' + (y.dette > 0 ? fmt$(y.dette) : '0 $') + '</td>' +
-      '<td class="num" data-l="Épargne au 31 déc." style="font-weight:600; color:' + (y.ep > 0 ? 'var(--primary)' : 'var(--neg)') + ';">' + fmt$(y.ep) + '</td>';
+      '<td class="num" data-l="Épargne au 31 déc." style="font-weight:600; color:' + (y.ep > 0 ? 'var(--primary)' : 'var(--neg)') + ';">' + fmt$(y.ep) +
+        (y.ep > 1000 ? '<span class="date-sub" title="Intérêts bruts ' + fmt$(y.perpBrut || 0) + ' − impôt = revenu net si tu ne retires que les intérêts (capital intact)">⇢ ' + fmt$(y.perpNet || 0) + ' /an net à perpétuité</span>' : '') + '</td>';
     tb.appendChild(tr);
   });
 }
@@ -2317,7 +2393,7 @@ function renderRetraite(){
     if(r.pctEpargne + r.pctDette > 100){ r.pctEpargne = 100 - r.pctDette; document.getElementById('rPctEpargne').value = r.pctEpargne; }
     inp.value = r.pctDette;
   });
-  bind('rRetraitMode', inp => { state.retraite.retraitMode = inp.value === 'manuel' ? 'manuel' : 'auto'; });
+  bind('rRetraitMode', inp => { state.retraite.retraitMode = (inp.value === 'manuel' || inp.value === 'perpetuite') ? inp.value : 'auto'; });
   bind('rRetraitAnnuel', inp => { state.retraite.retraitAnnuel = Math.max(0, parseFloat(inp.value) || 0); });
   bind('rRetraitAnnees', inp => { state.retraite.retraitAnnees = Math.max(0, Math.min(60, parseInt(inp.value, 10) || 0)); inp.value = state.retraite.retraitAnnees; });
   bind('rPctImposable', inp => { state.retraite.pctImposable = Math.min(100, Math.max(0, parseInt(inp.value, 10) || 0)); inp.value = state.retraite.pctImposable; });
