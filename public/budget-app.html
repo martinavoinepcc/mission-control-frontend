@@ -2345,11 +2345,26 @@ function renderRetResultats(){
 
   /* Résumé en mots */
   const rets = sim.persons.map(x => x.nom + ' en ' + mToLabel(x.mRetraite) + ' (' + (x.mRetraite - x.mNaiss >= 0 ? Math.floor((x.mRetraite - x.mNaiss)/12) : '?') + ' ans)').join(', ');
+  /* La cascade de la 1re année 100 % retraite : D'OÙ VIENT le retrait, dollar
+     par dollar. Les rentes sont consommées AVANT le capital ; l'impôt vient du
+     réglage « % du retrait imposable ». */
+  let cascade = '';
+  if(yRet && yRet.retrait > 1000){
+    const besoinRet = Math.max(0, yRet.dep - yRet.rentes - yRet.travail);
+    cascade = '<br><br>💡 <strong>D’où vient le retrait de ' + fmt$(yRet.retrait) + ' en ' + yRet.year + '</strong> : ' +
+      'dépenses ' + fmt$(yRet.dep) +
+      ' − rentes ' + fmt$(yRet.rentes) +
+      (yRet.travail > 1 ? ' − payes ' + fmt$(yRet.travail) : '') +
+      ' = <strong>besoin net ' + fmt$(besoinRet) + '</strong>, plus <strong>' + fmt$(yRet.impot) + ' d’impôt</strong> parce que ' +
+      (r.pctImposable !== undefined ? r.pctImposable : 100) + ' % du retrait est imposable (réglage ci-dessus — REER : 100 %, CELI : 0 %, non enregistré : souvent bien moins). ' +
+      'Chaque dollar de rente est utilisé <strong>avant</strong> de toucher au capital. Si une partie de ton épargne n’est pas du REER, baisse le « % du retrait imposable » : l’impôt fondra et l’épargne tiendra plus longtemps.';
+  }
   document.getElementById('retResume').innerHTML =
     '🌅 Retraites : <strong>' + rets + '</strong>. Épargne au dernier départ : <strong>' + fmt$(sim.epRetraite || 0) + '</strong>. ' +
     (sim.epuiseM === null
       ? 'Avec vos rentes et vos retraits, <strong style="color:var(--primary)">l’épargne tient jusqu’à la fin de la projection (95 ans)</strong>.'
-      : '<strong style="color:var(--neg)">L’épargne s’épuise en ' + mToLabel(sim.epuiseM) + '</strong> — jouez avec les leviers ci-dessus (% épargné, âges de retraite, dettes) pour corriger le tir.');
+      : '<strong style="color:var(--neg)">L’épargne s’épuise en ' + mToLabel(sim.epuiseM) + '</strong> — jouez avec les leviers ci-dessus (% épargné, âges de retraite, dettes) pour corriger le tir.') +
+    cascade;
 
   /* Tableau : chaque année jusqu'à dernière retraite + 5 ans, ensuite aux 5 ans */
   const tb = document.getElementById('retTableBody');
@@ -2373,7 +2388,7 @@ function renderRetResultats(){
        déduites avant de piger dans l'épargne. */
     const besoinNet = Math.max(0, y.dep - y.rentes - y.travail);
     const retraitNote = y.retrait > 0
-      ? '<span class="date-sub" title="Dépenses ' + fmt$(y.dep) + ' − rentes ' + fmt$(y.rentes) + (y.travail > 1 ? ' − payes ' + fmt$(y.travail) : '') + ' = besoin net ' + fmt$(besoinNet) + '. Le retrait le couvre, impôt en sus.">= besoin ' + fmt$(besoinNet) + ' + impôt</span>'
+      ? '<span class="date-sub" title="Dépenses ' + fmt$(y.dep) + ' − rentes ' + fmt$(y.rentes) + (y.travail > 1 ? ' − payes ' + fmt$(y.travail) : '') + ' = besoin net ' + fmt$(besoinNet) + '. Le retrait le couvre, plus l’impôt qu’il déclenche (réglage % imposable).">= besoin ' + fmt$(besoinNet) + ' + impôt ' + fmt$(y.impot) + '</span>'
       : '';
     /* Paiements qui se terminent cette année (hypothèques, plans…) */
     const libere = sim.libereParAn[y.year] || 0;
