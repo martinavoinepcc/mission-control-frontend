@@ -66,6 +66,7 @@ import {
   faStop,
   faComments,
   faPaperPlane,
+  faRoute,
   faPlus as faPlusIcon,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -86,6 +87,7 @@ export const APP_ICONS: Record<string, IconDefinition> = {
   'masks-theater': faMasksTheater,
   'comments': faComments,
   'eye': faEye,
+  'route': faRoute,
 };
 
 // Fallback si le slug n'est pas mappé
