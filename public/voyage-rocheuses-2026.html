@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rocheuses &amp; Glacier — 1 au 12 août 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:opsz,wght@6..72,300..600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --silt:#E7EBE4;
+  --paper:#FCFCFA;
+  --ink:#101E19;
+  --spruce:#1E4A3D;
+  --lake:#256E80;
+  --larch:#B8501F;
+  --stone:#77857D;
+  --line:#CCD4CA;
+  --rail:22px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--silt);
+  color:var(--ink);
+  font-family:"Newsreader",Georgia,serif;
+  font-size:17px;
+  line-height:1.55;
+  font-optical-sizing:auto;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px 72px}
+
+/* ---------- utility type ---------- */
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.eyebrow{
+  font-family:"JetBrains Mono",monospace;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--stone);font-weight:500;
+}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;margin:0;line-height:1.05}
+
+/* ---------- hero ---------- */
+.hero{padding:38px 0 26px;border-bottom:2px solid var(--ink)}
+.hero h1{
+  font-size:clamp(38px,11vw,64px);
+  font-variation-settings:"wdth" 92;
+  letter-spacing:-.02em;margin:10px 0 2px;
+}
+.hero h1 em{font-style:normal;color:var(--spruce)}
+.hero .dates{
+  font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:500;
+  color:var(--larch);letter-spacing:.02em;margin-top:10px;display:block;
+}
+.hero .route{margin:14px 0 0;color:var(--stone);font-size:16px}
+.facts{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);margin-top:24px;
+}
+.facts div{background:var(--silt);padding:11px 12px}
+.facts b{display:block;font-family:"JetBrains Mono",monospace;font-size:17px;font-weight:700}
+.facts span{font-size:12px;color:var(--stone);letter-spacing:.04em;text-transform:uppercase;font-family:"JetBrains Mono",monospace}
+@media(min-width:620px){.facts{grid-template-columns:repeat(4,1fr)}}
+
+/* ---------- alerts ---------- */
+.alerts{margin:28px 0 8px}
+.alerts > h2{font-size:20px;margin-bottom:12px}
+.alert{
+  background:var(--paper);border-left:5px solid var(--larch);
+  padding:13px 15px;margin-bottom:10px;
+}
+.alert h3{font-family:"Bricolage Grotesque",sans-serif;font-size:16px;margin-bottom:4px}
+.alert p{margin:0;font-size:15.5px}
+.alert p + p{margin-top:6px}
+.alert .tag{
+  font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--larch);display:block;margin-bottom:5px;font-weight:700;
+}
+.alert--soft{border-left-color:var(--lake)}
+.alert--soft .tag{color:var(--lake)}
+
+/* ---------- day cards ---------- */
+.days{margin-top:34px}
+.day{
+  position:relative;background:var(--paper);
+  border:1px solid var(--line);
+  padding:16px 16px 4px calc(var(--rail) + 26px);
+  margin-bottom:14px;
+}
+.day::before{ /* the route line */
+  content:"";position:absolute;left:var(--rail);top:0;bottom:0;
+  width:2px;background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 12px);
+}
+.day::after{ /* node on the route */
+  content:"";position:absolute;left:calc(var(--rail) - 4px);top:24px;
+  width:10px;height:10px;background:var(--spruce);border-radius:50%;
+}
+.day[data-today="1"]{border-color:var(--spruce);box-shadow:0 0 0 3px rgba(30,74,61,.12)}
+.day[data-today="1"] .dnum{color:var(--larch)}
+.badge-today{
+  display:inline-block;font-family:"JetBrains Mono",monospace;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;background:var(--larch);color:#fff;
+  padding:2px 7px;margin-bottom:8px;font-weight:700;
+}
+.day__head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.dnum{font-family:"Bricolage Grotesque",sans-serif;font-size:34px;font-weight:800;line-height:1;color:var(--spruce)}
+.dmeta{font-family:"JetBrains Mono",monospace;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--stone)}
+.day__head h2{font-size:21px;letter-spacing:-.01em;flex:1 1 100%;margin-top:2px}
+
+/* drive leg ribbon = signature */
+.leg{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;
+  background:var(--spruce);color:#EAF1EC;
+  margin:14px 0 4px;padding:9px 13px;
+}
+.leg .km{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em}
+.leg .t{font-family:"JetBrains Mono",monospace;font-size:13px;color:#A9C7B9}
+.leg .road{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#C9DCD1;flex:1 1 100%}
+.leg--none{background:#EDF1EC;color:var(--stone)}
+.leg--none .km{color:var(--spruce);font-size:15px}
+
+/* schedule */
+.sched{list-style:none;margin:14px 0 0;padding:0}
+.sched li{display:flex;gap:13px;padding:9px 0;border-top:1px solid var(--line)}
+.sched li:first-child{border-top:none;padding-top:2px}
+.sched time{
+  font-family:"JetBrains Mono",monospace;font-size:13.5px;font-weight:700;
+  color:var(--lake);min-width:56px;padding-top:3px;letter-spacing:-.02em;
+}
+.sched .free{color:var(--stone);font-weight:400}
+.sched b{font-family:"Bricolage Grotesque",sans-serif;font-size:16px;font-weight:700;display:block}
+.sched p{margin:2px 0 0;font-size:15.5px}
+.sched small{display:block;margin-top:3px;font-size:13.5px;color:var(--stone)}
+
+/* night block */
+.night{
+  margin:14px -16px 0 calc(-1 * (var(--rail) + 26px));
+  padding:12px 16px 12px calc(var(--rail) + 26px);
+  background:#EDF1EC;border-top:1px solid var(--line);
+}
+.night .lab{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--spruce);font-weight:700}
+.night b{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;display:block;margin:3px 0 2px}
+.night .rm{font-size:14.5px;color:var(--stone)}
+.night .conf{font-family:"JetBrains Mono",monospace;font-size:12.5px;margin-top:6px;display:block;color:var(--ink)}
+.night .conf span{color:var(--stone)}
+
+.tip{margin:12px 0 14px;padding-left:13px;border-left:3px solid var(--lake);font-size:15px}
+.tip .lab{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--lake);font-weight:700;display:block}
+.tip--warn{border-left-color:var(--larch)}
+.tip--warn .lab{color:var(--larch)}
+
+/* open block */
+.open{
+  background:repeating-linear-gradient(45deg,#F2F5F0 0 10px,#EBEFE8 10px 20px);
+  border:1px dashed var(--stone);padding:18px;margin-bottom:14px;
+}
+.open h2{font-size:21px;margin-bottom:6px}
+.open ul{margin:10px 0 0;padding-left:20px}
+.open li{margin-bottom:6px}
+
+/* reference */
+.ref{margin-top:40px;border-top:2px solid var(--ink);padding-top:26px}
+.ref h2{font-size:24px;margin-bottom:14px}
+.ref h3{font-size:16px;margin:22px 0 8px;color:var(--spruce)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--stone);font-weight:500}
+td.n{font-family:"JetBrains Mono",monospace;font-size:12.5px;white-space:nowrap}
+.check{list-style:none;padding:0;margin:0}
+.check li{padding:7px 0 7px 26px;border-bottom:1px solid var(--line);position:relative;font-size:15.5px}
+.check li::before{content:"";position:absolute;left:0;top:14px;width:11px;height:11px;border:2px solid var(--spruce)}
+footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains Mono",monospace;line-height:1.7}
+
+@media print{
+  body{background:#fff;font-size:11pt}
+  .day,.alert,.open{break-inside:avoid;box-shadow:none}
+  .leg{background:#eee!important;color:#000!important;-webkit-print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:no-preference){
+  .day{animation:rise .5s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Itinéraire de route · famille de 4</span>
+  <h1>Rocheuses<br><em>&amp; Glacier</em></h1>
+  <span class="dates">1 → 12 AOÛT 2026</span>
+  <p class="route">Calgary · Golden · Yoho · Banff · Lake Louise · Waterton · Glacier (Montana)</p>
+  <div class="facts">
+    <div><b>12</b><span>jours</span></div>
+    <div><b>6</b><span>hébergements</span></div>
+    <div><b>≈1700</b><span>km au volant</span></div>
+    <div><b>−2 h</b><span>vs Québec</span></div>
+  </div>
+</header>
+
+<section class="alerts">
+  <h2>À régler en priorité</h2>
+
+  <div class="alert">
+    <span class="tag">Aujourd'hui si possible</span>
+    <h3>Rafting du 3 août — l'âge minimum ne colle pas</h3>
+    <p>Le <b>White Water Express</b> réservé pour le 3 août à 11 h exige <b>12 ans et 90 lb minimum</b>, sans remboursement si un participant est refusé sur place. Jackson a 10 ans et figure comme 4<sup>e</sup> rafteur.</p>
+    <p>Tu as aussi une confirmation « <b>Family Adventure</b> » (3 adultes + 1 enfant 8-11 ans) datée du 3 juin — c'est la sortie adaptée aux enfants. Appelle Glacier Raft Company pour savoir laquelle est active et faire transférer les 4 sur la sortie familiale.</p>
+  </div>
+
+  <div class="alert">
+    <span class="tag">À réserver avant Banff</span>
+    <h3>Navettes Lake Louise / Moraine</h3>
+    <p>La route du lac Moraine est <b>fermée aux véhicules particuliers à l'année</b> : navette de Parcs Canada obligatoire, réservation requise. Des sièges supplémentaires sont libérés <b>2 jours avant le départ, à 8 h HAR</b> — mets une alarme pour le 2 août (visite du 4).</p>
+  </div>
+
+  <div class="alert alert--soft">
+    <span class="tag">Trou dans le plan</span>
+    <h3>Du 8 au 12 août : rien de réservé</h3>
+    <p>4 nuits sans hébergement entre le départ de Coram et le retour à Calgary. Proposition plus bas.</p>
+  </div>
+
+  <div class="alert alert--soft">
+    <span class="tag">Bonne nouvelle</span>
+    <h3>Entrée gratuite dans les parcs canadiens</h3>
+    <p>Le <b>Canada Strong Pass</b> est en vigueur du 19 juin au 7 septembre 2026 : entrée gratuite à Banff, Yoho et Waterton. Le stationnement, lui, reste payant. Côté américain, Glacier coûte 35 $ US par véhicule (7 jours, sans argent comptant) — <b>aucune réservation de véhicule requise en 2026</b>.</p>
+  </div>
+</section>
+
+<section class="days">
+
+<!-- ============ 1 AOÛT ============ -->
+<article class="day" data-date="2026-08-01">
+  <div class="day__head">
+    <span class="dnum">01</span>
+    <span class="dmeta">samedi · août</span>
+    <h2>Atterrissage à Calgary</h2>
+  </div>
+
+  <div class="leg leg--none"><span class="km">Aucune route</span><span class="t">nuit dans l'aérogare</span></div>
+
+  <ol class="sched">
+    <li><time>10:12</time><div><b>Départ du Québec</b><p>Heure de l'Est.</p></div></li>
+    <li><time>19:12</time><div><b>Arrivée YYC</b><p>Heure des Rocheuses. Récupérer les bagages, puis marcher jusqu'à l'hôtel : il est <b>dans l'aérogare</b>, aucun transport à prendre.</p><small>Enregistrement possible jusqu'à minuit.</small></div></li>
+    <li><time class="free">Soir</time><div><b>Souper et dodo</b><p>Rien de plus au programme — vous aurez fait une journée de 14 h avec le décalage.</p></div></li>
+  </ol>
+
+  <div class="night">
+    <span class="lab">Nuit 1</span>
+    <b>Delta Hotels Calgary Airport In-Terminal</b>
+    <span class="rm">2001 Airport Road NE, Calgary · arrivée 15 h-minuit · départ avant 12 h</span>
+    <span class="conf"><span>Payé via Booking.com — aucun paiement à l'hôtel</span></span>
+  </div>
+
+  <div class="tip"><span class="lab">Ne pas oublier</span>Ne réserve pas l'auto pour ce soir : la location se prend demain matin.</div>
+</article>
+
+<!-- ============ 2 AOÛT ============ -->
+<article class="day" data-date="2026-08-02">
+  <div class="day__head">
+    <span class="dnum">02</span>
+    <span class="dmeta">dimanche</span>
+    <h2>Calgary → Golden, C.-B.</h2>
+  </div>
+
+  <div class="leg"><span class="km">265 km</span><span class="t">3 h 00 de route</span><span class="road">Transcanadienne 1 ouest · col Kicking Horse</span></div>
+
+  <ol class="sched">
+    <li><time>09:00</time><div><b>Prise de la voiture</b><p>Comptoirs de location au niveau des arrivées. Prévoir 45 à 60 min avec la file.</p><small>Vérifie que le contrat autorise la conduite aux États-Unis — vous traversez le 7.</small></div></li>
+    <li><time>10:30</time><div><b>Départ vers l'ouest</b><p>Épicerie rapide avant de quitter Calgary : eau, collations, fruits. Tout coûte plus cher dans les parcs.</p></div></li>
+    <li><time>12:30</time><div><b>Dîner à Canmore ou Banff</b><p>Canmore est plus simple pour stationner que Banff en août.</p></div></li>
+    <li><time>15:00</time><div><b>Arrêt Spiral Tunnels (Yoho)</b><p>Belvédère juste à l'est du col, en bordure de la route. 15 min, gratuit — les enfants aiment quand un train passe.</p></div></li>
+    <li><time>16:30</time><div><b>Arrivée à Golden</b><p>Souper au village, coucher tôt : rafting demain.</p></div></li>
+  </ol>
+
+  <div class="night">
+    <span class="lab">Nuit 2</span>
+    <b>Holiday Inn Express Golden — Kicking Horse</b>
+    <span class="rm">Chambre 2 lits queen · 2-3 août</span>
+    <span class="conf">Réservation <b>6538731766</b> · <span>code</span> <b>9089</b></span>
+  </div>
+
+  <div class="tip"><span class="lab">Fuseau horaire</span>Golden est en Colombie-Britannique mais reste à l'<b>heure des Rocheuses</b>, comme Calgary. Pas de changement d'heure.</div>
+</article>
+
+<!-- ============ 3 AOÛT ============ -->
+<article class="day" data-date="2026-08-03">
+  <div class="day__head">
+    <span class="dnum">03</span>
+    <span class="dmeta">lundi</span>
+    <h2>Rafting, Yoho, puis Banff</h2>
+  </div>
+
+  <div class="leg"><span class="km">140 km</span><span class="t">2 h 00 de route (+ arrêts)</span><span class="road">Golden → Field → Banff · Transcanadienne 1</span></div>
+
+  <ol class="sched">
+    <li><time>10:45</time><div><b>Arrivée obligatoire au point de départ</b><p>101 Golden-Donald Upper Road — 5 min du centre de Golden. Signature des décharges et habillage.</p><small>Ils partent à l'heure pile et n'attendent personne.</small></div></li>
+    <li><time>11:00</time><div><b>Rafting — Kicking Horse</b><p>Demi-journée, 4 participants. Maillot sous les vêtements, souliers qui peuvent être mouillés, lunettes attachées.</p></div></li>
+    <li><time>15:00</time><div><b>Fin, change de vêtements</b><p>Garde des serviettes et du linge sec accessibles dans l'auto, pas au fond des valises.</p></div></li>
+    <li><time>16:15</time><div><b>Lac Emerald</b><p>À 10 min à l'ouest de Field. Boucle de 5,2 km facile et plate autour du lac, ou juste 30 min sur la rive et le pont.</p></div></li>
+    <li><time>17:45</time><div><b>Chutes Takakkaw</b><p>13 km en montant Yoho Valley Road (virages en épingle très serrés — interdits aux longs véhicules). 10 min de marche du stationnement jusqu'aux chutes, 254 m de hauteur.</p></div></li>
+    <li><time>19:30</time><div><b>Arrivée à Banff</b><p>Coucher du soleil vers 21 h 15, la lumière tient.</p></div></li>
+  </ol>
+
+  <div class="night">
+    <span class="lab">Nuits 3 · 4 · 5</span>
+    <b>The Hidden Ridge Resort, Banff</b>
+    <span class="rm">Appartement de luxe 1 chambre — loft, 3 lits queen · 3-6 août</span>
+    <span class="conf">Réservation <b>6387321047</b> · <span>code</span> <b>9606</b></span>
+  </div>
+
+  <div class="tip tip--warn"><span class="lab">Journée chargée</span>Si le rafting finit tard ou que tout le monde est vidé : garde <b>Takakkaw</b> et fais seulement Emerald. Yoho se refait en demi-journée depuis Banff (1 h de route).</div>
+</article>
+
+<!-- ============ 4 AOÛT ============ -->
+<article class="day" data-date="2026-08-04">
+  <div class="day__head">
+    <span class="dnum">04</span>
+    <span class="dmeta">mardi</span>
+    <h2>Lac Moraine &amp; lac Louise</h2>
+  </div>
+
+  <div class="leg"><span class="km">120 km A/R</span><span class="t">1 h 30 au total</span><span class="road">Banff → Park &amp; Ride Lake Louise · navette ensuite</span></div>
+
+  <ol class="sched">
+    <li><time>06:45</time><div><b>Départ de Banff</b><p>Direction le stationnement incitatif de Lake Louise, 1 Whitehorn Drive (station de ski). Stationnement gratuit là-bas.</p></div></li>
+    <li><time>07:30</time><div><b>Navette vers le lac Moraine</b><p>Le matin, la lumière frappe la vallée des Dix Pics. Monte la butte de la moraine (10 min) pour la vue classique.</p></div></li>
+    <li><time>10:00</time><div><b>Navette de liaison vers le lac Louise</b><p>Elle relie les deux lacs sans repasser par l'auto.</p></div></li>
+    <li><time>11:00</time><div><b>Lac Louise</b><p>Canot sur le lac (cher mais mémorable), ou sentier du <b>Lake Agnes Tea House</b> : 7 km aller-retour, 400 m de dénivelé, environ 3 h avec les enfants. Thé et scones au sommet.</p></div></li>
+    <li><time>16:00</time><div><b>Retour à Banff</b><p>Souper en ville, marche sur Banff Avenue.</p></div></li>
+  </ol>
+
+  <div class="tip tip--warn"><span class="lab">Bloquant</span>Sans réservation de navette, vous ne pouvez pas monter au lac Moraine — la route est barrée aux voitures. Réserve via le service de réservation de Parcs Canada; sièges de dernière minute libérés à 8 h HAR l'avant-avant-veille.</div>
+</article>
+
+<!-- ============ 5 AOÛT ============ -->
+<article class="day" data-date="2026-08-05">
+  <div class="day__head">
+    <span class="dnum">05</span>
+    <span class="dmeta">mercredi</span>
+    <h2>Banff en profondeur</h2>
+  </div>
+
+  <div class="leg"><span class="km">60 km</span><span class="t">déplacements courts</span><span class="road">Autour de Banff · aucune longue route</span></div>
+
+  <ol class="sched">
+    <li><time>07:30</time><div><b>Canyon Johnston</b><p>5,2 km aller-retour jusqu'aux chutes supérieures, passerelles suspendues dans le canyon. Le stationnement est plein dès 9 h en août — d'où le départ tôt.</p></div></li>
+    <li><time>11:30</time><div><b>Lac Minnewanka</b><p>Croisière d'une heure, ou pique-nique sur la rive. Bons endroits pour voir des mouflons et des wapitis.</p></div></li>
+    <li><time>14:30</time><div><b>Gondole de Banff</b><p>Mont Sulphur : 8 min de montée, passerelle sur la crête et vue à 360° sur la vallée de la Bow.</p></div></li>
+    <li><time>18:00</time><div><b>Chutes Bow &amp; sources thermales</b><p>Banff Upper Hot Springs ouvert en soirée — parfait après trois jours de marche.</p></div></li>
+  </ol>
+
+  <div class="tip"><span class="lab">Journée souple</span>C'est ta seule vraie journée tampon. Si la météo est mauvaise, garde la gondole et les sources; si elle est superbe, ajoute le lac Peyto sur la promenade des Glaciers (1 h au nord).</div>
+</article>
+
+<!-- ============ 6 AOÛT ============ -->
+<article class="day" data-date="2026-08-06">
+  <div class="day__head">
+    <span class="dnum">06</span>
+    <span class="dmeta">jeudi</span>
+    <h2>Banff → Waterton</h2>
+  </div>
+
+  <div class="leg"><span class="km">400 km</span><span class="t">4 h 30 (direct) · 5 h 30 (panoramique)</span><span class="road">Kananaskis 40 → Cowboy Trail 22 → Pincher Creek → route 6</span></div>
+
+  <ol class="sched">
+    <li><time>08:30</time><div><b>Départ de Banff</b><p>Faire le plein avant de partir. Peu de services entre Longview et Pincher Creek.</p></div></li>
+    <li><time>10:00</time><div><b>Option panoramique : Kananaskis</b><p>Route 40 par le col Highwood, la route pavée la plus haute du Canada. Environ 1 h de plus que par Calgary, mais c'est la plus belle route de la journée.</p><small>Trajet direct : Transcanadienne → route 2 sud → Fort Macleod. Plus rapide, plus plate.</small></div></li>
+    <li><time>13:00</time><div><b>Dîner à Longview ou Fort Macleod</b></div></li>
+    <li><time>15:30</time><div><b>Arrivée à Waterton</b><p>Le village est minuscule. Chutes Cameron à 5 min à pied, point de vue du Prince of Wales Hotel juste au-dessus.</p></div></li>
+    <li><time>18:00</time><div><b>Bear's Hump si l'énergie est là</b><p>2,8 km aller-retour, court mais raide. La meilleure vue sur le lac Waterton, superbe en fin de journée.</p></div></li>
+  </ol>
+
+  <div class="night">
+    <span class="lab">Nuit 6</span>
+    <b>Waterton Glacier Suites</b>
+    <span class="rm">Suite loft · Waterton Park, Alberta · 6-7 août</span>
+    <span class="conf">Réservation <b>5391513671</b> · <span>code</span> <b>8099</b></span>
+  </div>
+
+  <div class="tip tip--warn"><span class="lab">Préparer ce soir</span>Sors les <b>4 passeports</b>, vide les fruits, légumes frais et viande de la glacière (déclaration à la frontière), et fais le plein à Pincher Creek ou au village.</div>
+</article>
+
+<!-- ============ 7 AOÛT ============ -->
+<article class="day" data-date="2026-08-07">
+  <div class="day__head">
+    <span class="dnum">07</span>
+    <span class="dmeta">vendredi</span>
+    <h2>Frontière, Many Glacier, Going-to-the-Sun</h2>
+  </div>
+
+  <div class="leg"><span class="km">210 km</span><span class="t">4 h 30 de route sur la journée</span><span class="road">Route 6 → Chief Mountain → Many Glacier → St. Mary → GTSR ouest</span></div>
+
+  <ol class="sched">
+    <li><time>07:00</time><div><b>Départ de Waterton</b><p>La plus grosse journée du voyage. Déjeuner emporté dans l'auto.</p></div></li>
+    <li><time>07:45</time><div><b>Poste frontalier Chief Mountain</b><p>Ouvert de <b>7 h à 22 h</b> jusqu'au 7 septembre. Passeports pour les quatre, réponses courtes, rien de frais dans la glacière.</p><small>Poste saisonnier en altitude — le plus haut du Canada.</small></div></li>
+    <li><time>09:00</time><div><b>Many Glacier</b><p>Randonnée à cheval Cracker Flats, 2 h en selle (Swan Mountain Outfitters).</p><small>À confirmer : je ne vois pas de confirmation pour cette réservation.</small></div></li>
+    <li><time>12:30</time><div><b>Dîner à Swiftcurrent</b></div></li>
+    <li><time>14:15</time><div><b>Bateau du lac Josephine</b><p>Traversée Swiftcurrent + Josephine, avec option de marcher jusqu'aux chutes Grinnell au bout.</p><small>À confirmer aussi — Glacier Park Boat Company vend souvent le matin même sur place.</small></div></li>
+    <li><time>17:00</time><div><b>St. Mary → Going-to-the-Sun Road</b><p>80 km vers l'ouest, comptez 2 h avec les arrêts. Logan Pass, Wild Goose Island, Jackson Glacier, lac McDonald au coucher du soleil.</p><small>Aucune réservation de véhicule en 2026. Stationnement limité à 3 h à Logan Pass.</small></div></li>
+    <li><time>20:00</time><div><b>Arrivée à Coram</b></div></li>
+  </ol>
+
+  <div class="night">
+    <span class="lab">Nuit 7</span>
+    <b>Reclusive Moose Cabins</b>
+    <span class="rm">Maison 2 chambres · 405 Greens Road, Coram, Montana · 7-8 août</span>
+    <span class="conf">Réservation <b>6097459107</b> · <span>code</span> <b>3595</b></span>
+  </div>
+
+  <div class="tip tip--warn"><span class="lab">Plan B</span>Cheval + bateau + Going-to-the-Sun dans la même journée, c'est beaucoup. Si vous tirez de la patte à 17 h : descends par la route US-2 sud (East Glacier → West Glacier, 2 h 15, aucune montagne à franchir) et garde Going-to-the-Sun pour le lendemain matin, d'ouest en est.</div>
+</article>
+
+</section>
+
+<!-- ============ OPEN SEGMENT ============ -->
+<section class="open">
+  <span class="eyebrow">8 → 12 août · 4 nuits à réserver</span>
+  <h2>La fin du voyage est encore ouverte</h2>
+  <p>Tu quittes Coram le 8 au matin et ton retour se fait de Calgary. Il manque quatre nuits. Une proposition qui évite de refaire deux fois la même route :</p>
+  <ul>
+    <li><b>8 août — Glacier ouest.</b> Going-to-the-Sun d'ouest en est si vous ne l'avez pas fini, lac McDonald, kayak à Apgar. Nuit à Whitefish ou West Glacier.</li>
+    <li><b>9 août — Whitefish.</b> Journée molle et méritée : village, lac Whitefish, plage. Deuxième nuit au même endroit pour arrêter de faire des valises.</li>
+    <li><b>10 août — remontée vers le Canada.</b> Whitefish → Fernie, C.-B. par la route 93 puis la 3 (≈ 3 h 30). Frontière de Roosville, ouverte 24 h.</li>
+    <li><b>11 août — Canmore.</b> Fernie → Canmore (≈ 3 h 30) par le col Crowsnest. Dernière soirée dans les montagnes, souper en ville.</li>
+    <li><b>12 août — retour.</b> Canmore → aéroport de Calgary, 1 h 20. Prévoir 3 h avant le vol avec le retour de l'auto.</li>
+  </ul>
+  <p style="margin-top:12px"><b>Plus court, si vous préférez :</b> Coram → Calgary directement, 500 km par la frontière de Carway et Fort Macleod, environ 5 h 30. Ça libère deux journées à ajouter à Banff ou à Waterton.</p>
+</section>
+
+<!-- ============ REFERENCE ============ -->
+<section class="ref">
+  <h2>Aide-mémoire</h2>
+
+  <h3>Où on couche</h3>
+  <table>
+    <tr><th>Dates</th><th>Endroit</th><th>Réservation</th></tr>
+    <tr><td class="n">1-2 août</td><td>Delta Calgary Airport In-Terminal<br><span style="color:var(--stone)">Calgary, AB</span></td><td class="n">payé via Booking</td></tr>
+    <tr><td class="n">2-3 août</td><td>Holiday Inn Express Golden<br><span style="color:var(--stone)">Golden, C.-B.</span></td><td class="n">6538731766<br>code 9089</td></tr>
+    <tr><td class="n">3-6 août</td><td>The Hidden Ridge Resort<br><span style="color:var(--stone)">Banff, AB</span></td><td class="n">6387321047<br>code 9606</td></tr>
+    <tr><td class="n">6-7 août</td><td>Waterton Glacier Suites<br><span style="color:var(--stone)">Waterton Park, AB</span></td><td class="n">5391513671<br>code 8099</td></tr>
+    <tr><td class="n">7-8 août</td><td>Reclusive Moose Cabins<br><span style="color:var(--stone)">Coram, MT</span></td><td class="n">6097459107<br>code 3595</td></tr>
+    <tr><td class="n">8-12 août</td><td colspan="2" style="color:var(--larch)"><b>À réserver</b></td></tr>
+  </table>
+
+  <h3>Distances entre les étapes</h3>
+  <table>
+    <tr><td>Calgary → Golden</td><td class="n">265 km · 3 h 00</td></tr>
+    <tr><td>Golden → Field (Yoho)</td><td class="n">55 km · 0 h 40</td></tr>
+    <tr><td>Field → Banff</td><td class="n">85 km · 1 h 05</td></tr>
+    <tr><td>Banff → Park &amp; Ride Lake Louise</td><td class="n">58 km · 0 h 45</td></tr>
+    <tr><td>Banff → Waterton</td><td class="n">400 km · 4 h 30</td></tr>
+    <tr><td>Waterton → Many Glacier</td><td class="n">80 km · 1 h 30 (frontière incluse)</td></tr>
+    <tr><td>St. Mary → West Glacier (GTSR)</td><td class="n">80 km · 2 h 00 avec arrêts</td></tr>
+    <tr><td>Coram → Calgary</td><td class="n">500 km · 5 h 30</td></tr>
+  </table>
+
+  <h3>Frontière et papiers</h3>
+  <ul class="check">
+    <li>Passeports valides pour les 4 (les enfants aussi)</li>
+    <li>Lettre de consentement si un enfant voyage sans ses deux parents légaux</li>
+    <li>Contrat de location autorisant la conduite aux États-Unis</li>
+    <li>Preuve d'assurance auto valide aux États-Unis</li>
+    <li>Aucun fruit, légume frais, viande ou plante dans l'auto à la frontière</li>
+    <li>Chief Mountain : 7 h à 22 h jusqu'au 7 septembre · Carway et Roosville : horaires plus longs, à vérifier</li>
+  </ul>
+
+  <h3>À faire avant de partir dans le bois</h3>
+  <ul class="check">
+    <li>Réserver les navettes Moraine et Lake Louise</li>
+    <li>Régler la question du rafting (âge minimum)</li>
+    <li>Confirmer le cheval et le bateau à Many Glacier</li>
+    <li>Réserver les 4 nuits du 8 au 12</li>
+    <li>Télécharger les cartes hors ligne : Banff, Yoho, Waterton, Glacier — aucun réseau dans les cols</li>
+    <li>Vaporisateur anti-ours : interdit dans les bagages d'avion, à acheter sur place à Banff</li>
+    <li>Couches : il peut faire 8 °C à Logan Pass et 28 °C à Golden la même semaine</li>
+  </ul>
+</section>
+
+<footer>
+  Itinéraire préparé le 1<sup>er</sup> août 2026.<br>
+  Les heures d'activités sont des suggestions; les heures en gras dans les blocs de réservation sont fermes.<br>
+  Tout le voyage est à l'heure des Rocheuses (HAR), y compris Golden et le Montana.
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var today = new Date();
+  var iso = today.getFullYear() + '-' +
+            String(today.getMonth()+1).padStart(2,'0') + '-' +
+            String(today.getDate()).padStart(2,'0');
+  var card = document.querySelector('.day[data-date="'+iso+'"]');
+  if(card){
+    card.setAttribute('data-today','1');
+    var badge = document.createElement('span');
+    badge.className = 'badge-today';
+    badge.textContent = "Aujourd'hui";
+    card.insertBefore(badge, card.firstElementChild);
+  }
+})();
+</script>
+</body>
+</html>
