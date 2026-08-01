@@ -172,6 +172,37 @@ td.n{font-family:"JetBrains Mono",monospace;font-size:12.5px;white-space:nowrap}
 .check li::before{content:"";position:absolute;left:0;top:14px;width:11px;height:11px;border:2px solid var(--spruce)}
 footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains Mono",monospace;line-height:1.7}
 
+/* ---------- items cochables (v3) ---------- */
+.alerts > h2, .ref h3{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.doneinfo{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--stone);font-weight:500}
+.doneinfo button{font-family:inherit;font-size:inherit;letter-spacing:inherit;text-transform:inherit;
+  background:none;border:none;border-bottom:1px dotted var(--stone);color:var(--stone);cursor:pointer;padding:0 0 1px}
+.doneinfo button:hover{color:var(--larch);border-color:var(--larch)}
+.alerts--empty{background:var(--paper);border-left:5px solid #2e8b57;padding:13px 15px;font-size:15.5px}
+.alerts--empty b{font-family:"Bricolage Grotesque",sans-serif}
+
+/* bouton Fait dans les cartes À faire */
+.donebtn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;
+  font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--paper);border:1px solid var(--line);color:var(--stone);padding:6px 11px;cursor:pointer}
+.donebtn:hover{border-color:var(--spruce);color:var(--spruce)}
+.donebtn .bx{width:11px;height:11px;border:2px solid currentColor;display:inline-block}
+
+/* checklists : la ligne au complet devient cliquable */
+.check li{cursor:pointer;transition:opacity .15s}
+.check li:hover{color:var(--spruce)}
+.check li:hover::before{border-color:var(--larch)}
+
+/* état coché */
+[data-cid].isdone{display:none}
+body.showdone [data-cid].isdone{display:block;opacity:.5}
+body.showdone .check li[data-cid].isdone{display:block;text-decoration:line-through}
+body.showdone [data-cid].isdone .donebtn{border-color:#2e8b57;color:#2e8b57}
+.donetag{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:#2e8b57;margin-left:8px}
+.refnote{font-size:14px;color:var(--stone);margin:10px 0 0;padding-left:13px;border-left:3px solid var(--line)}
+
 /* ---------- édition partagée (v2) ---------- */
 .vbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);margin-top:14px;padding:9px 12px;font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--stone)}
 .vbar .dot{width:8px;height:8px;border-radius:50%;background:var(--stone);flex:0 0 auto}
@@ -201,7 +232,8 @@ li.extra a.mapl{color:var(--lake)}
 .toast.show{opacity:1}
 .toast.err{background:var(--larch)}
 @media print{
-  .itembar,.vbar,.addact,.vform,.toast{display:none!important}
+  .itembar,.vbar,.addact,.vform,.toast,.donebtn,.doneinfo{display:none!important}
+  [data-cid].isdone{display:none!important}
 
   body{background:#fff;font-size:11pt}
   .day,.alert,.open{break-inside:avoid;box-shadow:none}
@@ -230,43 +262,30 @@ li.extra a.mapl{color:var(--lake)}
 </header>
 
 <section class="alerts">
-  <h2>À régler en priorité</h2>
+  <h2>À faire<span class="doneinfo"></span></h2>
 
-  <div class="alert alert--soft">
-    <span class="tag">Réglé — bonne réservation en main</span>
-    <h3>Rafting : Family Adventure confirmée, adaptée à Jackson</h3>
-    <p>Commande <b>R7JY16W</b> — Glacier Raft Company, <b>4 × Family Adventure</b> (3 adultes + 1 enfant 8-11 ans). Payée au complet : <b>450,24 $</b>, solde 0 $. Dîner inclus (3 hamburgers + 1 burger de poulet pané pour Jackson).</p>
-    <p><b>Avant d'y aller :</b> signer les <b>4 décharges en ligne</b> — le lien est dans le 2<sup>e</sup> courriel Rezdy reçu à la réservation (regarde les indésirables; les moins de 19 ans doivent être signés par un parent). Arriver pour <b>9 h 00</b>, départ 9 h 15 pile. Travaux routiers autour de Golden : vérifier drivebc.ca.</p>
+  <div class="alert" data-cid="todo-rafting-date">
+    <span class="tag">Rafting — un coup de fil</span>
+    <h3>Confirmer la date du 3 août avec Glacier Raft</h3>
+    <p>La commande <b>R7JY16W</b> (Family Adventure ×4, payée, dîner inclus) affiche « <b>mercredi 3 juin</b> » comme date de sortie. Appelle le <b>1 877 344-7238</b> pour confirmer le <b>lundi 3 août, 9 h 15</b>.</p>
   </div>
 
-  <div class="alert">
-    <span class="tag">À vérifier d'un coup de fil</span>
-    <h3>La confirmation affiche « mercredi 3 juin » comme date</h3>
-    <p>Le courriel Rezdy du 9 juin indique <b>Wednesday, June 3, 2026 — 9:15 AM</b> au lieu du lundi 3 août. Probablement un artefact du transfert White Water Express → Family Adventure, mais confirme la date du <b>lundi 3 août, 9 h 15</b> avec Glacier Raft : <b>1 877 344-7238</b>.</p>
+  <div class="alert" data-cid="todo-rafting-waivers">
+    <span class="tag">Rafting — 5 minutes en ligne</span>
+    <h3>Signer les 4 décharges avant d'arriver</h3>
+    <p>Lien dans le 2<sup>e</sup> courriel Rezdy reçu à la réservation (regarde les indésirables). Les moins de 19 ans doivent être signés par un parent. Pas de décharge papier acceptée.</p>
   </div>
 
-  <div class="alert">
+  <div class="alert" data-cid="todo-navettes">
     <span class="tag">À réserver avant Banff</span>
     <h3>Navettes Lake Louise / Moraine</h3>
     <p>La route du lac Moraine est <b>fermée aux véhicules particuliers à l'année</b> : navette de Parcs Canada obligatoire, réservation requise. Des sièges supplémentaires sont libérés <b>2 jours avant le départ, à 8 h HAR</b> — mets une alarme pour le 2 août (visite du 4).</p>
   </div>
 
-  <div class="alert alert--soft">
-    <span class="tag">Trou dans le plan</span>
-    <h3>Du 8 au 12 août : rien de réservé</h3>
-    <p>4 nuits sans hébergement entre le départ de Coram et le retour à Calgary. Proposition plus bas.</p>
-  </div>
-
-  <div class="alert alert--soft">
-    <span class="tag">Règle du voyage</span>
-    <h3>Minimum 30 minutes de coussin sur chaque départ</h3>
-    <p>Tous les départs d'hôtel incluent maintenant un <b>coussin d'au moins 30 min</b> (le « fuck factor ») par-dessus le temps de route. Raisons trouvées : travaux actifs autour de Golden confirmés par Glacier Raft (vérifier drivebc.ca), stationnement du lac Louise plein avant 7 h avec Parcs Canada qui recommande d'arriver 15-30 min avant sa fenêtre de navette, file possible à l'ouverture du poste Chief Mountain. Les lignes « coussin inclus » sont éditables comme le reste.</p>
-  </div>
-
-  <div class="alert alert--soft">
-    <span class="tag">Bonne nouvelle</span>
-    <h3>Entrée gratuite dans les parcs canadiens</h3>
-    <p>Le <b>Canada Strong Pass</b> est en vigueur du 19 juin au 7 septembre 2026 : entrée gratuite à Banff, Yoho et Waterton. Le stationnement, lui, reste payant. Côté américain, Glacier coûte 35 $ US par véhicule (7 jours, sans argent comptant) — <b>aucune réservation de véhicule requise en 2026</b>.</p>
+  <div class="alert" data-cid="todo-nuits">
+    <span class="tag">À réserver</span>
+    <h3>Du 8 au 12 août : 4 nuits sans hébergement</h3>
+    <p>Entre le départ de Coram et le retour à Calgary. Proposition détaillée plus bas.</p>
   </div>
 </section>
 
@@ -501,26 +520,26 @@ li.extra a.mapl{color:var(--lake)}
     <tr><td>Coram → Calgary</td><td class="n">500 km · 5 h 30</td></tr>
   </table>
 
-  <h3>Frontière et papiers</h3>
+  <h3>Frontière et papiers<span class="doneinfo"></span></h3>
   <ul class="check">
-    <li>Passeports valides pour les 4 (les enfants aussi)</li>
-    <li>Lettre de consentement si un enfant voyage sans ses deux parents légaux</li>
-    <li>Contrat de location autorisant la conduite aux États-Unis</li>
-    <li>Preuve d'assurance auto valide aux États-Unis</li>
-    <li>Aucun fruit, légume frais, viande ou plante dans l'auto à la frontière</li>
-    <li>Chief Mountain : 7 h à 22 h jusqu'au 7 septembre · Carway et Roosville : horaires plus longs, à vérifier</li>
+    <li data-cid="pap-passeports">Passeports valides pour les 4 (les enfants aussi)</li>
+    <li data-cid="pap-consentement">Lettre de consentement si un enfant voyage sans ses deux parents légaux</li>
+    <li data-cid="pap-location-usa">Contrat de location autorisant la conduite aux États-Unis</li>
+    <li data-cid="pap-assurance">Preuve d'assurance auto valide aux États-Unis</li>
+    <li data-cid="pap-glaciere">Aucun fruit, légume frais, viande ou plante dans l'auto à la frontière</li>
   </ul>
+  <p class="refnote">Chief Mountain : 7 h à 22 h jusqu'au 7 septembre · Carway et Roosville : horaires plus longs. Glacier (É.-U.) : 35 $ US/véhicule pour 7 jours, carte seulement, aucune réservation de véhicule en 2026 · parcs canadiens gratuits jusqu'au 7 septembre (Canada Strong Pass), stationnement payant.</p>
 
-  <h3>À faire avant de partir dans le bois</h3>
+  <h3>À faire avant de partir<span class="doneinfo"></span></h3>
   <ul class="check">
-    <li>Réserver les navettes Moraine et Lake Louise</li>
-    <li>Signer les 4 décharges rafting en ligne (2<sup>e</sup> courriel Rezdy — check les indésirables)</li>
-    <li>Confirmer la date du rafting au 1 877 344-7238 (la confirmation affiche « 3 juin »)</li>
-    <li>Confirmer le cheval et le bateau à Many Glacier</li>
-    <li>Réserver les 4 nuits du 8 au 12</li>
-    <li>Télécharger les cartes hors ligne : Banff, Yoho, Waterton, Glacier — aucun réseau dans les cols</li>
-    <li>Vaporisateur anti-ours : interdit dans les bagages d'avion, à acheter sur place à Banff</li>
-    <li>Couches : il peut faire 8 °C à Logan Pass et 28 °C à Golden la même semaine</li>
+    <li data-cid="pre-navettes">Réserver les navettes Moraine et Lake Louise</li>
+    <li data-cid="pre-waivers">Signer les 4 décharges rafting en ligne (2<sup>e</sup> courriel Rezdy — check les indésirables)</li>
+    <li data-cid="pre-rafting-date">Confirmer la date du rafting au 1 877 344-7238 (la confirmation affiche « 3 juin »)</li>
+    <li data-cid="pre-manyglacier">Confirmer le cheval et le bateau à Many Glacier</li>
+    <li data-cid="pre-nuits">Réserver les 4 nuits du 8 au 12</li>
+    <li data-cid="pre-cartes">Télécharger les cartes hors ligne : Banff, Yoho, Waterton, Glacier — aucun réseau dans les cols</li>
+    <li data-cid="pre-ours">Vaporisateur anti-ours : interdit dans les bagages d'avion, à acheter sur place à Banff</li>
+    <li data-cid="pre-couches">Couches : il peut faire 8 °C à Logan Pass et 28 °C à Golden la même semaine</li>
   </ul>
 </section>
 
@@ -564,9 +583,24 @@ li.extra a.mapl{color:var(--lake)}
     }catch(e){ return "Famille"; }
   }
 
-  var state = { version:1, overrides:{}, comments:{}, extras:{} };
+  var state = { version:1, overrides:{}, comments:{}, extras:{}, done:{} };
   var canEdit = false;
   var author = "Famille";
+  var LS_KEY = "mc_voyage_state";
+
+  function cacheWrite(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+  }
+  function cacheRead(){
+    try{ return JSON.parse(localStorage.getItem(LS_KEY) || "null"); }catch(e){ return null; }
+  }
+  function absorb(d){
+    if(!d) return;
+    state.overrides = d.overrides || {};
+    state.comments  = d.comments  || {};
+    state.extras    = d.extras    || {};
+    state.done      = d.done      || {};
+  }
 
   // Barre d'état sous le hero + toast de sauvegarde
   var hero = document.querySelector(".hero");
@@ -854,10 +888,97 @@ li.extra a.mapl{color:var(--lake)}
     });
   }
 
+  /* ── Items cochables : coché = disparu ────────────────────────────── */
+  var showDone = false;
+  var groups = [];
+
+  function buildGroups(){
+    var alertsSec = document.querySelector(".alerts");
+    if(alertsSec){
+      groups.push({
+        info: alertsSec.querySelector("h2 .doneinfo"),
+        items: [].slice.call(alertsSec.querySelectorAll(".alert[data-cid]")),
+        sec: alertsSec,
+        empty: "<b>Rien à régler.</b> Tout ce qu'il y avait à faire est coché."
+      });
+    }
+    document.querySelectorAll(".ref h3 .doneinfo").forEach(function(info){
+      var h3 = info.parentNode;
+      var ul = h3.nextElementSibling;
+      while(ul && ul.tagName !== "UL") ul = ul.nextElementSibling;
+      if(!ul) return;
+      groups.push({ info: info, items: [].slice.call(ul.querySelectorAll("li[data-cid]")), sec: null, empty: null });
+    });
+  }
+
+  function toggleDone(cid){
+    if(state.done[cid]) delete state.done[cid];
+    else state.done[cid] = { by: author, ts: Date.now() };
+    renderDone(); save();
+  }
+
+  function wireDone(){
+    document.querySelectorAll(".alert[data-cid]").forEach(function(el){
+      var cid = el.getAttribute("data-cid");
+      var b = document.createElement("button");
+      b.className = "donebtn";
+      b.innerHTML = "<span class=\"bx\"></span><span class=\"lb\">Fait</span>";
+      b.onclick = function(){ toggleDone(cid); };
+      el.appendChild(b);
+    });
+    document.querySelectorAll(".check li[data-cid]").forEach(function(li){
+      var cid = li.getAttribute("data-cid");
+      li.title = "Cliquer pour cocher — la ligne disparaît";
+      li.onclick = function(){ toggleDone(cid); };
+    });
+  }
+
+  function renderDone(){
+    document.body.classList.toggle("showdone", showDone);
+    document.querySelectorAll("[data-cid]").forEach(function(el){
+      var d = !!state.done[el.getAttribute("data-cid")];
+      el.classList.toggle("isdone", d);
+      var lb = el.querySelector(".donebtn .lb");
+      if(lb) lb.textContent = d ? "Rouvrir" : "Fait";
+      var tag = el.querySelector(".donetag");
+      if(d && !tag && el.classList.contains("alert")){
+        tag = document.createElement("span");
+        tag.className = "donetag";
+        el.querySelector("h3").appendChild(tag);
+      }
+      if(tag) tag.textContent = d ? "✓ fait par " + (state.done[el.getAttribute("data-cid")].by || "?") : "";
+    });
+    groups.forEach(function(g){
+      if(!g.info) return;
+      var n = g.items.filter(function(el){ return state.done[el.getAttribute("data-cid")]; }).length;
+      g.info.innerHTML = "";
+      if(n){
+        g.info.appendChild(document.createTextNode(n + " fait" + (n > 1 ? "s" : "") + " · "));
+        var t = document.createElement("button");
+        t.textContent = showDone ? "masquer" : "afficher";
+        t.onclick = function(){ showDone = !showDone; renderDone(); };
+        g.info.appendChild(t);
+      }
+      if(g.sec && g.empty){
+        var msg = g.sec.querySelector(".alerts--empty");
+        var allDone = g.items.length && n === g.items.length;
+        if(allDone && !showDone){
+          if(!msg){
+            msg = document.createElement("div");
+            msg.className = "alerts--empty";
+            msg.innerHTML = g.empty;
+            g.sec.appendChild(msg);
+          }
+        } else if(msg){ msg.parentNode.removeChild(msg); }
+      }
+    });
+  }
+
   function renderAll(){
     renderTimes();
     renderExtras();
     renderComments();
+    renderDone();
     if(canEdit){
       days.forEach(function(d){
         d.base.forEach(function(it){ addToolbar(it.li, it.id, d, null); });
@@ -867,45 +988,52 @@ li.extra a.mapl{color:var(--lake)}
 
   var saveT = null;
   function save(){
+    cacheWrite();                       // filet local immédiat
+    if(!tok()){ say("Coché sur cet appareil"); return; }
     clearTimeout(saveT);
     saveT = setTimeout(function(){
       fetch(API + "/voyage", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer " + (tok() || "")
+          "Authorization": "Bearer " + tok()
         },
         body: JSON.stringify({ data: state })
       }).then(function(r){
         if(!r.ok) throw new Error(r.status);
         say("Sauvegardé ✓");
       }).catch(function(){
-        say("Échec de sauvegarde — vérifie ta connexion", true);
+        say("Pas synchronisé — gardé sur cet appareil", true);
       });
     }, 350);
   }
 
-  // Démarrage
+  // Démarrage — le cochage fonctionne toujours; la synchro dépend du login.
+  buildGroups();
+  wireDone();
+
   var t = tok();
   if(!t){
-    setBar(false, "Lecture seule — ouvre la page en étant connecté à Mission Control pour éditer les heures, commenter et ajouter des activités.");
+    absorb(cacheRead());
+    renderAll();
+    setBar(false, "Cochage gardé sur cet appareil. Connecte-toi à Mission Control pour partager avec la famille et éditer les heures.");
     return;
   }
+  author = myName();
   fetch(API + "/voyage", { headers: { "Authorization": "Bearer " + t } })
     .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
     .then(function(j){
-      var d = j.data || {};
-      state.overrides = d.overrides || {};
-      state.comments = d.comments || {};
-      state.extras = d.extras || {};
+      absorb(j.data);
+      cacheWrite();
       canEdit = true;
-      author = myName();
-      setBar(true, "Plan partagé — tes modifications sont visibles par toute la famille." + (j.updatedBy ? " Dernière modif : " + j.updatedBy + "." : ""));
+      setBar(true, "Plan partagé — coché ou modifié ici, c'est visible par toute la famille." + (j.updatedBy ? " Dernière modif : " + j.updatedBy + "." : ""));
       addDayButtons();
       renderAll();
     })
     .catch(function(){
-      setBar(false, "Lecture seule — session expirée ou hors ligne. Reconnecte-toi à Mission Control pour éditer.");
+      absorb(cacheRead());
+      renderAll();
+      setBar(false, "Hors ligne — cochage gardé sur cet appareil, il se partagera au retour du réseau.");
     });
 })();
 </script>
