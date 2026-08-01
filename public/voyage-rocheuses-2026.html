@@ -172,7 +172,37 @@ td.n{font-family:"JetBrains Mono",monospace;font-size:12.5px;white-space:nowrap}
 .check li::before{content:"";position:absolute;left:0;top:14px;width:11px;height:11px;border:2px solid var(--spruce)}
 footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains Mono",monospace;line-height:1.7}
 
+/* ---------- édition partagée (v2) ---------- */
+.vbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);margin-top:14px;padding:9px 12px;font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--stone)}
+.vbar .dot{width:8px;height:8px;border-radius:50%;background:var(--stone);flex:0 0 auto}
+.vbar.on .dot{background:#2e8b57}
+.itembar{display:inline-flex;gap:5px;margin-left:8px;vertical-align:2px}
+.ibtn{font-family:"JetBrains Mono",monospace;font-size:10.5px;line-height:1;border:1px solid var(--line);background:var(--paper);color:var(--stone);padding:4px 7px;cursor:pointer;border-radius:3px}
+.ibtn:hover{color:var(--ink);border-color:var(--stone)}
+time.edited{color:var(--larch)!important}
+.origmark{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--stone);text-decoration:line-through;font-weight:400}
+.cmts{list-style:none;margin:6px 0 0;padding:0}
+.sched .cmts li{border:none;display:block;padding:3px 0 0;font-size:14px;color:var(--ink)}
+.cmts b.who{display:inline;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--lake)}
+.xdel{border:none;background:none;color:var(--stone);cursor:pointer;font-size:12px;padding:0 4px}
+.xdel:hover{color:var(--larch)}
+.vform{margin:8px 0;padding:10px;border:1px dashed var(--stone);background:var(--paper);display:grid;gap:7px}
+.vform input,.vform textarea{font-family:"Newsreader",Georgia,serif;font-size:15px;padding:7px 9px;border:1px solid var(--line);background:#fff;color:var(--ink);width:100%;box-sizing:border-box}
+.vform textarea{min-height:56px;resize:vertical}
+.vform .row{display:flex;gap:7px}
+.vform .row input[type="time"]{flex:0 0 130px}
+.vform .acts{display:flex;gap:7px}
+.vbtn{font-family:"JetBrains Mono",monospace;font-size:11.5px;padding:7px 12px;border:1px solid var(--spruce);background:var(--spruce);color:#fff;cursor:pointer}
+.vbtn.ghost{background:var(--paper);color:var(--spruce)}
+.addact{margin:4px 0 14px}
+li.extra .exby{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:var(--lake);color:#fff;padding:2px 6px;margin-left:6px;vertical-align:2px}
+li.extra a.mapl{color:var(--lake)}
+.toast{position:fixed;bottom:14px;right:14px;z-index:50;background:var(--spruce);color:#fff;font-family:"JetBrains Mono",monospace;font-size:12px;padding:8px 13px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.err{background:var(--larch)}
 @media print{
+  .itembar,.vbar,.addact,.vform,.toast{display:none!important}
+
   body{background:#fff;font-size:11pt}
   .day,.alert,.open{break-inside:avoid;box-shadow:none}
   .leg{background:#eee!important;color:#000!important;-webkit-print-color-adjust:exact}
@@ -202,11 +232,17 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
 <section class="alerts">
   <h2>À régler en priorité</h2>
 
+  <div class="alert alert--soft">
+    <span class="tag">Réglé — bonne réservation en main</span>
+    <h3>Rafting : Family Adventure confirmée, adaptée à Jackson</h3>
+    <p>Commande <b>R7JY16W</b> — Glacier Raft Company, <b>4 × Family Adventure</b> (3 adultes + 1 enfant 8-11 ans). Payée au complet : <b>450,24 $</b>, solde 0 $. Dîner inclus (3 hamburgers + 1 burger de poulet pané pour Jackson).</p>
+    <p><b>Avant d'y aller :</b> signer les <b>4 décharges en ligne</b> — le lien est dans le 2<sup>e</sup> courriel Rezdy reçu à la réservation (regarde les indésirables; les moins de 19 ans doivent être signés par un parent). Arriver pour <b>9 h 00</b>, départ 9 h 15 pile. Travaux routiers autour de Golden : vérifier drivebc.ca.</p>
+  </div>
+
   <div class="alert">
-    <span class="tag">Aujourd'hui si possible</span>
-    <h3>Rafting du 3 août — l'âge minimum ne colle pas</h3>
-    <p>Le <b>White Water Express</b> réservé pour le 3 août à 11 h exige <b>12 ans et 90 lb minimum</b>, sans remboursement si un participant est refusé sur place. Jackson a 10 ans et figure comme 4<sup>e</sup> rafteur.</p>
-    <p>Tu as aussi une confirmation « <b>Family Adventure</b> » (3 adultes + 1 enfant 8-11 ans) datée du 3 juin — c'est la sortie adaptée aux enfants. Appelle Glacier Raft Company pour savoir laquelle est active et faire transférer les 4 sur la sortie familiale.</p>
+    <span class="tag">À vérifier d'un coup de fil</span>
+    <h3>La confirmation affiche « mercredi 3 juin » comme date</h3>
+    <p>Le courriel Rezdy du 9 juin indique <b>Wednesday, June 3, 2026 — 9:15 AM</b> au lieu du lundi 3 août. Probablement un artefact du transfert White Water Express → Family Adventure, mais confirme la date du <b>lundi 3 août, 9 h 15</b> avec Glacier Raft : <b>1 877 344-7238</b>.</p>
   </div>
 
   <div class="alert">
@@ -219,6 +255,12 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
     <span class="tag">Trou dans le plan</span>
     <h3>Du 8 au 12 août : rien de réservé</h3>
     <p>4 nuits sans hébergement entre le départ de Coram et le retour à Calgary. Proposition plus bas.</p>
+  </div>
+
+  <div class="alert alert--soft">
+    <span class="tag">Règle du voyage</span>
+    <h3>Minimum 30 minutes de coussin sur chaque départ</h3>
+    <p>Tous les départs d'hôtel incluent maintenant un <b>coussin d'au moins 30 min</b> (le « fuck factor ») par-dessus le temps de route. Raisons trouvées : travaux actifs autour de Golden confirmés par Glacier Raft (vérifier drivebc.ca), stationnement du lac Louise plein avant 7 h avec Parcs Canada qui recommande d'arriver 15-30 min avant sa fenêtre de navette, file possible à l'ouverture du poste Chief Mountain. Les lignes « coussin inclus » sont éditables comme le reste.</p>
   </div>
 
   <div class="alert alert--soft">
@@ -267,6 +309,7 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
   <div class="leg"><span class="km">265 km</span><span class="t">3 h 00 de route</span><span class="road">Transcanadienne 1 ouest · col Kicking Horse</span></div>
 
   <ol class="sched">
+    <li><time>08:30</time><div><b>Check-out — coussin 30 min inclus</b><p>Déjeuner et check-out tranquilles. L'hôtel est dans l'aérogare : 5 min de marche jusqu'aux comptoirs, mais la file de location monte vite le dimanche matin.</p></div></li>
     <li><time>09:00</time><div><b>Prise de la voiture</b><p>Comptoirs de location au niveau des arrivées. Prévoir 45 à 60 min avec la file.</p><small>Vérifie que le contrat autorise la conduite aux États-Unis — vous traversez le 7.</small></div></li>
     <li><time>10:30</time><div><b>Départ vers l'ouest</b><p>Épicerie rapide avant de quitter Calgary : eau, collations, fruits. Tout coûte plus cher dans les parcs.</p></div></li>
     <li><time>12:30</time><div><b>Dîner à Canmore ou Banff</b><p>Canmore est plus simple pour stationner que Banff en août.</p></div></li>
@@ -295,12 +338,13 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
   <div class="leg"><span class="km">140 km</span><span class="t">2 h 00 de route (+ arrêts)</span><span class="road">Golden → Field → Banff · Transcanadienne 1</span></div>
 
   <ol class="sched">
-    <li><time>10:45</time><div><b>Arrivée obligatoire au point de départ</b><p>101 Golden-Donald Upper Road — 5 min du centre de Golden. Signature des décharges et habillage.</p><small>Ils partent à l'heure pile et n'attendent personne.</small></div></li>
-    <li><time>11:00</time><div><b>Rafting — Kicking Horse</b><p>Demi-journée, 4 participants. Maillot sous les vêtements, souliers qui peuvent être mouillés, lunettes attachées.</p></div></li>
-    <li><time>15:00</time><div><b>Fin, change de vêtements</b><p>Garde des serviettes et du linge sec accessibles dans l'auto, pas au fond des valises.</p></div></li>
-    <li><time>16:15</time><div><b>Lac Emerald</b><p>À 10 min à l'ouest de Field. Boucle de 5,2 km facile et plate autour du lac, ou juste 30 min sur la rive et le pont.</p></div></li>
-    <li><time>17:45</time><div><b>Chutes Takakkaw</b><p>13 km en montant Yoho Valley Road (virages en épingle très serrés — interdits aux longs véhicules). 10 min de marche du stationnement jusqu'aux chutes, 254 m de hauteur.</p></div></li>
-    <li><time>19:30</time><div><b>Arrivée à Banff</b><p>Coucher du soleil vers 21 h 15, la lumière tient.</p></div></li>
+    <li><time>08:15</time><div><b>Départ de l'hôtel — coussin 30 min inclus</b><p>10 min de route jusqu'au point de départ + 30 min de marge : Glacier Raft signale des travaux dans les deux directions autour de Golden. Vérifier drivebc.ca au déjeuner.</p></div></li>
+    <li><time>09:00</time><div><b>Arrivée obligatoire au point de départ</b><p>101 Golden-Donald Upper Road — 5 min du centre de Golden. Check-in et habillage (les décharges doivent déjà être signées en ligne).</p><small>Départ à 9 h 15 pile — ils n'attendent personne. Commande R7JY16W.</small></div></li>
+    <li><time>09:15</time><div><b>Rafting — Family Adventure, Kicking Horse</b><p>Sortie familiale, 4 participants, <b>dîner inclus</b> (burgers commandés). Maillot sous les vêtements, souliers qui peuvent être mouillés, lunettes attachées. Wetsuit, casque et veste fournis.</p></div></li>
+    <li><time>13:30</time><div><b>Fin, change de vêtements</b><p>Garde des serviettes et du linge sec accessibles dans l'auto, pas au fond des valises.</p></div></li>
+    <li><time>14:45</time><div><b>Lac Emerald</b><p>À 10 min à l'ouest de Field. Boucle de 5,2 km facile et plate autour du lac, ou juste 30 min sur la rive et le pont.</p></div></li>
+    <li><time>16:15</time><div><b>Chutes Takakkaw</b><p>13 km en montant Yoho Valley Road (virages en épingle très serrés — interdits aux longs véhicules). 10 min de marche du stationnement jusqu'aux chutes, 254 m de hauteur.</p></div></li>
+    <li><time>18:00</time><div><b>Arrivée à Banff</b><p>Souper tranquille — coucher du soleil vers 21 h 15, la lumière tient.</p></div></li>
   </ol>
 
   <div class="night">
@@ -310,7 +354,7 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
     <span class="conf">Réservation <b>6387321047</b> · <span>code</span> <b>9606</b></span>
   </div>
 
-  <div class="tip tip--warn"><span class="lab">Journée chargée</span>Si le rafting finit tard ou que tout le monde est vidé : garde <b>Takakkaw</b> et fais seulement Emerald. Yoho se refait en demi-journée depuis Banff (1 h de route).</div>
+  <div class="tip"><span class="lab">Bonne nouvelle</span>Avec le départ à 9 h 15 et le dîner inclus, le rafting finit en début d'après-midi : Emerald <b>et</b> Takakkaw rentrent confortablement. Si la gang est vidée, coupe Takakkaw — Yoho se refait en demi-journée depuis Banff (1 h de route).</div>
 </article>
 
 <!-- ============ 4 AOÛT ============ -->
@@ -324,7 +368,7 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
   <div class="leg"><span class="km">120 km A/R</span><span class="t">1 h 30 au total</span><span class="road">Banff → Park &amp; Ride Lake Louise · navette ensuite</span></div>
 
   <ol class="sched">
-    <li><time>06:45</time><div><b>Départ de Banff</b><p>Direction le stationnement incitatif de Lake Louise, 1 Whitehorn Drive (station de ski). Stationnement gratuit là-bas.</p></div></li>
+    <li><time>06:15</time><div><b>Départ de Banff — coussin 30 min inclus</b><p>45 min de route + 30 min de marge : Parcs Canada recommande d'arriver 15-30 min avant sa fenêtre de navette, et le stationnement du lac lui-même est plein avant 7 h en août. Direction le Park &amp; Ride, 1 Whitehorn Drive (station de ski) — stationnement gratuit là-bas.</p></div></li>
     <li><time>07:30</time><div><b>Navette vers le lac Moraine</b><p>Le matin, la lumière frappe la vallée des Dix Pics. Monte la butte de la moraine (10 min) pour la vue classique.</p></div></li>
     <li><time>10:00</time><div><b>Navette de liaison vers le lac Louise</b><p>Elle relie les deux lacs sans repasser par l'auto.</p></div></li>
     <li><time>11:00</time><div><b>Lac Louise</b><p>Canot sur le lac (cher mais mémorable), ou sentier du <b>Lake Agnes Tea House</b> : 7 km aller-retour, 400 m de dénivelé, environ 3 h avec les enfants. Thé et scones au sommet.</p></div></li>
@@ -365,7 +409,8 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
   <div class="leg"><span class="km">400 km</span><span class="t">4 h 30 (direct) · 5 h 30 (panoramique)</span><span class="road">Kananaskis 40 → Cowboy Trail 22 → Pincher Creek → route 6</span></div>
 
   <ol class="sched">
-    <li><time>08:30</time><div><b>Départ de Banff</b><p>Faire le plein avant de partir. Peu de services entre Longview et Pincher Creek.</p></div></li>
+    <li><time>08:00</time><div><b>Check-out &amp; chargement — coussin 30 min inclus</b><p>Faire le plein avant de partir. Peu de services entre Longview et Pincher Creek.</p></div></li>
+    <li><time>08:30</time><div><b>Départ de Banff</b><p>Cap au sud — 4 h 30 à 5 h 30 de route selon l'option choisie.</p></div></li>
     <li><time>10:00</time><div><b>Option panoramique : Kananaskis</b><p>Route 40 par le col Highwood, la route pavée la plus haute du Canada. Environ 1 h de plus que par Calgary, mais c'est la plus belle route de la journée.</p><small>Trajet direct : Transcanadienne → route 2 sud → Fort Macleod. Plus rapide, plus plate.</small></div></li>
     <li><time>13:00</time><div><b>Dîner à Longview ou Fort Macleod</b></div></li>
     <li><time>15:30</time><div><b>Arrivée à Waterton</b><p>Le village est minuscule. Chutes Cameron à 5 min à pied, point de vue du Prince of Wales Hotel juste au-dessus.</p></div></li>
@@ -393,8 +438,8 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
   <div class="leg"><span class="km">210 km</span><span class="t">4 h 30 de route sur la journée</span><span class="road">Route 6 → Chief Mountain → Many Glacier → St. Mary → GTSR ouest</span></div>
 
   <ol class="sched">
-    <li><time>07:00</time><div><b>Départ de Waterton</b><p>La plus grosse journée du voyage. Déjeuner emporté dans l'auto.</p></div></li>
-    <li><time>07:45</time><div><b>Poste frontalier Chief Mountain</b><p>Ouvert de <b>7 h à 22 h</b> jusqu'au 7 septembre. Passeports pour les quatre, réponses courtes, rien de frais dans la glacière.</p><small>Poste saisonnier en altitude — le plus haut du Canada.</small></div></li>
+    <li><time>06:30</time><div><b>Départ de Waterton — coussin 30 min inclus</b><p>35-40 min jusqu'au poste + 30 min de marge : file possible à l'ouverture, et c'est la plus grosse journée du voyage. Déjeuner emporté dans l'auto.</p></div></li>
+    <li><time>07:15</time><div><b>Poste frontalier Chief Mountain</b><p>Ouvert de <b>7 h à 22 h</b> jusqu'au 7 septembre. Passeports pour les quatre, réponses courtes, rien de frais dans la glacière.</p><small>Poste saisonnier en altitude — le plus haut du Canada.</small></div></li>
     <li><time>09:00</time><div><b>Many Glacier</b><p>Randonnée à cheval Cracker Flats, 2 h en selle (Swan Mountain Outfitters).</p><small>À confirmer : je ne vois pas de confirmation pour cette réservation.</small></div></li>
     <li><time>12:30</time><div><b>Dîner à Swiftcurrent</b></div></li>
     <li><time>14:15</time><div><b>Bateau du lac Josephine</b><p>Traversée Swiftcurrent + Josephine, avec option de marcher jusqu'aux chutes Grinnell au bout.</p><small>À confirmer aussi — Glacier Park Boat Company vend souvent le matin même sur place.</small></div></li>
@@ -424,7 +469,7 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
     <li><b>9 août — Whitefish.</b> Journée molle et méritée : village, lac Whitefish, plage. Deuxième nuit au même endroit pour arrêter de faire des valises.</li>
     <li><b>10 août — remontée vers le Canada.</b> Whitefish → Fernie, C.-B. par la route 93 puis la 3 (≈ 3 h 30). Frontière de Roosville, ouverte 24 h.</li>
     <li><b>11 août — Canmore.</b> Fernie → Canmore (≈ 3 h 30) par le col Crowsnest. Dernière soirée dans les montagnes, souper en ville.</li>
-    <li><b>12 août — retour.</b> Canmore → aéroport de Calgary, 1 h 20. Prévoir 3 h avant le vol avec le retour de l'auto.</li>
+    <li><b>12 août — retour.</b> Canmore → aéroport de Calgary, 1 h 20. Prévoir 3 h avant le vol avec le retour de l'auto, <b>+ 30 min de coussin</b> : quitter Canmore 4 h 50 avant l'heure du vol.</li>
   </ul>
   <p style="margin-top:12px"><b>Plus court, si vous préférez :</b> Coram → Calgary directement, 500 km par la frontière de Carway et Fort Macleod, environ 5 h 30. Ça libère deux journées à ajouter à Banff ou à Waterton.</p>
 </section>
@@ -469,7 +514,8 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
   <h3>À faire avant de partir dans le bois</h3>
   <ul class="check">
     <li>Réserver les navettes Moraine et Lake Louise</li>
-    <li>Régler la question du rafting (âge minimum)</li>
+    <li>Signer les 4 décharges rafting en ligne (2<sup>e</sup> courriel Rezdy — check les indésirables)</li>
+    <li>Confirmer la date du rafting au 1 877 344-7238 (la confirmation affiche « 3 juin »)</li>
     <li>Confirmer le cheval et le bateau à Many Glacier</li>
     <li>Réserver les 4 nuits du 8 au 12</li>
     <li>Télécharger les cartes hors ligne : Banff, Yoho, Waterton, Glacier — aucun réseau dans les cols</li>
@@ -479,8 +525,9 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
 </section>
 
 <footer>
-  Itinéraire préparé le 1<sup>er</sup> août 2026.<br>
+  Itinéraire préparé le 1<sup>er</sup> août 2026 · mis à jour le 1<sup>er</sup> août (réservation rafting R7JY16W + coussins 30 min + édition partagée).<br>
   Les heures d'activités sont des suggestions; les heures en gras dans les blocs de réservation sont fermes.<br>
+  Connecté à Mission Control, tu peux modifier les heures (✎), commenter (💬) et ajouter des activités — partagé avec toute la famille.<br>
   Tout le voyage est à l'heure des Rocheuses (HAR), y compris Golden et le Montana.
 </footer>
 
@@ -500,6 +547,366 @@ footer{margin-top:34px;font-size:13px;color:var(--stone);font-family:"JetBrains 
     badge.textContent = "Aujourd'hui";
     card.insertBefore(badge, card.firstElementChild);
   }
+})();
+
+/* ── Édition partagée : heures, commentaires, activités ─────────────────
+   État JSON partagé via l'API Mission Control (GET/PUT /voyage), même
+   pattern que le budget. IDs des items = date#index — NE PAS insérer ou
+   retirer de <li> de base sans migrer les overrides. */
+(function(){
+  var API = "https://api.my-mission-control.com";
+  function tok(){ try{ return localStorage.getItem("mc_token"); }catch(e){ return null; } }
+  function myName(){
+    try{
+      var b = tok().split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+      var p = JSON.parse(decodeURIComponent(escape(atob(b))));
+      return p.firstName || "Famille";
+    }catch(e){ return "Famille"; }
+  }
+
+  var state = { version:1, overrides:{}, comments:{}, extras:{} };
+  var canEdit = false;
+  var author = "Famille";
+
+  // Barre d'état sous le hero + toast de sauvegarde
+  var hero = document.querySelector(".hero");
+  var bar = document.createElement("div");
+  bar.className = "vbar";
+  bar.innerHTML = "<span class=\"dot\"></span><span class=\"msg\">Chargement du plan partagé…</span>";
+  hero.parentNode.insertBefore(bar, hero.nextSibling);
+  var toast = document.createElement("div");
+  toast.className = "toast";
+  document.body.appendChild(toast);
+  var toastT = null;
+  function say(msg, err){
+    toast.textContent = msg;
+    toast.className = "toast show" + (err ? " err" : "");
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ toast.className = "toast"; }, 2600);
+  }
+  function setBar(on, msg){
+    bar.className = "vbar" + (on ? " on" : "");
+    bar.querySelector(".msg").textContent = msg;
+  }
+
+  // Registre des items de base (id stable = date#index)
+  var days = [];
+  var itemsById = {};
+  document.querySelectorAll(".days .day").forEach(function(day){
+    var date = day.getAttribute("data-date");
+    var sched = day.querySelector(".sched");
+    if(!date || !sched) return;
+    var d = { date: date, sched: sched, base: [] };
+    sched.querySelectorAll("li").forEach(function(li, i){
+      var id = date + "#" + i;
+      li.setAttribute("data-iid", id);
+      var item = { id: id, li: li, timeEl: li.querySelector("time") };
+      d.base.push(item);
+      itemsById[id] = item;
+    });
+    days.push(d);
+  });
+
+  function parseMin(t){
+    var m = /^(\d{1,2}):(\d{2})/.exec((t || "").trim());
+    return m ? (+m[1]) * 60 + (+m[2]) : Infinity;
+  }
+  function displayedTime(item){
+    if(!item) return "";
+    var o = state.overrides[item.id];
+    if(o && o.time) return o.time;
+    if(!item.timeEl) return "";
+    return item.timeEl.getAttribute("data-orig") || item.timeEl.textContent;
+  }
+
+  function renderTimes(){
+    Object.keys(itemsById).forEach(function(id){
+      var item = itemsById[id];
+      if(!item.timeEl) return;
+      if(!item.timeEl.getAttribute("data-orig")){
+        item.timeEl.setAttribute("data-orig", item.timeEl.textContent.trim());
+      }
+      var orig = item.timeEl.getAttribute("data-orig");
+      var o = state.overrides[id];
+      if(o && o.time && o.time !== orig){
+        item.timeEl.classList.add("edited");
+        item.timeEl.innerHTML = o.time + "<span class=\"origmark\">" + orig + "</span>";
+        item.timeEl.title = "Heure modifiée par " + (o.by || "?") + " (originale : " + orig + ")";
+      } else {
+        item.timeEl.classList.remove("edited");
+        item.timeEl.textContent = orig;
+        item.timeEl.removeAttribute("title");
+      }
+    });
+  }
+
+  function renderComments(){
+    document.querySelectorAll(".cmts").forEach(function(u){ u.parentNode.removeChild(u); });
+    Object.keys(state.comments).forEach(function(id){
+      var list = state.comments[id];
+      if(!list || !list.length) return;
+      var li = document.querySelector("[data-iid=\"" + id + "\"]");
+      if(!li) return;
+      var box = li.querySelector("div") || li;
+      var ul = document.createElement("ul");
+      ul.className = "cmts";
+      list.forEach(function(c, idx){
+        var cl = document.createElement("li");
+        var who = document.createElement("b");
+        who.className = "who";
+        who.textContent = (c.a || "?") + " · ";
+        cl.appendChild(who);
+        cl.appendChild(document.createTextNode((c.t || "") + " "));
+        if(canEdit){
+          var x = document.createElement("button");
+          x.className = "xdel";
+          x.textContent = "✕";
+          x.title = "Effacer ce commentaire";
+          x.onclick = function(){
+            list.splice(idx, 1);
+            if(!list.length) delete state.comments[id];
+            renderAll(); save();
+          };
+          cl.appendChild(x);
+        }
+        ul.appendChild(cl);
+      });
+      box.appendChild(ul);
+    });
+  }
+
+  function renderExtras(){
+    document.querySelectorAll("li.extra").forEach(function(li){ li.parentNode.removeChild(li); });
+    days.forEach(function(d){
+      var list = state.extras[d.date];
+      if(!list || !list.length) return;
+      list.slice().sort(function(a, b){ return parseMin(a.time) - parseMin(b.time); }).forEach(function(x){
+        var li = document.createElement("li");
+        li.className = "extra";
+        li.setAttribute("data-iid", x.id);
+        var t = document.createElement("time");
+        t.textContent = x.time || "—";
+        var div = document.createElement("div");
+        var b = document.createElement("b");
+        b.textContent = x.title;
+        var by = document.createElement("span");
+        by.className = "exby";
+        by.textContent = "ajouté par " + (x.by || "?");
+        b.appendChild(by);
+        div.appendChild(b);
+        if(x.note){
+          var p = document.createElement("p");
+          p.textContent = x.note;
+          div.appendChild(p);
+        }
+        if(x.addr){
+          var p2 = document.createElement("p");
+          var a = document.createElement("a");
+          a.className = "mapl";
+          a.href = "https://maps.google.com/?q=" + encodeURIComponent(x.addr);
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = "📍 " + x.addr;
+          p2.appendChild(a);
+          div.appendChild(p2);
+        }
+        li.appendChild(t);
+        li.appendChild(div);
+        var before = null;
+        var lis = d.sched.querySelectorAll("li");
+        for(var i = 0; i < lis.length; i++){
+          var other = lis[i];
+          var om;
+          if(other.classList.contains("extra")){
+            om = parseMin(other.querySelector("time").textContent);
+          } else {
+            om = parseMin(displayedTime(itemsById[other.getAttribute("data-iid")]));
+          }
+          if(om > parseMin(x.time)){ before = other; break; }
+        }
+        d.sched.insertBefore(li, before);
+        if(canEdit) addToolbar(li, x.id, d, x);
+      });
+    });
+  }
+
+  function addToolbar(li, id, d, extra){
+    var old = li.querySelector(".itembar");
+    if(old) old.parentNode.removeChild(old);
+    var b = li.querySelector("div > b") || li.querySelector("b");
+    if(!b) return;
+    var tb = document.createElement("span");
+    tb.className = "itembar";
+    if(!extra){
+      var e = document.createElement("button");
+      e.className = "ibtn";
+      e.textContent = "✎ heure";
+      e.title = "Modifier l'heure";
+      e.onclick = function(){ openTimeForm(li, id); };
+      tb.appendChild(e);
+    }
+    var c = document.createElement("button");
+    c.className = "ibtn";
+    c.textContent = "💬";
+    c.title = "Ajouter un commentaire";
+    c.onclick = function(){ openCommentForm(li, id); };
+    tb.appendChild(c);
+    if(extra){
+      var x = document.createElement("button");
+      x.className = "ibtn";
+      x.textContent = "✕";
+      x.title = "Retirer cette activité";
+      x.onclick = function(){
+        if(!confirm("Retirer « " + extra.title + " » ?")) return;
+        var arr = state.extras[d.date];
+        var ix = arr.indexOf(extra);
+        if(ix > -1) arr.splice(ix, 1);
+        if(!arr.length) delete state.extras[d.date];
+        delete state.comments[id];
+        renderAll(); save();
+      };
+      tb.appendChild(x);
+    }
+    b.appendChild(tb);
+  }
+
+  function closeForms(){
+    document.querySelectorAll(".vform").forEach(function(f){ f.parentNode.removeChild(f); });
+  }
+
+  function openTimeForm(li, id){
+    closeForms();
+    var cur = displayedTime(itemsById[id]);
+    var m = /^(\d{1,2}):(\d{2})/.exec(cur.trim());
+    var val = m ? ("0" + m[1]).slice(-2) + ":" + m[2] : "";
+    var f = document.createElement("div");
+    f.className = "vform";
+    f.innerHTML = "<div class=\"row\"><input type=\"time\" value=\"" + val + "\"></div>" +
+      "<div class=\"acts\"><button class=\"vbtn ok\">Sauvegarder</button>" +
+      "<button class=\"vbtn ghost an\">Annuler</button>" +
+      "<button class=\"vbtn ghost rz\">Heure originale</button></div>";
+    (li.querySelector("div") || li).appendChild(f);
+    f.querySelector(".an").onclick = closeForms;
+    f.querySelector(".rz").onclick = function(){
+      delete state.overrides[id];
+      closeForms(); renderAll(); save();
+    };
+    f.querySelector(".ok").onclick = function(){
+      var v = f.querySelector("input").value;
+      if(!v){ say("Choisis une heure", true); return; }
+      state.overrides[id] = { time: v, by: author };
+      closeForms(); renderAll(); save();
+    };
+  }
+
+  function openCommentForm(li, id){
+    closeForms();
+    var f = document.createElement("div");
+    f.className = "vform";
+    f.innerHTML = "<textarea placeholder=\"Ton commentaire…\"></textarea>" +
+      "<div class=\"acts\"><button class=\"vbtn ok\">Publier</button>" +
+      "<button class=\"vbtn ghost an\">Annuler</button></div>";
+    (li.querySelector("div") || li).appendChild(f);
+    f.querySelector(".an").onclick = closeForms;
+    f.querySelector(".ok").onclick = function(){
+      var v = f.querySelector("textarea").value.trim();
+      if(!v) return;
+      (state.comments[id] = state.comments[id] || []).push({ a: author, t: v, ts: Date.now() });
+      closeForms(); renderAll(); save();
+    };
+    f.querySelector("textarea").focus();
+  }
+
+  function addDayButtons(){
+    days.forEach(function(d){
+      var w = document.createElement("div");
+      w.className = "addact";
+      var btn = document.createElement("button");
+      btn.className = "ibtn";
+      btn.textContent = "＋ Ajouter une activité";
+      btn.onclick = function(){
+        closeForms();
+        var f = document.createElement("div");
+        f.className = "vform";
+        f.innerHTML = "<div class=\"row\"><input type=\"time\"><input type=\"text\" class=\"ti\" placeholder=\"Activité (obligatoire)\"></div>" +
+          "<input type=\"text\" class=\"ad\" placeholder=\"Adresse (optionnelle — deviendra un lien Google Maps)\">" +
+          "<textarea class=\"no\" placeholder=\"Note (optionnelle)\"></textarea>" +
+          "<div class=\"acts\"><button class=\"vbtn ok\">Ajouter</button>" +
+          "<button class=\"vbtn ghost an\">Annuler</button></div>";
+        w.appendChild(f);
+        f.querySelector(".an").onclick = closeForms;
+        f.querySelector(".ok").onclick = function(){
+          var title = f.querySelector(".ti").value.trim();
+          if(!title){ say("Il faut au moins un titre", true); return; }
+          (state.extras[d.date] = state.extras[d.date] || []).push({
+            id: "x" + Date.now(),
+            time: f.querySelector("input[type=time]").value || "",
+            title: title,
+            addr: f.querySelector(".ad").value.trim(),
+            note: f.querySelector(".no").value.trim(),
+            by: author
+          });
+          closeForms(); renderAll(); save();
+        };
+      };
+      w.appendChild(btn);
+      d.sched.parentNode.insertBefore(w, d.sched.nextSibling);
+    });
+  }
+
+  function renderAll(){
+    renderTimes();
+    renderExtras();
+    renderComments();
+    if(canEdit){
+      days.forEach(function(d){
+        d.base.forEach(function(it){ addToolbar(it.li, it.id, d, null); });
+      });
+    }
+  }
+
+  var saveT = null;
+  function save(){
+    clearTimeout(saveT);
+    saveT = setTimeout(function(){
+      fetch(API + "/voyage", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + (tok() || "")
+        },
+        body: JSON.stringify({ data: state })
+      }).then(function(r){
+        if(!r.ok) throw new Error(r.status);
+        say("Sauvegardé ✓");
+      }).catch(function(){
+        say("Échec de sauvegarde — vérifie ta connexion", true);
+      });
+    }, 350);
+  }
+
+  // Démarrage
+  var t = tok();
+  if(!t){
+    setBar(false, "Lecture seule — ouvre la page en étant connecté à Mission Control pour éditer les heures, commenter et ajouter des activités.");
+    return;
+  }
+  fetch(API + "/voyage", { headers: { "Authorization": "Bearer " + t } })
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(j){
+      var d = j.data || {};
+      state.overrides = d.overrides || {};
+      state.comments = d.comments || {};
+      state.extras = d.extras || {};
+      canEdit = true;
+      author = myName();
+      setBar(true, "Plan partagé — tes modifications sont visibles par toute la famille." + (j.updatedBy ? " Dernière modif : " + j.updatedBy + "." : ""));
+      addDayButtons();
+      renderAll();
+    })
+    .catch(function(){
+      setBar(false, "Lecture seule — session expirée ou hors ligne. Reconnecte-toi à Mission Control pour éditer.");
+    });
 })();
 </script>
 </body>
