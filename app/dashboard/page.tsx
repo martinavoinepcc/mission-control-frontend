@@ -20,7 +20,6 @@ import Avatar from '@/components/Avatar';
 
 // Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
 const APP_PRIORITY: Record<string, number> = {
-  voyage: -20, // demande Martin 2026-08-01 : plan Rocheuses/Calgary tout en haut
   budget: -10, // demande Martin 2026-07-14 : Budget en premier (seuls les parents l'ont)
   messagerie: 0,
   educatif: 10,
@@ -696,7 +695,6 @@ Bientôt disponible.`);
         else if (app.slug === 'chalet') window.location.href = '/apps/chalet/';
         else if (app.slug === 'chantier') window.location.href = '/apps/chantier/';
         else if (app.slug === 'budget') window.location.href = '/budget-app.html';
-        else if (app.slug === 'voyage') window.location.href = '/voyage-rocheuses-2026.html';
         else if (app.slug === 'messagerie') window.location.href = '/apps/messagerie/';
         else if (app.slug === 'assistant') window.location.href = '/apps/heimdall/';
       }}
