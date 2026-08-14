@@ -81,8 +81,23 @@
   .req-item .cb{width:26px;height:26px;border-radius:9px;border:2px solid #cbc3b2;flex:none;font-size:15px;line-height:22px;text-align:center;color:#fff;margin-top:1px}
   .req-item.done .cb{background:var(--sapin);border-color:var(--sapin)}
   .req-item .tx{flex:1;font-size:14.5px;line-height:1.4}
-  .req-item.done .tx{text-decoration:line-through;color:var(--encre2)}
+  .req-item.done .tx>span:first-child{text-decoration:line-through;color:var(--encre2)}
   .req-item .meta{font-size:11px;color:var(--encre2);margin-top:3px}
+
+  /* votes + réponses */
+  .lrow{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .heart{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ligne);background:#fff;border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--encre2)}
+  .heart.on{background:#fdeaea;border-color:#f2b8b0;color:var(--rouge)}
+  .heart .ic{font-size:14px;line-height:1}
+  .both{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(90deg,#fdf3d7,#fbe7c2);border:1px solid #ecd193;color:#8a5a00;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:800}
+  .replybtn{font-size:12px;font-weight:700;color:var(--lac);padding:5px 8px;border-radius:999px}
+  .replies{margin-top:8px;border-left:3px solid var(--ligne);padding-left:10px}
+  .reply{background:#faf6ec;border:1px solid var(--ligne);border-radius:11px;padding:8px 11px;margin-bottom:6px}
+  .reply .by{font-size:10.5px;font-weight:800;margin-bottom:2px}
+  .reply .by.mj{color:var(--rouge)} .reply .by.martin{color:var(--lac)}
+  .reply .tx{font-size:13.5px;line-height:1.4}
+  .replies .addrow input[type=text]{padding:9px 12px;font-size:14px}
+  .replies .addrow .go{padding:0 13px;font-size:13px}
 
   .com{background:var(--carte);border:1px solid var(--ligne);border-radius:13px;padding:11px 13px;margin-bottom:8px}
   .com .by{font-size:11.5px;font-weight:800;margin-bottom:3px}
@@ -92,6 +107,8 @@
 
   .inspos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .inspo{background:var(--carte);border:1px solid var(--ligne);border-radius:13px;overflow:hidden}
+  .inspo.wide{grid-column:1/-1}
+  .inspo.wide img{aspect-ratio:16/9}
   .inspo img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
   .inspo .n{padding:8px 10px;font-size:12.5px;line-height:1.35}
   .inspo .n .by{font-weight:800;color:var(--encre2);font-size:10.5px;display:block;margin-top:3px}
@@ -211,12 +228,13 @@ var ROOMS = [
 
 var SEED = {
   'chambre-1': { req:[{t:'Niche pour chevet de chaque côté du lit (à dessiner avec TALO)', by:'Martin', done:false}], com:[], ins:[] },
-  'sdb-1':     { req:[{t:'Céramique de la douche jusqu’au plafond', by:'MJ', done:false}], com:[], ins:[] },
+  'sdb-1':     { req:[{t:'Céramique de la douche jusqu’au plafond', by:'MJ', done:false, likes:['Martin'],
+                       replies:[{t:'Oui ! Et un banc dans la douche tant qu’à y être 😍', by:'Martin'}]}], com:[], ins:[] },
   'cuisine':   { req:[{t:'Prises dans l’îlot pour les petits électros', by:'MJ', done:false}],
                  com:[{t:'La fenêtre bandeau au-dessus du comptoir : non négociable 😄', by:'Martin'}], ins:[] },
   'chambre-3': { req:[], com:[{t:'Alizée aimerait un coin lecture près de la fenêtre', by:'MJ'}], ins:[] },
   'chambre-4': { req:[{t:'Prise réseau câblée pour le setup gaming de Jax', by:'Martin', done:false}], com:[], ins:[] },
-  'sejour':    { req:[], com:[], ins:[{n:'Foyer de pierre grise 2 faces, comme sur le rendu TALO', by:'Martin', img:null}] },
+  'sejour':    { req:[], com:[], ins:[{n:'Foyer de pierre grise 2 faces, comme sur le rendu TALO', by:'Martin', img:null, likes:['MJ']}] },
 };
 
 /* ── state ── */
@@ -293,6 +311,34 @@ function render(){ renderWho(); renderProg(); renderTabs(); renderGrid(); }
 
 /* ── fiche pièce ── */
 var cur=null;
+var rOpen={};
+function voteRow(kind,i,x){
+  var likes=x.likes||[];
+  var mine=likes.indexOf(state.me)>=0;
+  var both=likes.indexOf('MJ')>=0 && likes.indexOf('Martin')>=0;
+  var lbl = mine ? 'Je le veux aussi' : 'Moi aussi !';
+  var h='<div class="lrow">';
+  h+='<button class="heart'+(mine?' on':'')+'" data-act="like-'+kind+'" data-i="'+i+'"><span class="ic">'+(mine?'❤️':'🤍')+'</span>'+lbl+(likes.length?' · '+likes.join(' + '):'')+'</button>';
+  if(both) h+='<span class="both">💛 On le veut tous les deux</span>';
+  var nr=(x.replies||[]).length;
+  h+='<button class="replybtn" data-act="rtog-'+kind+'" data-i="'+i+'">💬 Répondre'+(nr?' ('+nr+')':'')+'</button>';
+  h+='</div>';
+  return h;
+}
+function replyBlock(kind,i,x){
+  var reps=x.replies||[];
+  var open=!!rOpen[kind+'-'+i];
+  if(!reps.length && !open) return '';
+  var h='<div class="replies">';
+  reps.forEach(function(r){
+    h+='<div class="reply"><div class="by '+(r.by==='MJ'?'mj':'martin')+'">'+esc(r.by)+'</div><div class="tx">'+esc(r.t)+'</div></div>';
+  });
+  if(open){
+    h+='<div class="addrow"><input type="text" id="in-rep-'+kind+'-'+i+'" placeholder="Répondre…"><button class="go" data-act="add-rep-'+kind+'" data-i="'+i+'">➤</button></div>';
+  }
+  h+='</div>';
+  return h;
+}
 function openSheet(id){
   cur=id;
   var r=ROOMS.filter(function(x){return x.id===id;})[0];
@@ -314,8 +360,11 @@ function renderSheet(){
   h+='<div class="sec"><h2>📋 Requis <span>'+d.req.filter(function(x){return !x.done;}).length+' à régler</span></h2>';
   if(!d.req.length) h+='<div class="vide">Aucun requis pour l’instant. Ajoute ce qui doit absolument être prévu dans cette pièce.</div>';
   d.req.forEach(function(x,i){
-    h+='<div class="req-item'+(x.done?' done':'')+'" data-i="'+i+'"><button class="cb" data-act="toggle" data-i="'+i+'">✓</button>'
-      +'<div class="tx">'+esc(x.t)+'<div class="meta">'+esc(x.by)+(x.ts?' · '+esc(x.ts):'')+'</div></div></div>';
+    h+='<div class="req-item'+(x.done?' done':'')+'"><button class="cb" data-act="toggle" data-i="'+i+'">✓</button>'
+      +'<div class="tx"><span>'+esc(x.t)+'</span><div class="meta">'+esc(x.by)+(x.ts?' · '+esc(x.ts):'')+'</div>'
+      + voteRow('req', i, x)
+      + replyBlock('req', i, x)
+      +'</div></div>';
   });
   h+='<div class="addrow"><input type="text" id="in-req" placeholder="Ajouter un requis…"><button class="go" data-act="add-req">+</button></div></div>';
 
@@ -329,8 +378,13 @@ function renderSheet(){
   h+='<div class="sec"><h2>📸 Inspirations</h2>';
   if(!d.ins.length) h+='<div class="vide">Photos Pinterest, captures d’écran, photos en magasin… tout ce qui inspire pour cette pièce.</div>';
   h+='<div class="inspos">';
-  d.ins.forEach(function(x){
-    h+='<div class="inspo">'+(x.img?'<img src="'+x.img+'" alt="">':'')+'<div class="n">'+esc(x.n||'')+'<span class="by">'+esc(x.by)+(x.ts?' · '+esc(x.ts):'')+'</span></div></div>';
+  d.ins.forEach(function(x,i){
+    var open = !!rOpen['ins-'+i];
+    h+='<div class="inspo'+(open||((x.replies||[]).length)?' wide':'')+'">'+(x.img?'<img src="'+x.img+'" alt="">':'')
+      +'<div class="n">'+esc(x.n||'')+'<span class="by">'+esc(x.by)+(x.ts?' · '+esc(x.ts):'')+'</span>'
+      + voteRow('ins', i, x)
+      + replyBlock('ins', i, x)
+      +'</div></div>';
   });
   h+='</div><label class="photobtn">📷 Ajouter une photo<input type="file" accept="image/*" id="in-photo" style="display:none"></label>';
   h+='<div class="addrow" style="margin-top:8px"><input type="text" id="in-ins" placeholder="Ou une idée en mots…"><button class="go" data-act="add-ins">+</button></div></div>';
@@ -346,13 +400,37 @@ function renderSheet(){
   var ph=document.getElementById('in-photo');
   if(ph) ph.onchange=function(){ addPhoto(ph.files[0]); };
 }
+function likeToggle(x){
+  x.likes=x.likes||[];
+  var p=x.likes.indexOf(state.me);
+  if(p>=0){ x.likes.splice(p,1); }
+  else { x.likes.push(state.me); toast(x.likes.length>1 ? '💛 Vous le voulez tous les deux !' : '❤️ Noté !'); }
+}
+function addReply(x,kind,i){
+  var el=document.getElementById('in-rep-'+kind+'-'+i);
+  if(!el) return;
+  var v=el.value.trim(); if(!v) return;
+  x.replies=x.replies||[];
+  x.replies.push({t:v,by:state.me,ts:now()});
+  toast('Réponse ajoutée ✓');
+}
 function act(a,i){
   var d=state.rooms[cur];
   if(a==='toggle'){ d.req[i].done=!d.req[i].done; }
   else if(a==='add-req'){ var v=document.getElementById('in-req').value.trim(); if(!v) return; d.req.push({t:v,by:state.me,ts:now(),done:false}); toast('Requis ajouté ✓'); }
   else if(a==='add-com'){ var v2=document.getElementById('in-com').value.trim(); if(!v2) return; d.com.push({t:v2,by:state.me,ts:now()}); toast('Commentaire ajouté ✓'); }
   else if(a==='add-ins'){ var v3=document.getElementById('in-ins').value.trim(); if(!v3) return; d.ins.push({n:v3,by:state.me,ts:now(),img:null}); toast('Inspiration notée ✓'); }
+  else if(a==='like-req'){ likeToggle(d.req[i]); }
+  else if(a==='like-ins'){ likeToggle(d.ins[i]); }
+  else if(a==='rtog-req'){ rOpen['req-'+i]=!rOpen['req-'+i]; }
+  else if(a==='rtog-ins'){ rOpen['ins-'+i]=!rOpen['ins-'+i]; }
+  else if(a==='add-rep-req'){ addReply(d.req[i],'req',i); rOpen['req-'+i]=false; }
+  else if(a==='add-rep-ins'){ addReply(d.ins[i],'ins',i); rOpen['ins-'+i]=false; }
   save(); renderSheet(); renderProg(); renderGrid();
+  if(a==='rtog-req'||a==='rtog-ins'){
+    var inp=document.getElementById('in-rep-'+(a==='rtog-req'?'req':'ins')+'-'+i);
+    if(inp) inp.focus();
+  }
 }
 function addPhoto(file){
   if(!file) return;
