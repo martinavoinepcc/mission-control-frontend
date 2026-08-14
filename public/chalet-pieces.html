@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notre Chalet · pièce par pièce</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  :root{
+    --papier:#f6f1e7; --carte:#fffdf8; --encre:#2b2a24; --encre2:#6b675c;
+    --sapin:#2d6a4f; --sapin-pale:#e3efe7; --lac:#1d7a8c; --lac-pale:#e0f0f3;
+    --bois:#b45309; --bois-pale:#f7e8d4; --rouge:#b3402a; --ligne:#e6dfd0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{overflow-x:clip}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--papier);color:var(--encre);min-height:100vh}
+  button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+  input,textarea{font-family:inherit;font-size:16px}
+  .fa-solid,.fa-regular{line-height:1}
+
+  .wrap{max-width:640px;margin:0 auto;padding:0 14px calc(96px + env(safe-area-inset-bottom))}
+
+  /* ── Header ── */
+  header{padding:18px 2px 8px}
+  .hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  h1{font-size:22px;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+  h1 .fa-solid{color:var(--lac);font-size:24px}
+  h1 small{display:block;font-size:12px;font-weight:600;color:var(--encre2);letter-spacing:1.4px;text-transform:uppercase;margin-top:2px}
+  .me{display:flex;align-items:center;gap:8px;background:var(--carte);border:1px solid var(--ligne);border-radius:999px;padding:5px 12px 5px 5px;font-weight:800;font-size:13px;color:var(--encre2)}
+  .me .av{width:32px;height:32px;border-radius:999px;background:var(--sapin);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .prog{margin-top:14px;background:var(--carte);border:1px solid var(--ligne);border-radius:14px;padding:12px 14px}
+  .prog .lbl{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px}
+  .prog .lbl span:last-child{color:var(--sapin)}
+  .bar{height:10px;border-radius:999px;background:#eee7d8;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--sapin),#4d9a74);transition:width .4s}
+
+  /* ── Étages ── */
+  .tabs{display:flex;gap:8px;margin:16px 0 12px;position:sticky;top:0;z-index:20;background:var(--papier);padding:8px 0}
+  .tabs button{flex:1;padding:12px 6px;border-radius:12px;background:var(--carte);border:1px solid var(--ligne);font-weight:700;font-size:14px;color:var(--encre2)}
+  .tabs button.on{background:var(--encre);color:#fff;border-color:var(--encre)}
+  .planbtn{width:100%;margin:0 0 12px;padding:12px;border-radius:12px;background:var(--lac-pale);color:var(--lac);font-weight:700;font-size:14px;border:1px solid #c3dfe5}
+  .planview{display:none;margin:0 0 14px;background:#fff;border:1px solid var(--ligne);border-radius:14px;overflow:auto;max-height:60vh}
+  .planview.open{display:block}
+  .planview img{width:160%;max-width:none;display:block}
+  @media(min-width:520px){.planview img{width:100%}}
+
+  /* ── Cartes pièces ── */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .room{background:var(--carte);border:1px solid var(--ligne);border-radius:16px;padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(60,50,30,.06)}
+  .room:active{transform:scale(.97)}
+  .room .ric{width:40px;height:40px;border-radius:12px;background:var(--lac-pale);color:var(--lac);display:flex;align-items:center;justify-content:center;font-size:17px}
+  .room .num{font-size:10.5px;font-weight:800;letter-spacing:1px;color:var(--bois);text-transform:uppercase;min-height:13px}
+  .room .nom{font-weight:800;font-size:15px;line-height:1.25}
+  .room .qui{font-size:12px;color:var(--encre2)}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .badge{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:#f0ebdf;color:var(--encre2)}
+  .badge .fa-solid{font-size:10px;margin-right:3px}
+  .badge.req{background:var(--sapin-pale);color:var(--sapin)}
+  .badge.req.open{background:#fdecdd;color:var(--bois)}
+
+  /* ── Fiche pièce ── */
+  .sheet{position:fixed;inset:0;z-index:50;background:var(--papier);display:none;overflow-y:auto;overscroll-behavior:contain}
+  .sheet.open{display:block}
+  .sh-head{position:sticky;top:0;background:var(--papier);z-index:5;padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--ligne)}
+  .sh-head .back{width:42px;height:42px;border-radius:12px;background:var(--carte);border:1px solid var(--ligne);font-size:17px;flex:none;color:var(--encre2)}
+  .sh-head .t{font-weight:800;font-size:17px;line-height:1.2}
+  .sh-head .s{font-size:12px;color:var(--encre2)}
+  .sh-body{max-width:640px;margin:0 auto;padding:14px 14px 60px}
+  .planimg{background:#fff;border:1px solid var(--ligne);border-radius:14px;overflow:hidden;margin-bottom:12px}
+  .planimg img{width:100%;display:block;transition:transform .2s}
+  .planimg.zoom{overflow:auto;max-height:70vh}
+  .planimg.zoom img{width:200%;max-width:none}
+  .planimg .cap{font-size:11px;color:var(--encre2);padding:7px 10px;border-top:1px solid var(--ligne);background:var(--carte)}
+  .planimg .cap .fa-solid{margin-right:5px;color:var(--lac)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{background:var(--lac-pale);color:var(--lac);font-weight:700;font-size:12.5px;padding:7px 11px;border-radius:999px}
+  .chip.b{background:var(--bois-pale);color:var(--bois)}
+
+  .sec{margin-bottom:20px}
+  .sec h2{font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--encre2);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+  .sec h2 .fa-solid{margin-right:6px;color:var(--sapin)}
+  .vide{font-size:13px;color:var(--encre2);background:var(--carte);border:1px dashed var(--ligne);border-radius:12px;padding:12px;text-align:center}
+
+  .req-item{display:flex;align-items:flex-start;gap:11px;background:var(--carte);border:1px solid var(--ligne);border-radius:13px;padding:12px;margin-bottom:8px}
+  .req-item .cb{width:26px;height:26px;border-radius:9px;border:2px solid #cbc3b2;flex:none;font-size:13px;line-height:22px;text-align:center;color:#fff;margin-top:1px}
+  .req-item.done .cb{background:var(--sapin);border-color:var(--sapin)}
+  .req-item .tx{flex:1;font-size:14.5px;line-height:1.4}
+  .req-item.done .tx>span:first-child{text-decoration:line-through;color:var(--encre2)}
+  .req-item .meta{font-size:11px;color:var(--encre2);margin-top:3px}
+  .del{color:#cbc3b2;font-size:13px;padding:4px 6px;flex:none}
+
+  /* votes + réponses */
+  .lrow{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .heart{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ligne);background:#fff;border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--encre2)}
+  .heart.on{background:#fdeaea;border-color:#f2b8b0;color:var(--rouge)}
+  .heart .fa-solid,.heart .fa-regular{font-size:13px}
+  .heart.on .fa-solid{color:var(--rouge)}
+  .both{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#fdf3d7,#fbe7c2);border:1px solid #ecd193;color:#8a5a00;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:800}
+  .replybtn{font-size:12px;font-weight:700;color:var(--lac);padding:5px 8px;border-radius:999px}
+  .replybtn .fa-solid{margin-right:4px}
+  .replies{margin-top:8px;border-left:3px solid var(--ligne);padding-left:10px}
+  .reply{background:#faf6ec;border:1px solid var(--ligne);border-radius:11px;padding:8px 11px;margin-bottom:6px}
+  .reply .by{font-size:10.5px;font-weight:800;margin-bottom:2px}
+  .reply .by.mj{color:var(--rouge)} .reply .by.martin{color:var(--lac)}
+  .reply .tx{font-size:13.5px;line-height:1.4}
+  .replies .addrow input[type=text]{padding:9px 12px;font-size:14px}
+  .replies .addrow .go{padding:0 13px;font-size:13px}
+
+  .com{background:var(--carte);border:1px solid var(--ligne);border-radius:13px;padding:11px 13px;margin-bottom:8px;position:relative}
+  .com .by{font-size:11.5px;font-weight:800;margin-bottom:3px}
+  .com .by.mj{color:var(--rouge)} .com .by.martin{color:var(--lac)}
+  .com .tx{font-size:14.5px;line-height:1.45}
+  .com .dt{font-size:10.5px;color:var(--encre2);margin-top:4px}
+  .com .del{position:absolute;top:8px;right:8px}
+
+  .inspos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .inspo{background:var(--carte);border:1px solid var(--ligne);border-radius:13px;overflow:hidden}
+  .inspo.wide{grid-column:1/-1}
+  .inspo img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+  .inspo.wide img{aspect-ratio:16/9}
+  .inspo .n{padding:8px 10px;font-size:12.5px;line-height:1.35}
+  .inspo .n .by{font-weight:800;color:var(--encre2);font-size:10.5px;display:block;margin-top:3px}
+
+  .addrow{display:flex;gap:8px;margin-top:4px}
+  .addrow input[type=text]{flex:1;border:1px solid var(--ligne);border-radius:12px;padding:12px;background:#fff;min-width:0}
+  .addrow .go{background:var(--sapin);color:#fff;font-weight:800;border-radius:12px;padding:0 16px;font-size:14px}
+  .photobtn{display:block;width:100%;margin-top:8px;padding:12px;border-radius:12px;background:var(--lac-pale);color:var(--lac);font-weight:700;font-size:14px;text-align:center;border:1px solid #c3dfe5;cursor:pointer}
+  .photobtn .fa-solid{margin-right:6px}
+
+  /* ── FAB + quick capture ── */
+  .fab{position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:40;width:60px;height:60px;border-radius:999px;background:var(--bois);color:#fff;font-size:22px;box-shadow:0 6px 18px rgba(120,60,10,.35)}
+  .qc{position:fixed;inset:0;z-index:60;background:rgba(30,25,15,.45);display:none;align-items:flex-end}
+  .qc.open{display:flex}
+  .qc .box{background:var(--papier);border-radius:22px 22px 0 0;width:100%;max-width:640px;margin:0 auto;padding:20px 16px calc(24px + env(safe-area-inset-bottom))}
+  .qc h3{font-size:16px;margin-bottom:14px}
+  .qc h3 .fa-solid{color:var(--bois);margin-right:7px}
+  .qc select,.qc input[type=text]{width:100%;border:1px solid var(--ligne);border-radius:12px;padding:13px;background:#fff;font-size:16px;margin-bottom:10px}
+  .qc .types{display:flex;gap:8px;margin-bottom:10px}
+  .qc .types button{flex:1;padding:11px 4px;border-radius:12px;background:var(--carte);border:1px solid var(--ligne);font-weight:700;font-size:12.5px;color:var(--encre2)}
+  .qc .types button .fa-solid{margin-right:4px}
+  .qc .types button.on{background:var(--encre);color:#fff;border-color:var(--encre)}
+  .qc .go{width:100%;background:var(--sapin);color:#fff;font-weight:800;border-radius:12px;padding:14px;font-size:15px}
+  .qc .cancel{width:100%;padding:12px;color:var(--encre2);font-size:14px;margin-top:4px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:70;background:var(--encre);color:#fff;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;text-align:center}
+  .toast.on{opacity:1}
+
+  /* ── Login gate ── */
+  .gate{max-width:420px;margin:80px auto;background:var(--carte);border:1px solid var(--ligne);border-radius:18px;padding:28px 22px;text-align:center}
+  .gate .fa-solid{font-size:34px;color:var(--lac);margin-bottom:12px}
+  .gate h2{font-size:18px;margin-bottom:8px}
+  .gate p{font-size:14px;color:var(--encre2);line-height:1.5;margin-bottom:16px}
+  .gate a{display:inline-block;background:var(--sapin);color:#fff;font-weight:800;border-radius:12px;padding:12px 22px;text-decoration:none;font-size:14px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ── API : essaie le domaine officiel, bascule sur l'adresse Render de secours ── */
+var API_CANDIDATES = [
+  'https://api.my-mission-control.com',
+  'https://mission-control-backend-gbtc.onrender.com',
+];
+var qsApi = new URLSearchParams(location.search).get('api');
+if (qsApi) API_CANDIDATES = [qsApi];
+var API = sessionStorage.getItem('mc_pieces_api') || null;
+
+function mcToken(){ return localStorage.getItem('mc_token'); }
+function authHeaders(){ return { 'Authorization': 'Bearer ' + mcToken(), 'Content-Type': 'application/json' }; }
+
+function pickApi(){
+  if (API) return Promise.resolve(API);
+  var tryOne = function(base){
+    return new Promise(function(resolve, reject){
+      var ctl = new AbortController();
+      var t = setTimeout(function(){ ctl.abort(); reject(new Error('timeout')); }, 5000);
+      fetch(base + '/health', { signal: ctl.signal }).then(function(r){
+        clearTimeout(t);
+        if (r.ok) resolve(base); else reject(new Error('bad status'));
+      }).catch(function(e){ clearTimeout(t); reject(e); });
+    });
+  };
+  return tryOne(API_CANDIDATES[0]).catch(function(){
+    return API_CANDIDATES.length > 1 ? tryOne(API_CANDIDATES[1]) : Promise.reject(new Error('api down'));
+  }).then(function(base){
+    API = base;
+    sessionStorage.setItem('mc_pieces_api', base);
+    return base;
+  });
+}
+
+/* ── Pièces (metadata statique, dimensions extraites des plans TALO T-1860 / cahier A0-A13) ── */
+var IMG = 'mockups/pieces-img/';
+var FLOORS = [
+  { id:'rdc', nom:'Rez-de-chaussée', plan:'plan-rdc.jpg' },
+  { id:'rdj', nom:'Rez-de-jardin',   plan:'plan-rdj.jpg' },
+  { id:'ext', nom:'Extérieur',       plan:null },
+];
+var ROOMS = [
+  { id:'garage',    fl:'rdc', ic:'fa-car-side', num:'Pièce 0',  nom:'Garage double', qui:'Toute la famille',
+    dims:['≈ 24′-0″ × 23′-5″ int.','Avaloir de sol','Porte côté est (à confirmer)'], img:'rdc-garage.jpg' },
+  { id:'chambre-1', fl:'rdc', ic:'fa-bed', num:'Chambre 1', nom:'Chambre des maîtres', qui:'Martin + MJ',
+    dims:['10′-3½″ × 10′-9¾″','Niche pour chevet (au choix)'], img:'rdc-chambre-1.jpg' },
+  { id:'sdb-1',     fl:'rdc', ic:'fa-bath', num:'Salle de bain 1', nom:'SDB des maîtres', qui:'Attenante à la chambre 1',
+    dims:['≈ 8′-4″ × 10′-10″','Douche 36″×48″','Bain autoportant 34″×60″'], img:'rdc-sdb-1.jpg' },
+  { id:'cuisine',   fl:'rdc', ic:'fa-kitchen-set', num:'', nom:'Cuisine + garde-manger', qui:'Cœur de la maison',
+    dims:['Façade 17′-9¾″ + îlot','Garde-manger 3′-11¼″ × 5′-0¼″','Hotte escamotable','Fenêtre bandeau'], img:'rdc-cuisine.jpg' },
+  { id:'sejour',    fl:'rdc', ic:'fa-fire', num:'', nom:'Séjour cathédrale + salle à manger', qui:'Aire ouverte',
+    dims:['Aire ouverte 29′-0″ × 26′-0″','Paroi de verre 9′-4½″ pleine hauteur','Foyer au bois (module 5′-9″)','SàM 11′-0½″ × 7′-11½″'], img:'rdc-sejour-sam.jpg' },
+  { id:'mudroom',   fl:'rdc', ic:'fa-door-open', num:'', nom:'Mudroom + hall + salle d’eau', qui:'Entrées',
+    dims:['Salle d’eau 5′-0″ × 4′-6″','Hall ≈ 7′-0″ × 6′-1½″'], img:'rdc-mudroom-hall.jpg' },
+  { id:'terrasse-rdc', fl:'rdc', ic:'fa-umbrella-beach', num:'', nom:'Terrasse couverte', qui:'Côté lac',
+    dims:['19′-6″ × 20′-4″','Poutres apparentes'], img:'rdc-terrasse.jpg' },
+
+  { id:'famille',   fl:'rdj', ic:'fa-couch', num:'', nom:'Salle familiale', qui:'Toute la famille',
+    dims:['18′-3¼″ × ≈ 20′-6″','Walkout côté lac','Ouverture au plafond'], img:'rdj-salle-familiale.jpg' },
+  { id:'chambre-2', fl:'rdj', ic:'fa-bed', num:'Chambre 2', nom:'Chambre des invités', qui:'Invités',
+    dims:['12′-5″ × 9′-2″'], img:'rdj-chambre-2.jpg' },
+  { id:'chambre-3', fl:'rdj', ic:'fa-masks-theater', num:'Chambre 3', nom:'Chambre d’Alizée', qui:'Alizée',
+    dims:['11′-4¾″ × 12′-9″ (incl. garde-robe)','Garde-robe 2 portes 24″×80″'], img:'rdj-chambre-3.jpg' },
+  { id:'chambre-4', fl:'rdj', ic:'fa-gamepad', num:'Chambre 4', nom:'Chambre de Jackson', qui:'Jackson',
+    dims:['10′-11¾″ × 10′-4½″','Garde-robe 2 portes 30″×80″'], img:'rdj-chambre-4.jpg' },
+  { id:'sdb-2',     fl:'rdj', ic:'fa-shower', num:'Salle de bain 2', nom:'SDB des enfants', qui:'Alizée + Jackson + invités',
+    dims:['≈ 5′-5½″ × 9′-2″','Douche 60″×36″','Lingerie adjacente'], img:'rdj-sdb-2.jpg' },
+  { id:'lavage',    fl:'rdj', ic:'fa-soap', num:'Salle de bain 3', nom:'Lavage + SDB 3', qui:'Service',
+    dims:['Lavage ≈ 6′-0¼″ de large','SDB 3 : bain-douche 30″×60″ (≈ 5′-9″ × 5′-5″)'], img:'rdj-lavage-sdb3.jpg' },
+  { id:'terrasse-spa', fl:'rdj', ic:'fa-hot-tub-person', num:'', nom:'Terrasse + spa', qui:'Sous la terrasse du haut',
+    dims:['≈ 26′-0″ × 13′-9″','Structure renforcée pour le spa'], img:'rdj-terrasse-spa.jpg' },
+  { id:'mecanique', fl:'rdj', ic:'fa-gears', num:'', nom:'Mécanique', qui:'Technique',
+    dims:['≈ 6′-3″ × 4′-8″','Échangeur d’air · panneau élec. · chauffe-eau'], img:null },
+
+  { id:'terrain',   fl:'ext', ic:'fa-tree', num:'', nom:'Terrain + bord de l’eau', qui:'Lot 4 872 894',
+    dims:['2 061,4 m²','Rive 10,0 m (lac + ruisseau)','Marges : avant 7,6 m · lat. 2,0 m'], img:null },
+  { id:'enveloppe', fl:'ext', ic:'fa-house-chimney', num:'', nom:'Enveloppe extérieure', qui:'Revêtements + toiture',
+    dims:['Bois pâle horizontal','Tôle noire verticale','Pierre grise','Toit mono-pente, poutres en débord'], img:null },
+];
+
+/* ── État ── */
+var ME = null;                 // prénom court depuis le JWT (Marie-Josée -> MJ)
+var floorSel = localStorage.getItem('mc_pieces_floor') || 'rdc';
+var entries = [];              // entrées serveur, à plat
+var cur = null;                // pièce ouverte
+var rOpen = {};                // fils de réponse ouverts
+var qcType = 'REQUIS';
+
+function byPiece(pid){
+  var out = { req:[], com:[], ins:[] };
+  entries.forEach(function(e){
+    if (e.pieceId !== pid) return;
+    if (e.kind === 'REQUIS') out.req.push(e);
+    else if (e.kind === 'COMMENTAIRE') out.com.push(e);
+    else out.ins.push(e);
+  });
+  return out;
+}
+function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+function fmtDate(iso){
+  try { return new Date(iso).toLocaleDateString('fr-CA', {day:'numeric', month:'short'}); }
+  catch(e){ return ''; }
+}
+function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(function(){t.classList.remove('on');},2100); }
+function byClass(name){ return name==='MJ' ? 'mj' : 'martin'; }
+
+/* ── JWT ── */
+function decodeMe(){
+  var tok = mcToken();
+  if (!tok) return null;
+  try {
+    var payload = JSON.parse(decodeURIComponent(escape(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))));
+    var first = payload.firstName || 'Moi';
+    return first === 'Marie-Josée' ? 'MJ' : first;
+  } catch(e){ return null; }
+}
+
+/* ── API calls ── */
+function apiFetch(path, opts){
+  opts = opts || {};
+  opts.headers = authHeaders();
+  return fetch(API + path, opts).then(function(r){
+    if (r.status === 401) { renderGate(true); throw new Error('auth'); }
+    if (!r.ok) return r.json().catch(function(){ return {}; }).then(function(j){ throw new Error(j.erreur || ('Erreur ' + r.status)); });
+    return r.json();
+  });
+}
+function loadEntries(){
+  return apiFetch('/pieces/entries').then(function(rows){ entries = rows; });
+}
+function createEntry(data){
+  return apiFetch('/pieces/entries', { method:'POST', body: JSON.stringify(data) }).then(function(e){ entries.push(e); return e; });
+}
+function replaceEntry(updated){
+  for (var i=0;i<entries.length;i++){
+    if (entries[i].id === updated.id){ updated.hasPhoto = entries[i].hasPhoto; entries[i] = updated; return; }
+  }
+}
+
+/* ── Rendu racine ── */
+function renderGate(expired){
+  document.getElementById('app').innerHTML =
+    '<div class="gate"><i class="fa-solid fa-mountain-sun"></i>'
+    + '<h2>Notre Chalet</h2>'
+    + '<p>' + (expired ? 'Ta session est expirée. Reconnecte-toi à Mission Control puis reviens ici.' : 'Connecte-toi à Mission Control pour voir le chalet pièce par pièce.') + '</p>'
+    + '<a href="/">Aller à la connexion</a></div>';
+}
+
+function shell(){
+  var html =
+  '<div class="wrap">'
+  + '<header><div class="hrow">'
+  + '<h1><i class="fa-solid fa-mountain-sun"></i><span>Notre Chalet<small>Pièce par pièce · lac Mékinac</small></span></h1>'
+  + '<div class="me"><span class="av">' + esc(ME === 'MJ' ? 'MJ' : ME.charAt(0)) + '</span>' + esc(ME) + '</div>'
+  + '</div>'
+  + '<div class="prog"><div class="lbl"><span>Requis réglés</span><span id="progtxt"></span></div><div class="bar"><i id="progbar"></i></div></div>'
+  + '</header>'
+  + '<div class="tabs" id="tabs"></div>'
+  + '<button class="planbtn" id="planbtn"><i class="fa-solid fa-map"></i> Voir le plan de l’étage</button>'
+  + '<div class="planview" id="planview"><img id="planimg" src="" alt="Plan de l’étage"></div>'
+  + '<div class="grid" id="grid"></div>'
+  + '</div>'
+  + '<button class="fab" id="fab"><i class="fa-solid fa-plus"></i></button>'
+  + '<div class="qc" id="qc"><div class="box">'
+  + '<h3><i class="fa-solid fa-bolt"></i>Vite, avant d’oublier !</h3>'
+  + '<div class="types" id="qctypes"></div>'
+  + '<select id="qcroom"></select>'
+  + '<input type="text" id="qctext" placeholder="Écris ton idée ici…">'
+  + '<button class="go" id="qcgo">Ajouter</button>'
+  + '<button class="cancel" id="qccancel">Annuler</button>'
+  + '</div></div>'
+  + '<div class="sheet" id="sheet"><div class="sh-head">'
+  + '<button class="back" id="back"><i class="fa-solid fa-arrow-left"></i></button>'
+  + '<div><div class="t" id="sh-t"></div><div class="s" id="sh-s"></div></div>'
+  + '</div><div class="sh-body" id="sh-body"></div></div>';
+  document.getElementById('app').innerHTML = html;
+
+  document.getElementById('back').onclick = function(){ document.getElementById('sheet').classList.remove('open'); cur=null; render(); };
+  document.getElementById('planbtn').onclick = function(){ document.getElementById('planview').classList.toggle('open'); };
+  document.getElementById('fab').onclick = function(){ renderQc(); document.getElementById('qc').classList.add('open'); document.getElementById('qctext').value=''; };
+  document.getElementById('qccancel').onclick = function(){ document.getElementById('qc').classList.remove('open'); };
+  document.getElementById('qcgo').onclick = qcSubmit;
+}
+
+function renderProg(){
+  var tot=0, done=0;
+  entries.forEach(function(e){ if(e.kind==='REQUIS'){ tot++; if(e.done) done++; } });
+  document.getElementById('progtxt').textContent = done + ' / ' + tot;
+  document.getElementById('progbar').style.width = (tot ? Math.round(done*100/tot) : 0) + '%';
+}
+function renderTabs(){
+  var el=document.getElementById('tabs'); el.innerHTML='';
+  FLOORS.forEach(function(f){
+    var b=document.createElement('button'); b.textContent=f.nom;
+    if(floorSel===f.id) b.classList.add('on');
+    b.onclick=function(){ floorSel=f.id; localStorage.setItem('mc_pieces_floor', f.id); render(); };
+    el.appendChild(b);
+  });
+  var f = FLOORS.filter(function(x){return x.id===floorSel;})[0];
+  var pb=document.getElementById('planbtn'), pv=document.getElementById('planview');
+  pv.classList.remove('open');
+  if(f.plan){ pb.style.display='block'; document.getElementById('planimg').src=IMG+f.plan; }
+  else pb.style.display='none';
+}
+function renderGrid(){
+  var el=document.getElementById('grid'); el.innerHTML='';
+  ROOMS.filter(function(r){return r.fl===floorSel;}).forEach(function(r){
+    var d=byPiece(r.id);
+    var open=d.req.filter(function(x){return !x.done;}).length;
+    var b=document.createElement('button'); b.className='room';
+    b.innerHTML = '<span class="ric"><i class="fa-solid '+r.ic+'"></i></span>'
+      + '<span class="num">'+esc(r.num)+'</span>'
+      + '<span class="nom">'+esc(r.nom)+'</span><span class="qui">'+esc(r.qui)+'</span>'
+      + '<span class="badges">'
+      + (d.req.length ? '<span class="badge req'+(open?' open':'')+'"><i class="fa-solid fa-list-check"></i>'+(open? open+' à régler' : 'OK')+'</span>' : '')
+      + (d.com.length ? '<span class="badge"><i class="fa-solid fa-comment"></i>'+d.com.length+'</span>' : '')
+      + (d.ins.length ? '<span class="badge"><i class="fa-solid fa-image"></i>'+d.ins.length+'</span>' : '')
+      + '</span>';
+    b.onclick=function(){ openSheet(r.id); };
+    el.appendChild(b);
+  });
+}
+function render(){
+  renderProg(); renderTabs(); renderGrid();
+  if (cur) renderSheet();
+}
+
+/* ── Fiche pièce ── */
+function openSheet(id){
+  cur=id; rOpen={};
+  var r=ROOMS.filter(function(x){return x.id===id;})[0];
+  document.getElementById('sh-t').textContent=(r.num? r.num+' · ':'')+r.nom;
+  document.getElementById('sh-s').textContent=r.qui;
+  renderSheet();
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheet').scrollTop=0;
+}
+function voteRow(kind,e){
+  var likes=Array.isArray(e.likes)?e.likes:[];
+  var mine=likes.indexOf(ME)>=0;
+  var both=likes.indexOf('MJ')>=0 && likes.indexOf('Martin')>=0;
+  var lbl = mine ? 'Je le veux aussi' : 'Moi aussi !';
+  var h='<div class="lrow">';
+  h+='<button class="heart'+(mine?' on':'')+'" data-act="like" data-id="'+e.id+'">'
+    +'<i class="'+(mine?'fa-solid':'fa-regular')+' fa-heart"></i>'+lbl+(likes.length?' · '+likes.map(esc).join(' + '):'')+'</button>';
+  if(both) h+='<span class="both"><i class="fa-solid fa-heart"></i>On le veut tous les deux</span>';
+  var nr=(e.replies||[]).length;
+  h+='<button class="replybtn" data-act="rtog" data-id="'+e.id+'"><i class="fa-solid fa-reply"></i>Répondre'+(nr?' ('+nr+')':'')+'</button>';
+  h+='</div>';
+  return h;
+}
+function replyBlock(e){
+  var reps=Array.isArray(e.replies)?e.replies:[];
+  var open=!!rOpen[e.id];
+  if(!reps.length && !open) return '';
+  var h='<div class="replies">';
+  reps.forEach(function(r){
+    h+='<div class="reply"><div class="by '+byClass(r.by)+'">'+esc(r.by)+'</div><div class="tx">'+esc(r.t)+'</div></div>';
+  });
+  if(open){
+    h+='<div class="addrow"><input type="text" id="in-rep-'+e.id+'" placeholder="Répondre…"><button class="go" data-act="add-rep" data-id="'+e.id+'"><i class="fa-solid fa-paper-plane"></i></button></div>';
+  }
+  h+='</div>';
+  return h;
+}
+function renderSheet(){
+  var r=ROOMS.filter(function(x){return x.id===cur;})[0];
+  var d=byPiece(cur);
+  var h='';
+  if(r.img){
+    h+='<div class="planimg" id="pz"><img src="'+IMG+r.img+'" alt="Extrait du plan">'
+      +'<div class="cap"><i class="fa-solid fa-ruler-combined"></i>Extrait du plan TALO T-1860 (esquisses) — touche pour zoomer. À valider au chantier.</div></div>';
+  }
+  h+='<div class="chips">'+r.dims.map(function(x,i){return '<span class="chip'+(i===0?'':' b')+'">'+esc(x)+'</span>';}).join('')+'</div>';
+
+  h+='<div class="sec"><h2><span><i class="fa-solid fa-list-check"></i>Requis</span><span>'+d.req.filter(function(x){return !x.done;}).length+' à régler</span></h2>';
+  if(!d.req.length) h+='<div class="vide">Aucun requis pour l’instant. Ajoute ce qui doit absolument être prévu dans cette pièce.</div>';
+  d.req.forEach(function(e){
+    h+='<div class="req-item'+(e.done?' done':'')+'">'
+      +'<button class="cb" data-act="toggle" data-id="'+e.id+'"><i class="fa-solid fa-check"></i></button>'
+      +'<div class="tx"><span>'+esc(e.text)+'</span><div class="meta">'+esc(e.author)+' · '+fmtDate(e.createdAt)+'</div>'
+      + voteRow('req', e) + replyBlock(e) + '</div>'
+      +'<button class="del" data-act="del" data-id="'+e.id+'"><i class="fa-solid fa-trash-can"></i></button>'
+      +'</div>';
+  });
+  h+='<div class="addrow"><input type="text" id="in-req" placeholder="Ajouter un requis…"><button class="go" data-act="add-req"><i class="fa-solid fa-plus"></i></button></div></div>';
+
+  h+='<div class="sec"><h2><span><i class="fa-solid fa-comments"></i>Commentaires</span></h2>';
+  if(!d.com.length) h+='<div class="vide">Rien encore. Note ici tes idées, questions, points à discuter.</div>';
+  d.com.forEach(function(e){
+    h+='<div class="com"><div class="by '+byClass(e.author)+'">'+esc(e.author)+'</div><div class="tx">'+esc(e.text)+'</div><div class="dt">'+fmtDate(e.createdAt)+'</div>'
+      +'<button class="del" data-act="del" data-id="'+e.id+'"><i class="fa-solid fa-trash-can"></i></button></div>';
+  });
+  h+='<div class="addrow"><input type="text" id="in-com" placeholder="Écrire un commentaire…"><button class="go" data-act="add-com"><i class="fa-solid fa-paper-plane"></i></button></div></div>';
+
+  h+='<div class="sec"><h2><span><i class="fa-solid fa-images"></i>Inspirations</span></h2>';
+  if(!d.ins.length) h+='<div class="vide">Photos de produits achetés, Pinterest, captures d’écran, photos en magasin… tout ce qui inspire pour cette pièce.</div>';
+  h+='<div class="inspos">';
+  d.ins.forEach(function(e){
+    var wide = !!rOpen[e.id] || (e.replies||[]).length;
+    h+='<div class="inspo'+(wide?' wide':'')+'">'
+      +(e.hasPhoto?'<img src="'+API+'/pieces/photo/'+e.id+'?token='+encodeURIComponent(mcToken())+'" alt="" loading="lazy">':'')
+      +'<div class="n">'+esc(e.text)+'<span class="by">'+esc(e.author)+' · '+fmtDate(e.createdAt)
+      +' <button class="del" data-act="del" data-id="'+e.id+'" style="font-size:11px"><i class="fa-solid fa-trash-can"></i></button></span>'
+      + voteRow('ins', e) + replyBlock(e)
+      +'</div></div>';
+  });
+  h+='</div><label class="photobtn"><i class="fa-solid fa-camera"></i>Ajouter une photo<input type="file" accept="image/*" id="in-photo" style="display:none"></label>';
+  h+='<div class="addrow" style="margin-top:8px"><input type="text" id="in-ins" placeholder="Ou une idée en mots…"><button class="go" data-act="add-ins"><i class="fa-solid fa-plus"></i></button></div></div>';
+
+  var body=document.getElementById('sh-body');
+  body.innerHTML=h;
+  var pz=document.getElementById('pz');
+  if(pz) pz.querySelector('img').onclick=function(){ pz.classList.toggle('zoom'); };
+  body.querySelectorAll('[data-act]').forEach(function(b){
+    b.onclick=function(ev){ ev.stopPropagation(); act(b.getAttribute('data-act'), b.getAttribute('data-id')); };
+  });
+  var ph=document.getElementById('in-photo');
+  if(ph) ph.onchange=function(){ addPhoto(ph.files[0]); };
+}
+
+function findEntry(id){
+  id = parseInt(id, 10);
+  return entries.filter(function(e){ return e.id === id; })[0];
+}
+
+function act(a, id){
+  if(a==='toggle'){
+    var e=findEntry(id);
+    apiFetch('/pieces/entries/'+id, { method:'PATCH', body: JSON.stringify({ done: !e.done }) })
+      .then(function(u){ replaceEntry(u); render(); })
+      .catch(function(err){ toast(err.message); });
+  }
+  else if(a==='add-req' || a==='add-com' || a==='add-ins'){
+    var map={ 'add-req':['in-req','REQUIS','Requis ajouté'], 'add-com':['in-com','COMMENTAIRE','Commentaire ajouté'], 'add-ins':['in-ins','INSPIRATION','Inspiration notée'] };
+    var inp=document.getElementById(map[a][0]);
+    var v=inp.value.trim(); if(!v) return;
+    createEntry({ pieceId: cur, kind: map[a][1], text: v })
+      .then(function(){ toast(map[a][2] + ' ✓'); render(); })
+      .catch(function(err){ toast(err.message); });
+  }
+  else if(a==='like'){
+    apiFetch('/pieces/entries/'+id+'/like', { method:'POST', body:'{}' })
+      .then(function(u){
+        replaceEntry(u); render();
+        var likes=Array.isArray(u.likes)?u.likes:[];
+        if(likes.indexOf('MJ')>=0 && likes.indexOf('Martin')>=0) toast('Vous le voulez tous les deux !');
+      })
+      .catch(function(err){ toast(err.message); });
+  }
+  else if(a==='rtog'){
+    rOpen[id]=!rOpen[id]; renderSheet();
+    var inp=document.getElementById('in-rep-'+id);
+    if(inp) inp.focus();
+  }
+  else if(a==='add-rep'){
+    var inp2=document.getElementById('in-rep-'+id);
+    if(!inp2) return;
+    var v2=inp2.value.trim(); if(!v2) return;
+    apiFetch('/pieces/entries/'+id+'/reply', { method:'POST', body: JSON.stringify({ text: v2 }) })
+      .then(function(u){ replaceEntry(u); rOpen[id]=false; render(); toast('Réponse ajoutée ✓'); })
+      .catch(function(err){ toast(err.message); });
+  }
+  else if(a==='del'){
+    if(!confirm('Supprimer cet élément pour vous deux ?')) return;
+    apiFetch('/pieces/entries/'+id, { method:'DELETE' })
+      .then(function(){
+        entries = entries.filter(function(e){ return e.id !== parseInt(id,10); });
+        render(); toast('Supprimé');
+      })
+      .catch(function(err){ toast(err.message); });
+  }
+}
+
+function addPhoto(file){
+  if(!file) return;
+  toast('Compression de la photo…');
+  var img=new Image(), rd=new FileReader();
+  rd.onload=function(){ img.src=rd.result; };
+  img.onload=function(){
+    var c=document.createElement('canvas'); var s=Math.min(1, 1100/img.width);
+    c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    var data=c.toDataURL('image/webp',0.78);
+    if(data.indexOf('data:image/webp')!==0) data=c.toDataURL('image/jpeg',0.8);
+    createEntry({ pieceId: cur, kind:'INSPIRATION', text:'', photoData: data })
+      .then(function(e){ e.hasPhoto=true; render(); toast('Photo ajoutée ✓'); })
+      .catch(function(err){ toast(err.message); });
+  };
+  rd.readAsDataURL(file);
+}
+
+/* ── Quick capture ── */
+function renderQc(){
+  var el=document.getElementById('qctypes'); el.innerHTML='';
+  [['REQUIS','fa-list-check','Requis'],['COMMENTAIRE','fa-comment','Commentaire'],['INSPIRATION','fa-image','Inspiration']].forEach(function(p){
+    var b=document.createElement('button');
+    b.innerHTML='<i class="fa-solid '+p[1]+'"></i>'+p[2];
+    if(qcType===p[0]) b.classList.add('on');
+    b.onclick=function(){ qcType=p[0]; renderQc(); };
+    el.appendChild(b);
+  });
+  var sel=document.getElementById('qcroom'); sel.innerHTML='';
+  ROOMS.forEach(function(r){
+    var o=document.createElement('option'); o.value=r.id;
+    o.textContent=(r.num? r.num+' · ':'')+r.nom;
+    sel.appendChild(o);
+  });
+}
+function qcSubmit(){
+  var room=document.getElementById('qcroom').value;
+  var v=document.getElementById('qctext').value.trim();
+  if(!v){ toast('Écris ton idée d’abord'); return; }
+  createEntry({ pieceId: room, kind: qcType, text: v })
+    .then(function(){
+      document.getElementById('qc').classList.remove('open');
+      render();
+      toast('Ajouté dans ' + ROOMS.filter(function(r){return r.id===room;})[0].nom + ' ✓');
+    })
+    .catch(function(err){ toast(err.message); });
+}
+
+/* ── Rafraîchissement (l'autre personne voit tes ajouts) ── */
+function refresh(){
+  if (!ME) return;
+  loadEntries().then(function(){ render(); }).catch(function(){});
+}
+setInterval(refresh, 60000);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
+
+/* ── Boot ── */
+ME = decodeMe();
+if (!ME) {
+  renderGate(false);
+} else {
+  document.getElementById('app').innerHTML = '<div class="gate"><i class="fa-solid fa-circle-notch fa-spin"></i><h2>Notre Chalet</h2><p>Chargement…</p></div>';
+  pickApi().then(loadEntries).then(function(){
+    shell(); render();
+  }).catch(function(err){
+    if (String(err.message) === 'auth') return; // gate déjà rendue
+    document.getElementById('app').innerHTML =
+      '<div class="gate"><i class="fa-solid fa-triangle-exclamation"></i><h2>Connexion impossible</h2>'
+      + '<p>Le serveur ne répond pas d’ici. Vérifie ta connexion (le Wi-Fi de la maison bloque parfois le domaine — essaie en données cellulaires) puis rouvre la page.</p>'
+      + '<a href="javascript:location.reload()">Réessayer</a></div>';
+  });
+}
+</script>
+</body>
+</html>
