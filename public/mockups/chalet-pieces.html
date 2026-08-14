@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notre Chalet · pièce par pièce</title>
+<style>
+  :root{
+    --papier:#f6f1e7; --carte:#fffdf8; --encre:#2b2a24; --encre2:#6b675c;
+    --sapin:#2d6a4f; --sapin-pale:#e3efe7; --lac:#1d7a8c; --lac-pale:#e0f0f3;
+    --bois:#b45309; --bois-pale:#f7e8d4; --rouge:#b3402a; --ligne:#e6dfd0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{overflow-x:clip}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--papier);color:var(--encre);min-height:100vh}
+  button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+  input,textarea{font-family:inherit;font-size:16px}
+
+  .wrap{max-width:640px;margin:0 auto;padding:0 14px calc(96px + env(safe-area-inset-bottom))}
+
+  /* ── Header ── */
+  header{padding:18px 2px 8px}
+  .hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  h1{font-size:22px;letter-spacing:.2px}
+  h1 small{display:block;font-size:12px;font-weight:600;color:var(--encre2);letter-spacing:1.4px;text-transform:uppercase;margin-top:2px}
+  .who{display:flex;gap:6px;background:var(--carte);border:1px solid var(--ligne);border-radius:999px;padding:4px}
+  .who button{width:40px;height:40px;border-radius:999px;font-weight:800;font-size:13px;color:var(--encre2)}
+  .who button.on{background:var(--sapin);color:#fff}
+  .demo{margin:10px 0 2px;background:var(--bois-pale);border:1px dashed var(--bois);color:#7c4a10;border-radius:12px;padding:9px 12px;font-size:12.5px;line-height:1.45}
+  .prog{margin-top:12px;background:var(--carte);border:1px solid var(--ligne);border-radius:14px;padding:12px 14px}
+  .prog .lbl{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px}
+  .prog .lbl span:last-child{color:var(--sapin)}
+  .bar{height:10px;border-radius:999px;background:#eee7d8;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--sapin),#4d9a74);transition:width .4s}
+
+  /* ── Étages ── */
+  .tabs{display:flex;gap:8px;margin:16px 0 12px;position:sticky;top:0;z-index:20;background:var(--papier);padding:8px 0}
+  .tabs button{flex:1;padding:12px 6px;border-radius:12px;background:var(--carte);border:1px solid var(--ligne);font-weight:700;font-size:14px;color:var(--encre2)}
+  .tabs button.on{background:var(--encre);color:#fff;border-color:var(--encre)}
+  .planbtn{width:100%;margin:0 0 12px;padding:12px;border-radius:12px;background:var(--lac-pale);color:var(--lac);font-weight:700;font-size:14px;border:1px solid #c3dfe5}
+  .planview{display:none;margin:0 0 14px;background:#fff;border:1px solid var(--ligne);border-radius:14px;overflow:auto;max-height:60vh}
+  .planview.open{display:block}
+  .planview img{width:160%;max-width:none;display:block}
+  @media(min-width:520px){.planview img{width:100%}}
+
+  /* ── Cartes pièces ── */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .room{background:var(--carte);border:1px solid var(--ligne);border-radius:16px;padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(60,50,30,.06)}
+  .room:active{transform:scale(.97)}
+  .room .emo{font-size:28px;line-height:1}
+  .room .num{font-size:10.5px;font-weight:800;letter-spacing:1px;color:var(--bois);text-transform:uppercase}
+  .room .nom{font-weight:800;font-size:15px;line-height:1.25}
+  .room .qui{font-size:12px;color:var(--encre2)}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .badge{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:#f0ebdf;color:var(--encre2)}
+  .badge.req{background:var(--sapin-pale);color:var(--sapin)}
+  .badge.req.open{background:#fdecdd;color:var(--bois)}
+
+  /* ── Fiche pièce ── */
+  .sheet{position:fixed;inset:0;z-index:50;background:var(--papier);display:none;overflow-y:auto;overscroll-behavior:contain}
+  .sheet.open{display:block}
+  .sh-head{position:sticky;top:0;background:var(--papier);z-index:5;padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--ligne)}
+  .sh-head .back{width:42px;height:42px;border-radius:12px;background:var(--carte);border:1px solid var(--ligne);font-size:19px;flex:none}
+  .sh-head .t{font-weight:800;font-size:17px;line-height:1.2}
+  .sh-head .s{font-size:12px;color:var(--encre2)}
+  .sh-body{max-width:640px;margin:0 auto;padding:14px 14px 60px}
+  .planimg{background:#fff;border:1px solid var(--ligne);border-radius:14px;overflow:hidden;margin-bottom:12px}
+  .planimg img{width:100%;display:block;transition:transform .2s}
+  .planimg.zoom{overflow:auto;max-height:70vh}
+  .planimg.zoom img{width:200%;max-width:none}
+  .planimg .cap{font-size:11px;color:var(--encre2);padding:7px 10px;border-top:1px solid var(--ligne);background:var(--carte)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{background:var(--lac-pale);color:var(--lac);font-weight:700;font-size:12.5px;padding:7px 11px;border-radius:999px}
+  .chip.b{background:var(--bois-pale);color:var(--bois)}
+
+  .sec{margin-bottom:20px}
+  .sec h2{font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--encre2);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+  .vide{font-size:13px;color:var(--encre2);background:var(--carte);border:1px dashed var(--ligne);border-radius:12px;padding:12px;text-align:center}
+
+  .req-item{display:flex;align-items:flex-start;gap:11px;background:var(--carte);border:1px solid var(--ligne);border-radius:13px;padding:12px;margin-bottom:8px}
+  .req-item .cb{width:26px;height:26px;border-radius:9px;border:2px solid #cbc3b2;flex:none;font-size:15px;line-height:22px;text-align:center;color:#fff;margin-top:1px}
+  .req-item.done .cb{background:var(--sapin);border-color:var(--sapin)}
+  .req-item .tx{flex:1;font-size:14.5px;line-height:1.4}
+  .req-item.done .tx{text-decoration:line-through;color:var(--encre2)}
+  .req-item .meta{font-size:11px;color:var(--encre2);margin-top:3px}
+
+  .com{background:var(--carte);border:1px solid var(--ligne);border-radius:13px;padding:11px 13px;margin-bottom:8px}
+  .com .by{font-size:11.5px;font-weight:800;margin-bottom:3px}
+  .com .by.mj{color:var(--rouge)} .com .by.martin{color:var(--lac)}
+  .com .tx{font-size:14.5px;line-height:1.45}
+  .com .dt{font-size:10.5px;color:var(--encre2);margin-top:4px}
+
+  .inspos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .inspo{background:var(--carte);border:1px solid var(--ligne);border-radius:13px;overflow:hidden}
+  .inspo img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+  .inspo .n{padding:8px 10px;font-size:12.5px;line-height:1.35}
+  .inspo .n .by{font-weight:800;color:var(--encre2);font-size:10.5px;display:block;margin-top:3px}
+
+  .addrow{display:flex;gap:8px;margin-top:4px}
+  .addrow input[type=text]{flex:1;border:1px solid var(--ligne);border-radius:12px;padding:12px;background:#fff}
+  .addrow .go{background:var(--sapin);color:#fff;font-weight:800;border-radius:12px;padding:0 16px;font-size:14px}
+  .photobtn{display:block;width:100%;margin-top:8px;padding:12px;border-radius:12px;background:var(--lac-pale);color:var(--lac);font-weight:700;font-size:14px;text-align:center;border:1px solid #c3dfe5}
+
+  /* ── FAB quick capture ── */
+  .fab{position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:40;width:60px;height:60px;border-radius:999px;background:var(--bois);color:#fff;font-size:30px;box-shadow:0 6px 18px rgba(120,60,10,.35)}
+  .qc{position:fixed;inset:0;z-index:60;background:rgba(30,25,15,.45);display:none;align-items:flex-end}
+  .qc.open{display:flex}
+  .qc .box{background:var(--papier);border-radius:22px 22px 0 0;width:100%;max-width:640px;margin:0 auto;padding:20px 16px calc(24px + env(safe-area-inset-bottom))}
+  .qc h3{font-size:16px;margin-bottom:14px}
+  .qc select,.qc input[type=text]{width:100%;border:1px solid var(--ligne);border-radius:12px;padding:13px;background:#fff;font-size:16px;margin-bottom:10px}
+  .qc .types{display:flex;gap:8px;margin-bottom:10px}
+  .qc .types button{flex:1;padding:11px 4px;border-radius:12px;background:var(--carte);border:1px solid var(--ligne);font-weight:700;font-size:12.5px;color:var(--encre2)}
+  .qc .types button.on{background:var(--encre);color:#fff;border-color:var(--encre)}
+  .qc .go{width:100%;background:var(--sapin);color:#fff;font-weight:800;border-radius:12px;padding:14px;font-size:15px}
+  .qc .cancel{width:100%;padding:12px;color:var(--encre2);font-size:14px;margin-top:4px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:70;background:var(--encre);color:#fff;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hrow">
+      <h1>🏔️ Notre Chalet<small>Pièce par pièce · lac Mékinac</small></h1>
+      <div class="who" id="who"></div>
+    </div>
+    <div class="demo">🧪 <b>Maquette cliquable.</b> Tout ce que tu ajoutes reste sur cet appareil (démo). La vraie version sera partagée en direct entre vous deux, avec photos et notifications.</div>
+    <div class="prog">
+      <div class="lbl"><span>Requis réglés</span><span id="progtxt"></span></div>
+      <div class="bar"><i id="progbar"></i></div>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <button class="planbtn" id="planbtn">🗺️ Voir le plan de l'étage</button>
+  <div class="planview" id="planview"><img id="planimg" src="" alt="Plan de l'étage"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<button class="fab" id="fab">+</button>
+
+<div class="qc" id="qc">
+  <div class="box">
+    <h3>💡 Vite, avant d'oublier !</h3>
+    <div class="types" id="qctypes"></div>
+    <select id="qcroom"></select>
+    <input type="text" id="qctext" placeholder="Écris ton idée ici…">
+    <button class="go" id="qcgo">Ajouter</button>
+    <button class="cancel" id="qccancel">Annuler</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="sh-head">
+    <button class="back" id="back">←</button>
+    <div><div class="t" id="sh-t"></div><div class="s" id="sh-s"></div></div>
+  </div>
+  <div class="sh-body" id="sh-body"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+var IMG = 'pieces-img/';
+
+var FLOORS = [
+  { id:'rdc', nom:'Rez-de-chaussée', plan:'plan-rdc.jpg' },
+  { id:'rdj', nom:'Rez-de-jardin',   plan:'plan-rdj.jpg' },
+  { id:'ext', nom:'Extérieur',       plan:null },
+];
+
+var ROOMS = [
+  { id:'garage',    fl:'rdc', emo:'🚗', num:'Pièce 0',  nom:'Garage double', qui:'Toute la famille',
+    dims:['≈ 24′-0″ × 23′-5″ int.','Avaloir de sol','Porte côté est (à confirmer)'], img:'rdc-garage.jpg' },
+  { id:'chambre-1', fl:'rdc', emo:'🛏️', num:'Chambre 1', nom:'Chambre des maîtres', qui:'Martin + MJ',
+    dims:['10′-3½″ × 10′-9¾″','Niche pour chevet (au choix)'], img:'rdc-chambre-1.jpg' },
+  { id:'sdb-1',     fl:'rdc', emo:'🛁', num:'Salle de bain 1', nom:'SDB des maîtres', qui:'Attenante à la chambre 1',
+    dims:['≈ 8′-4″ × 10′-10″','Douche 36″×48″','Bain autoportant 34″×60″'], img:'rdc-sdb-1.jpg' },
+  { id:'cuisine',   fl:'rdc', emo:'🍳', num:'', nom:'Cuisine + garde-manger', qui:'Cœur de la maison',
+    dims:['Façade 17′-9¾″ + îlot','Garde-manger 3′-11¼″ × 5′-0¼″','Hotte escamotable','Fenêtre bandeau'], img:'rdc-cuisine.jpg' },
+  { id:'sejour',    fl:'rdc', emo:'🔥', num:'', nom:'Séjour cathédrale + salle à manger', qui:'Aire ouverte',
+    dims:['Aire ouverte 29′-0″ × 26′-0″','Paroi de verre 9′-4½″ pleine hauteur','Foyer au bois (module 5′-9″)','SàM 11′-0½″ × 7′-11½″'], img:'rdc-sejour-sam.jpg' },
+  { id:'mudroom',   fl:'rdc', emo:'🚪', num:'', nom:'Mudroom + hall + salle d’eau', qui:'Entrées',
+    dims:['Salle d’eau 5′-0″ × 4′-6″','Hall ≈ 7′-0″ × 6′-1½″'], img:'rdc-mudroom-hall.jpg' },
+  { id:'terrasse-rdc', fl:'rdc', emo:'🌅', num:'', nom:'Terrasse couverte', qui:'Côté lac',
+    dims:['19′-6″ × 20′-4″','Poutres apparentes'], img:'rdc-terrasse.jpg' },
+
+  { id:'famille',   fl:'rdj', emo:'🎮', num:'', nom:'Salle familiale', qui:'Toute la famille',
+    dims:['18′-3¼″ × ≈ 20′-6″','Walkout côté lac','Ouverture au plafond'], img:'rdj-salle-familiale.jpg' },
+  { id:'chambre-2', fl:'rdj', emo:'🛌', num:'Chambre 2', nom:'Chambre des invités', qui:'Invités',
+    dims:['12′-5″ × 9′-2″'], img:'rdj-chambre-2.jpg' },
+  { id:'chambre-3', fl:'rdj', emo:'🎭', num:'Chambre 3', nom:'Chambre d’Alizée', qui:'Alizée',
+    dims:['11′-4¾″ × 12′-9″ (incl. garde-robe)','Garde-robe 2 portes 24″×80″'], img:'rdj-chambre-3.jpg' },
+  { id:'chambre-4', fl:'rdj', emo:'⛏️', num:'Chambre 4', nom:'Chambre de Jackson', qui:'Jackson',
+    dims:['10′-11¾″ × 10′-4½″','Garde-robe 2 portes 30″×80″'], img:'rdj-chambre-4.jpg' },
+  { id:'sdb-2',     fl:'rdj', emo:'🚿', num:'Salle de bain 2', nom:'SDB des enfants', qui:'Alizée + Jackson + invités',
+    dims:['≈ 5′-5½″ × 9′-2″','Douche 60″×36″','Lingerie adjacente'], img:'rdj-sdb-2.jpg' },
+  { id:'lavage',    fl:'rdj', emo:'🧺', num:'Salle de bain 3', nom:'Lavage + SDB 3', qui:'Service',
+    dims:['Lavage ≈ 6′-0¼″ de large','SDB 3 : bain-douche 30″×60″ (≈ 5′-9″ × 5′-5″)'], img:'rdj-lavage-sdb3.jpg' },
+  { id:'terrasse-spa', fl:'rdj', emo:'♨️', num:'', nom:'Terrasse + spa', qui:'Sous la terrasse du haut',
+    dims:['≈ 26′-0″ × 13′-9″','Structure renforcée pour le spa'], img:'rdj-terrasse-spa.jpg' },
+  { id:'mecanique', fl:'rdj', emo:'⚙️', num:'', nom:'Mécanique', qui:'Technique',
+    dims:['≈ 6′-3″ × 4′-8″','Échangeur d’air · panneau élec. · chauffe-eau'], img:null },
+
+  { id:'terrain',   fl:'ext', emo:'🌲', num:'', nom:'Terrain + bord de l’eau', qui:'Lot 4 872 894',
+    dims:['2 061,4 m²','Rive 10,0 m (lac + ruisseau)','Marges : avant 7,6 m · lat. 2,0 m'], img:null },
+  { id:'enveloppe', fl:'ext', emo:'🏠', num:'', nom:'Enveloppe extérieure', qui:'Revêtements + toiture',
+    dims:['Bois pâle horizontal','Tôle noire verticale','Pierre grise','Toit mono-pente, poutres en débord'], img:null },
+];
+
+var SEED = {
+  'chambre-1': { req:[{t:'Niche pour chevet de chaque côté du lit (à dessiner avec TALO)', by:'Martin', done:false}], com:[], ins:[] },
+  'sdb-1':     { req:[{t:'Céramique de la douche jusqu’au plafond', by:'MJ', done:false}], com:[], ins:[] },
+  'cuisine':   { req:[{t:'Prises dans l’îlot pour les petits électros', by:'MJ', done:false}],
+                 com:[{t:'La fenêtre bandeau au-dessus du comptoir : non négociable 😄', by:'Martin'}], ins:[] },
+  'chambre-3': { req:[], com:[{t:'Alizée aimerait un coin lecture près de la fenêtre', by:'MJ'}], ins:[] },
+  'chambre-4': { req:[{t:'Prise réseau câblée pour le setup gaming de Jax', by:'Martin', done:false}], com:[], ins:[] },
+  'sejour':    { req:[], com:[], ins:[{n:'Foyer de pierre grise 2 faces, comme sur le rendu TALO', by:'Martin', img:null}] },
+};
+
+/* ── state ── */
+var LS = 'mc_chalet_pieces_demo_v1';
+var state = null;
+try { state = JSON.parse(localStorage.getItem(LS) || 'null'); } catch(e){ state = null; }
+if (!state) {
+  state = { me:'MJ', floor:'rdc', rooms:{} };
+  ROOMS.forEach(function(r){
+    var s = SEED[r.id] || {req:[],com:[],ins:[]};
+    state.rooms[r.id] = { req:(s.req||[]).slice(), com:(s.com||[]).slice(), ins:(s.ins||[]).slice() };
+  });
+}
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(e){} }
+function now(){ return new Date().toLocaleDateString('fr-CA', {day:'numeric', month:'short'}); }
+function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(function(){t.classList.remove('on');},1900); }
+
+/* ── header : qui + progression ── */
+function renderWho(){
+  var el = document.getElementById('who'); el.innerHTML='';
+  ['MJ','Martin'].forEach(function(p){
+    var b=document.createElement('button');
+    b.textContent = (p==='MJ') ? 'MJ' : 'M';
+    b.title=p;
+    if(state.me===p) b.classList.add('on');
+    b.onclick=function(){ state.me=p; save(); renderWho(); toast('Tes ajouts seront signés '+p); };
+    el.appendChild(b);
+  });
+}
+function renderProg(){
+  var tot=0, done=0;
+  Object.keys(state.rooms).forEach(function(k){
+    state.rooms[k].req.forEach(function(r){ tot++; if(r.done) done++; });
+  });
+  document.getElementById('progtxt').textContent = done+' / '+tot;
+  document.getElementById('progbar').style.width = (tot ? Math.round(done*100/tot) : 0)+'%';
+}
+
+/* ── liste ── */
+function renderTabs(){
+  var el=document.getElementById('tabs'); el.innerHTML='';
+  FLOORS.forEach(function(f){
+    var b=document.createElement('button'); b.textContent=f.nom;
+    if(state.floor===f.id) b.classList.add('on');
+    b.onclick=function(){ state.floor=f.id; save(); render(); };
+    el.appendChild(b);
+  });
+  var f = FLOORS.filter(function(x){return x.id===state.floor;})[0];
+  var pb=document.getElementById('planbtn'), pv=document.getElementById('planview');
+  pv.classList.remove('open');
+  if(f.plan){ pb.style.display='block'; document.getElementById('planimg').src=IMG+f.plan; }
+  else pb.style.display='none';
+}
+function renderGrid(){
+  var el=document.getElementById('grid'); el.innerHTML='';
+  ROOMS.filter(function(r){return r.fl===state.floor;}).forEach(function(r){
+    var d=state.rooms[r.id];
+    var open=d.req.filter(function(x){return !x.done;}).length;
+    var b=document.createElement('button'); b.className='room';
+    b.innerHTML = '<span class="emo">'+r.emo+'</span>'
+      + (r.num ? '<span class="num">'+esc(r.num)+'</span>' : '<span class="num" style="color:var(--encre2)">·</span>')
+      + '<span class="nom">'+esc(r.nom)+'</span><span class="qui">'+esc(r.qui)+'</span>'
+      + '<span class="badges">'
+      + (d.req.length ? '<span class="badge req'+(open?' open':'')+'">📋 '+(open? open+' à régler' : 'OK ✓')+'</span>' : '')
+      + (d.com.length ? '<span class="badge">💬 '+d.com.length+'</span>' : '')
+      + (d.ins.length ? '<span class="badge">📸 '+d.ins.length+'</span>' : '')
+      + '</span>';
+    b.onclick=function(){ openSheet(r.id); };
+    el.appendChild(b);
+  });
+}
+function render(){ renderWho(); renderProg(); renderTabs(); renderGrid(); }
+
+/* ── fiche pièce ── */
+var cur=null;
+function openSheet(id){
+  cur=id;
+  var r=ROOMS.filter(function(x){return x.id===id;})[0];
+  document.getElementById('sh-t').textContent=(r.num? r.num+' · ':'')+r.nom;
+  document.getElementById('sh-s').textContent=r.qui;
+  renderSheet();
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheet').scrollTop=0;
+}
+function renderSheet(){
+  var r=ROOMS.filter(function(x){return x.id===cur;})[0];
+  var d=state.rooms[cur];
+  var h='';
+  if(r.img){
+    h+='<div class="planimg" id="pz"><img src="'+IMG+r.img+'" alt="Extrait du plan"><div class="cap">📐 Extrait du plan TALO T-1860 (esquisses) — touche pour zoomer. À valider au chantier.</div></div>';
+  }
+  h+='<div class="chips">'+r.dims.map(function(x,i){return '<span class="chip'+(i===0?'':' b')+'">'+esc(x)+'</span>';}).join('')+'</div>';
+
+  h+='<div class="sec"><h2>📋 Requis <span>'+d.req.filter(function(x){return !x.done;}).length+' à régler</span></h2>';
+  if(!d.req.length) h+='<div class="vide">Aucun requis pour l’instant. Ajoute ce qui doit absolument être prévu dans cette pièce.</div>';
+  d.req.forEach(function(x,i){
+    h+='<div class="req-item'+(x.done?' done':'')+'" data-i="'+i+'"><button class="cb" data-act="toggle" data-i="'+i+'">✓</button>'
+      +'<div class="tx">'+esc(x.t)+'<div class="meta">'+esc(x.by)+(x.ts?' · '+esc(x.ts):'')+'</div></div></div>';
+  });
+  h+='<div class="addrow"><input type="text" id="in-req" placeholder="Ajouter un requis…"><button class="go" data-act="add-req">+</button></div></div>';
+
+  h+='<div class="sec"><h2>💬 Commentaires</h2>';
+  if(!d.com.length) h+='<div class="vide">Rien encore. Note ici tes idées, questions, points à discuter.</div>';
+  d.com.forEach(function(x){
+    h+='<div class="com"><div class="by '+(x.by==='MJ'?'mj':'martin')+'">'+esc(x.by)+'</div><div class="tx">'+esc(x.t)+'</div>'+(x.ts?'<div class="dt">'+esc(x.ts)+'</div>':'')+'</div>';
+  });
+  h+='<div class="addrow"><input type="text" id="in-com" placeholder="Écrire un commentaire…"><button class="go" data-act="add-com">➤</button></div></div>';
+
+  h+='<div class="sec"><h2>📸 Inspirations</h2>';
+  if(!d.ins.length) h+='<div class="vide">Photos Pinterest, captures d’écran, photos en magasin… tout ce qui inspire pour cette pièce.</div>';
+  h+='<div class="inspos">';
+  d.ins.forEach(function(x){
+    h+='<div class="inspo">'+(x.img?'<img src="'+x.img+'" alt="">':'')+'<div class="n">'+esc(x.n||'')+'<span class="by">'+esc(x.by)+(x.ts?' · '+esc(x.ts):'')+'</span></div></div>';
+  });
+  h+='</div><label class="photobtn">📷 Ajouter une photo<input type="file" accept="image/*" id="in-photo" style="display:none"></label>';
+  h+='<div class="addrow" style="margin-top:8px"><input type="text" id="in-ins" placeholder="Ou une idée en mots…"><button class="go" data-act="add-ins">+</button></div></div>';
+
+  var body=document.getElementById('sh-body');
+  body.innerHTML=h;
+
+  var pz=document.getElementById('pz');
+  if(pz) pz.querySelector('img').onclick=function(){ pz.classList.toggle('zoom'); };
+  body.querySelectorAll('[data-act]').forEach(function(b){
+    b.onclick=function(){ act(b.getAttribute('data-act'), b.getAttribute('data-i')); };
+  });
+  var ph=document.getElementById('in-photo');
+  if(ph) ph.onchange=function(){ addPhoto(ph.files[0]); };
+}
+function act(a,i){
+  var d=state.rooms[cur];
+  if(a==='toggle'){ d.req[i].done=!d.req[i].done; }
+  else if(a==='add-req'){ var v=document.getElementById('in-req').value.trim(); if(!v) return; d.req.push({t:v,by:state.me,ts:now(),done:false}); toast('Requis ajouté ✓'); }
+  else if(a==='add-com'){ var v2=document.getElementById('in-com').value.trim(); if(!v2) return; d.com.push({t:v2,by:state.me,ts:now()}); toast('Commentaire ajouté ✓'); }
+  else if(a==='add-ins'){ var v3=document.getElementById('in-ins').value.trim(); if(!v3) return; d.ins.push({n:v3,by:state.me,ts:now(),img:null}); toast('Inspiration notée ✓'); }
+  save(); renderSheet(); renderProg(); renderGrid();
+}
+function addPhoto(file){
+  if(!file) return;
+  var img=new Image(), rd=new FileReader();
+  rd.onload=function(){ img.src=rd.result; };
+  img.onload=function(){
+    var c=document.createElement('canvas'); var s=Math.min(1, 900/img.width);
+    c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    state.rooms[cur].ins.push({n:'', by:state.me, ts:now(), img:c.toDataURL('image/jpeg',0.75)});
+    save(); renderSheet(); renderGrid(); toast('Photo ajoutée ✓');
+  };
+  rd.readAsDataURL(file);
+}
+document.getElementById('back').onclick=function(){ document.getElementById('sheet').classList.remove('open'); render(); };
+
+/* ── plan étage ── */
+document.getElementById('planbtn').onclick=function(){
+  document.getElementById('planview').classList.toggle('open');
+};
+
+/* ── quick capture ── */
+var qcType='req';
+function renderQc(){
+  var el=document.getElementById('qctypes'); el.innerHTML='';
+  [['req','📋 Requis'],['com','💬 Commentaire'],['ins','📸 Inspiration']].forEach(function(p){
+    var b=document.createElement('button'); b.textContent=p[1];
+    if(qcType===p[0]) b.classList.add('on');
+    b.onclick=function(){ qcType=p[0]; renderQc(); };
+    el.appendChild(b);
+  });
+  var sel=document.getElementById('qcroom'); sel.innerHTML='';
+  ROOMS.forEach(function(r){
+    var o=document.createElement('option'); o.value=r.id;
+    o.textContent=r.emo+' '+(r.num? r.num+' · ':'')+r.nom;
+    sel.appendChild(o);
+  });
+}
+document.getElementById('fab').onclick=function(){ renderQc(); document.getElementById('qc').classList.add('open'); document.getElementById('qctext').value=''; };
+document.getElementById('qccancel').onclick=function(){ document.getElementById('qc').classList.remove('open'); };
+document.getElementById('qcgo').onclick=function(){
+  var room=document.getElementById('qcroom').value;
+  var v=document.getElementById('qctext').value.trim();
+  if(!v){ toast('Écris ton idée d’abord 😉'); return; }
+  var d=state.rooms[room];
+  if(qcType==='req') d.req.push({t:v,by:state.me,ts:now(),done:false});
+  else if(qcType==='com') d.com.push({t:v,by:state.me,ts:now()});
+  else d.ins.push({n:v,by:state.me,ts:now(),img:null});
+  save(); document.getElementById('qc').classList.remove('open');
+  render(); toast('Ajouté dans '+ROOMS.filter(function(r){return r.id===room;})[0].nom+' ✓');
+};
+
+render();
+</script>
+</body>
+</html>
