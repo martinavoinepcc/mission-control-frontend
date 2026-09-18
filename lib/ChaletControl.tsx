@@ -259,14 +259,15 @@ export function ChaletControl({
       {/* Header */}
       <header
         className="sticky top-0 z-20 flex items-center justify-between px-3 sm:px-5 pb-3 border-b border-white/10 bg-black/60 backdrop-blur"
-        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+        style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-white/70 hover:text-white transition flex items-center gap-2 text-sm touch-manipulation"
+            className="shrink-0 w-10 h-10 -ml-1 sm:w-auto sm:h-auto sm:ml-0 sm:px-2 sm:py-2 rounded-lg border border-white/15 sm:border-transparent text-white/70 hover:text-white hover:bg-white/5 transition flex items-center justify-center gap-2 text-sm touch-manipulation"
+            aria-label="Retour au dashboard"
           >
-            <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
+            <FontAwesomeIcon icon={faArrowLeft} className="text-sm sm:text-xs" />
             <span className="hidden sm:inline">Retour</span>
           </button>
           <div className="h-6 w-px bg-white/10 hidden sm:block" />
