@@ -44,6 +44,15 @@
   .tabs button{flex:1;padding:12px 6px;border-radius:12px;background:var(--carte);border:1px solid var(--ligne);font-weight:700;font-size:14px;color:var(--encre2)}
   .tabs button.on{background:var(--encre);color:#fff;border-color:var(--encre)}
   .planbtn{width:100%;margin:0 0 12px;padding:12px;border-radius:12px;background:var(--lac-pale);color:var(--lac);font-weight:700;font-size:14px;border:1px solid #c3dfe5}
+  .lookbtn{width:100%;margin:0 0 12px;padding:12px;border-radius:12px;background:var(--bois-pale);color:var(--bois);font-weight:700;font-size:14px;border:1px solid #ecd193}
+  .lookview{position:fixed;inset:0;z-index:55;background:var(--papier);display:none;overflow-y:auto;overscroll-behavior:contain}
+  .lookview.open{display:block}
+  .lookview .lk-body{max-width:640px;margin:0 auto;padding:14px 14px calc(30px + env(safe-area-inset-bottom))}
+  .lookview .lk-intro{font-size:13.5px;color:var(--encre2);line-height:1.55;background:var(--carte);border:1px solid var(--ligne);border-radius:13px;padding:11px 13px;margin-bottom:14px}
+  .lookview figure{margin:0 0 18px;background:#fff;border:1px solid var(--ligne);border-radius:14px;overflow:hidden}
+  .lookview figure img{display:block;width:100%;height:auto}
+  .lookview figcaption{font-size:13px;font-weight:700;color:var(--encre);padding:9px 12px;border-top:1px solid var(--ligne);background:var(--carte)}
+  .lookview figcaption small{display:block;font-weight:600;color:var(--encre2);font-size:11.5px;margin-top:2px}
   .planview{display:none;margin:0 0 14px;background:#fff;border:1px solid var(--ligne);border-radius:14px;overflow:auto;max-height:60vh}
   .planview.open{display:block}
   .planview img{width:160%;max-width:none;display:block}
@@ -160,6 +169,22 @@
 <body>
 <div class="statusbar"></div>
 <div id="app"></div>
+
+<div class="lookview" id="lookview">
+  <div class="sh-head">
+    <button class="back" id="lookback" aria-label="Fermer"><i class="fa-solid fa-arrow-left"></i></button>
+    <div><div class="t">Le look final</div><div class="s">Référence harmonisée pour toutes les finitions</div></div>
+  </div>
+  <div class="lk-body">
+    <div class="lk-intro"><i class="fa-solid fa-star" style="color:var(--bois)"></i> Le <b>ton général harmonisé</b> du chalet : bois chaleureux, pierre grise/beige, noir mat, lumière douce. Toutes les pièces — sous-sol inclus — suivent cette direction.</div>
+    <figure><img src="/images/look-final/01-facade-entree.jpg" alt="Façade entrée" loading="lazy"><figcaption>Façade — entrée et garage<small>Bois pâle horizontal, tôle noire, allée de gravier</small></figcaption></figure>
+    <figure><img src="/images/look-final/02-facade-lac.jpg" alt="Façade lac" loading="lazy"><figcaption>Façade — côté lac<small>Fenestration pleine hauteur, poutres apparentes, terrasses superposées</small></figcaption></figure>
+    <figure><img src="/images/look-final/03-salon.jpg" alt="Salon" loading="lazy"><figcaption>Salon · séjour cathédrale<small>Foyer de pierre 2 faces, plafond lattes bois, banquette fenêtre</small></figcaption></figure>
+    <figure><img src="/images/look-final/04-cuisine.jpg" alt="Cuisine" loading="lazy"><figcaption>Cuisine<small>Chêne clair + hauts crème, dosseret feuillage vitré, îlot capsule lattes + pierre, cellier vitré</small></figcaption></figure>
+    <figure><img src="/images/look-final/05-sdb-alizee.jpg" alt="Salle de bain d'Alizée" loading="lazy"><figcaption>Salle de bain d’Alizée — attenante à sa chambre<small>Miroir rond rétroéclairé, lattes de bois, douche italienne, accents dorés</small></figcaption></figure>
+    <figure><img src="/images/look-final/06-sdb-sous-sol.jpg" alt="Salles de bain du sous-sol" loading="lazy"><figcaption>Salles de bain du sous-sol (RDJ)<small>Même ton chaleureux : bois naturel, pierre beige, lumière douce</small></figcaption></figure>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -324,6 +349,7 @@ function shell(){
   + '<div class="prog"><div class="lbl"><span>Requis réglés</span><span id="progtxt"></span></div><div class="bar"><i id="progbar"></i></div></div>'
   + '</header>'
   + '<div class="tabs" id="tabs"></div>'
+  + '<button class="lookbtn" id="lookbtn"><i class="fa-solid fa-star"></i> Le look final du chalet</button>'
   + '<button class="planbtn" id="planbtn"><i class="fa-solid fa-map"></i> Voir le plan de l’étage</button>'
   + '<div class="planview" id="planview"><img id="planimg" src="" alt="Plan de l’étage"></div>'
   + '<div class="grid" id="grid"></div>'
@@ -344,6 +370,8 @@ function shell(){
   document.getElementById('app').innerHTML = html;
 
   document.getElementById('dash').onclick = function(){ location.href='/dashboard/'; };
+  document.getElementById('lookbtn').onclick = function(){ document.getElementById('lookview').classList.add('open'); };
+  document.getElementById('lookback').onclick = function(){ document.getElementById('lookview').classList.remove('open'); };
   document.getElementById('back').onclick = function(){ document.getElementById('sheet').classList.remove('open'); cur=null; render(); };
   document.getElementById('planbtn').onclick = function(){ document.getElementById('planview').classList.toggle('open'); };
   document.getElementById('fab').onclick = function(){ renderQc(); document.getElementById('qc').classList.add('open'); document.getElementById('qctext').value=''; };
