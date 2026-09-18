@@ -637,7 +637,7 @@ if (!ME) {
     if (String(err.message) === 'auth') return; // gate déjà rendue
     document.getElementById('app').innerHTML =
       '<div class="gate"><i class="fa-solid fa-triangle-exclamation"></i><h2>Connexion impossible</h2>'
-      + '<p>Le serveur ne répond pas d’ici. Vérifie ta connexion (le Wi-Fi de la maison bloque parfois le domaine — essaie en données cellulaires) puis rouvre la page.</p>'
+      + '<p><b>Tes photos et tes notes sont en sécurité sur le serveur — rien n’est perdu.</b> La page n’arrive juste pas à le joindre d’ici. Vérifie ta connexion (le Wi-Fi de la maison bloque parfois le domaine — essaie en données cellulaires), attends 30 secondes si le serveur se réveille, puis réessaie.</p>'
       + '<a href="javascript:location.reload()">Réessayer</a></div>';
   });
 }
