@@ -60,7 +60,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
-const scene = new THREE.Scene();
+const scene = new THREE.Scene(); window.__scene = scene; window.__THREE = THREE;
 scene.fog = new THREE.Fog(0xcfd9e0, 120, 1400);
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 6000);
 scene.add(camera);
@@ -92,7 +92,7 @@ const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
 const cams = {}; const lights = []; const roofParts = []; const floors = [];
 const bar = document.querySelector('#bar i'), pct = document.getElementById('pct');
 const FLOOR_RX = /^(FL_|SLAB|TERRAIN|TERR_DECK|TERR_RDJ_SLAB|PERRON|ST_LANDING|ST1_|ST2_|TSTEP|LSTEP|DOCK|SHORE_DECK|ROAD|RUG)/;
-loader.load('T-1860-full.glb?v=11', gltf => {
+loader.load('T-1860-full.glb?v=12', gltf => {
   const root = gltf.scene; scene.add(root);
   root.traverse(o => {
     if (o.isMesh) {
@@ -106,6 +106,25 @@ loader.load('T-1860-full.glb?v=11', gltf => {
     if (o.isLight) { o.visible = false; lights.push(o); if (o.isSpotLight) { o.intensity *= 0.03; o.castShadow = false; } }
     if (o.isCamera) cams[o.name] = o;
   });
+  // ---- rive opposee : photo reelle sur un cylindre complet (360, miroir), fondue dans le ciel
+  let bd = null; root.traverse(o => { if (o.isMesh && o.name.startsWith('BACKDROP')) bd = o; });
+  if (bd) {
+    const tex = bd.material.emissiveMap; bd.removeFromParent();
+    tex.wrapS = THREE.MirroredRepeatWrapping; tex.wrapT = THREE.ClampToEdgeWrapping; tex.repeat.set(3, 1); tex.needsUpdate = true;
+    const ac = document.createElement('canvas'); ac.width = 4; ac.height = 512; const g = ac.getContext('2d');
+    // texture glTF : flipY=false -> v=0 est le HAUT de la photo. vPhoto (depuis le bas) -> uv y = 1 - vPhoto
+    const V0 = 0.38, V1 = 0.72;                         // portion verticale de la photo utilisee (depuis le bas)
+    const Y0 = -30, Y1 = -30 + (V1 - V0) * 1200 * 0.75; // hauteur proportionnelle (photo 4:3 vue a 1.2 km)
+    const geo = new THREE.CylinderGeometry(1250, 1250, Y1 - Y0, 96, 1, true);
+    const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - (V0 + uv.getY(i) * (V1 - V0)));
+    // alpha (flipY=false, meme uv) : opaque pour uvY >= 0.50 (rive), transparent pour uvY <= 0.38 (ciel photo)
+    const grd = g.createLinearGradient(0, 0, 0, 512); grd.addColorStop(0, '#000'); grd.addColorStop(0.38, '#000'); grd.addColorStop(0.50, '#fff'); grd.addColorStop(1, '#fff');
+    g.fillStyle = grd; g.fillRect(0, 0, 4, 512);
+    const alpha = new THREE.CanvasTexture(ac); alpha.flipY = false;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, alphaMap: alpha, transparent: true, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: true });
+    const cyl = new THREE.Mesh(geo, mat); cyl.position.set(3, (Y0 + Y1) / 2, -19); cyl.rotation.y = Math.PI / 6; cyl.renderOrder = -1;
+    scene.add(cyl);
+  }
   const list = document.getElementById('cams');
   const order = ['ext_lac', 'ext_lac_est', 'ext_entree', 'ext_ouest', 'aerien', 'terrasse', 'spa', 'salon', 'salon_foyer', 'cuisine', 'cuisine_angle', 'sam', 'hall', 'escalier', 'chambre_principale', 'sdb_maitres', 'walkin', 'mudroom', 'salle_eau', 'familiale', 'gym', 'corridor', 'chambre3', 'sdb3', 'chambre4', 'sdb2', 'chambre2', 'lavage'];
   const names = order.filter(n => cams[n]);
@@ -182,6 +201,7 @@ function step(dt) {
   }
   camera.position.copy(pos);
   camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  window.__pos = pos;
 }
 document.getElementById('tog').onclick = () => document.body.classList.toggle('closed');
 function onResize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); }
