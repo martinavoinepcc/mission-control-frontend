@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chalet T-1860 — Visite 3D complète</title>
+<style>
+:root{--bg:#0e1412;--panel:rgba(14,20,18,.85);--ink:#f2efe8;--acc:#d9a441;--lake:#1d7a8c}
+html{overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden}
+canvas{display:block}
+#ui{position:fixed;left:0;top:0;bottom:0;width:250px;background:var(--panel);backdrop-filter:blur(10px);padding:14px 12px;overflow:auto;z-index:5;transition:transform .3s;box-sizing:border-box}
+#ui h1{font-size:15px;margin:2px 4px 10px;font-weight:600}
+#ui h1 em{display:block;font-style:normal;font-size:11px;opacity:.65;font-weight:400}
+#ui h2{font-size:11px;opacity:.6;margin:12px 6px 4px;text-transform:uppercase;letter-spacing:.08em}
+#ui button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--ink);padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+#ui button.on,#ui button:hover{background:rgba(217,164,65,.18)}
+#ui label{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px}
+#tog{position:fixed;left:256px;top:12px;z-index:6;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 10px;cursor:pointer;transition:left .3s}
+body.closed #ui{transform:translateX(-100%)}body.closed #tog{left:12px}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:var(--bg);z-index:10;gap:12px}
+#bar{width:260px;height:6px;background:#233;border-radius:3px;overflow:hidden}#bar i{display:block;height:100%;width:0;background:var(--acc)}
+#hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--panel);padding:8px 14px;border-radius:10px;font-size:12px;z-index:5;white-space:nowrap}
+#pad{position:fixed;right:16px;bottom:16px;z-index:6;display:none;grid-template-columns:repeat(3,52px);gap:6px}
+#pad button{height:52px;border-radius:12px;border:0;background:var(--panel);color:var(--ink);font-size:20px}
+@media(pointer:coarse){#pad{display:grid}#hint{display:none}#ui{width:210px}#tog{left:216px}}
+</style>
+</head>
+<body class="closed">
+<div id="load"><div>Chargement du chalet…</div><div id="bar"><i></i></div><small id="pct">0 %</small></div>
+<nav id="ui">
+  <h1>Chalet T-1860<em>Modèle complet · plan septembre + design SGDA</em></h1>
+  <h2>Points de vue</h2><div id="cams"></div>
+  <h2>Options</h2>
+  <label><input type="checkbox" id="lights"> Luminaires intérieurs</label>
+  <label><input type="checkbox" id="roof" checked> Toit / plafonds</label>
+  <label>Heure <input type="range" id="sun" min="6" max="20" step="0.5" value="17" style="flex:1"></label>
+</nav>
+<button id="tog">☰</button>
+<div id="hint">Clique dans la vue pour marcher · W A S D · souris = regarder · Échap = sortir</div>
+<div id="pad"><i></i><button data-k="w">▲</button><i></i><button data-k="a">◀</button><button data-k="s">▼</button><button data-k="d">▶</button></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.05, 6000);
+const pmrem = new THREE.PMREMGenerator(renderer);
+const sun = new THREE.DirectionalLight(0xfff0dc, 3.0);
+sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096);
+const sc = sun.shadow.camera; sc.left = -60; sc.right = 60; sc.top = 60; sc.bottom = -60; sc.near = 1; sc.far = 400;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.05;
+scene.add(sun); scene.add(sun.target);
+function setSun(h) {   // lac au nord (+Z three = -Y blender) ; soleil azimut selon l'heure (ete)
+  const t = (h - 6) / 14; const az = (100 + t * 190) * Math.PI / 180; const el = Math.sin(t * Math.PI) * 55 * Math.PI / 180 + 4 * Math.PI / 180;
+  const r = 250; sun.position.set(r * Math.sin(az) * Math.cos(el), r * Math.sin(el), -r * Math.cos(az) * Math.cos(el));
+  sun.intensity = 1.5 + 2.5 * Math.sin(t * Math.PI);
+  sun.color.setHSL(0.09, 0.6, 0.55 + 0.4 * Math.sin(t * Math.PI));
+}
+setSun(17);
+document.getElementById('sun').oninput = e => setSun(+e.target.value);
+new RGBELoader().load('sky_1k.hdr', hdr => {
+  scene.environment = pmrem.fromEquirectangular(hdr).texture;
+  hdr.mapping = THREE.EquirectangularReflectionMapping; scene.background = hdr;
+  scene.backgroundBlurriness = 0.0; scene.environmentIntensity = 0.9;
+});
+const draco = new DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
+const cams = {}; const lights = []; const roofParts = [];
+const bar = document.querySelector('#bar i'), pct = document.getElementById('pct');
+loader.load('T-1860-full.glb?v=7', gltf => {
+  const root = gltf.scene; scene.add(root);
+  root.traverse(o => {
+    if (o.isMesh) {
+      o.castShadow = true; o.receiveShadow = true;
+      if (o.material && o.material.transparent === false && o.material.opacity < 1) o.material.transparent = true;
+      if (/^(ROOF|CEIL|BEAM|CHIMNEY|SOFFIT)/.test(o.name)) roofParts.push(o);
+    }
+    if (o.isLight) { o.visible = false; lights.push(o); if (o.isSpotLight) { o.intensity *= 0.02; o.castShadow = false; } }
+    if (o.isCamera) cams[o.name] = o;
+  });
+  const list = document.getElementById('cams');
+  const order = ['ext_lac','ext_entree','aerien','terrasse','salon','cuisine','sam','hall','chambre_principale','sdb_maitres','walkin','familiale','gym','chambre3','sdb3','chambre4','sdb2','spa'];
+  const names = order.filter(n => cams[n]).concat(Object.keys(cams).filter(n => !order.includes(n) && !n.startsWith('pano')));
+  names.forEach(n => { const b = document.createElement('button'); b.textContent = n.replace(/_/g, ' '); b.onclick = () => goCam(n); list.appendChild(b); });
+  document.getElementById('load').remove();
+  if (names.length) goCam(names[0]); else { controls.getObject().position.set(40, 6, 30); }
+}, e => { if (e.total) { const p = Math.round(100 * e.loaded / e.total); bar.style.width = p + '%'; pct.textContent = p + ' %'; } });
+document.getElementById('lights').onchange = e => lights.forEach(l => l.visible = e.target.checked);
+document.getElementById('roof').onchange = e => roofParts.forEach(m => m.visible = e.target.checked);
+function goCam(n) {
+  const c = cams[n]; if (!c) return;
+  c.updateWorldMatrix(true, false);
+  const p = new THREE.Vector3(), q = new THREE.Quaternion(); c.matrixWorld.decompose(p, q, new THREE.Vector3());
+  camera.position.copy(p); camera.quaternion.copy(q); camera.fov = c.fov || 60; camera.updateProjectionMatrix();
+  controls.getObject().position.copy(p);
+  const e = new THREE.Euler().setFromQuaternion(q, 'YXZ'); controls.getObject().rotation.set(e.x, e.y, 0, 'YXZ');
+  [...document.querySelectorAll('#cams button')].forEach(b => b.classList.toggle('on', b.textContent === n.replace(/_/g, ' ')));
+  if (innerWidth < 800) document.body.classList.add('closed');
+}
+// ---- marche
+const controls = new PointerLockControls(camera, renderer.domElement);
+scene.add(controls.getObject());
+renderer.domElement.addEventListener('click', () => { if (matchMedia('(pointer:fine)').matches) controls.lock(); });
+const keys = {};
+addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+document.querySelectorAll('#pad button').forEach(b => { const k = b.dataset.k; b.onpointerdown = () => keys[k] = true; b.onpointerup = b.onpointerleave = () => keys[k] = false; });
+// regard tactile
+let tx = null, ty = null;
+renderer.domElement.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { tx = e.clientX; ty = e.clientY; } });
+renderer.domElement.addEventListener('pointermove', e => { if (tx !== null && e.pointerType === 'touch') { const o = controls.getObject(); o.rotation.y -= (e.clientX - tx) * 0.005; o.rotation.x = Math.max(-1.4, Math.min(1.4, o.rotation.x - (e.clientY - ty) * 0.005)); tx = e.clientX; ty = e.clientY; } });
+renderer.domElement.addEventListener('pointerup', () => tx = null);
+const clock = new THREE.Clock();
+function step(dt) {
+  const sp = (keys.shift ? 4.5 : 2.2) * dt;
+  if (keys.w || keys.arrowup) controls.moveForward(sp);
+  if (keys.s || keys.arrowdown) controls.moveForward(-sp);
+  if (keys.a || keys.arrowleft) controls.moveRight(-sp);
+  if (keys.d || keys.arrowright) controls.moveRight(sp);
+  if (keys.q) controls.getObject().position.y += sp; if (keys.e) controls.getObject().position.y -= sp;
+}
+document.getElementById('tog').onclick = () => document.body.classList.toggle('closed');
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+(function loop() { requestAnimationFrame(loop); step(Math.min(clock.getDelta(), 0.05)); renderer.render(scene, camera); })();
+</script>
+</body>
+</html>
