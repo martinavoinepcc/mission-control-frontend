@@ -78,7 +78,7 @@ const draco = new DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/
 const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
 const cams = {}; const lights = []; const roofParts = [];
 const bar = document.querySelector('#bar i'), pct = document.getElementById('pct');
-loader.load('T-1860-full.glb?v=7', gltf => {
+loader.load('T-1860-full.glb?v=8', gltf => {
   const root = gltf.scene; scene.add(root);
   root.traverse(o => {
     if (o.isMesh) {
