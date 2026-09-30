@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UI } from '@/lib/icons';
 import {
-  ChantierAPI, docFileUrl, compressImage, fmtMoney, fmtDate,
+  ChantierAPI, docFileUrl, docDownloadUrl, compressImage, fmtMoney, fmtDate, fmtSize,
   type Overview, type JalonLite, type JalonDetail, type Contact, type Soumission,
   type Depense, type Doc, type Trade, type JalonStatus, type SoumissionStatus,
   type DocKind, type ContactStatus, type DepenseType, type ChantierPhase,
-  type DebourseBanque, type AvancementItem,
+  type DebourseBanque, type AvancementItem, type PlanSerie, type PlanCategorie, type PlansPayload,
 } from '@/lib/chantier-api';
 
 const ACCENT = '#D97706';
@@ -46,6 +46,18 @@ const DOC_KINDS: { value: DocKind; label: string }[] = [
   { value: 'CONTRAT', label: 'Contrat' }, { value: 'PHOTO', label: 'Photo' },
   { value: 'RECU', label: 'Reçu' }, { value: 'AUTRE', label: 'Autre' },
 ];
+const PLAN_CATS: { value: PlanCategorie; label: string; icon: string }[] = [
+  { value: 'ARCHITECTURE', label: 'Architecture', icon: '📐' },
+  { value: 'IMPLANTATION', label: 'Implantation & arpentage', icon: '🗺️' },
+  { value: 'DESIGN_INTERIEUR', label: 'Design intérieur', icon: '🛋️' },
+  { value: 'STRUCTURE', label: 'Structure & ingénierie', icon: '🏗️' },
+  { value: 'ELECTRIQUE', label: 'Électrique', icon: '⚡' },
+  { value: 'MECANIQUE', label: 'Mécanique & plomberie', icon: '🔧' },
+  { value: 'PERMIS', label: 'Permis & licences', icon: '📜' },
+  { value: 'DEVIS', label: 'Devis & soumissions', icon: '💰' },
+  { value: 'RENDUS_3D', label: 'Rendus & 3D', icon: '🎥' },
+  { value: 'AUTRE', label: 'Autres', icon: '📁' },
+];
 const DEPENSE_TYPES: { value: DepenseType; label: string }[] = [
   { value: 'DEPOT', label: 'Dépôt' }, { value: 'PARTIEL', label: 'Paiement partiel' },
   { value: 'FINAL', label: 'Paiement final' }, { value: 'EXTRA', label: 'Extra' },
@@ -62,10 +74,11 @@ const inputStyle: React.CSSProperties = {
 };
 const labelStyle: React.CSSProperties = { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 4, display: 'block' };
 
-type Tab = 'apercu' | 'jalons' | 'contacts' | 'soumissions' | 'budget' | 'photos';
+type Tab = 'apercu' | 'jalons' | 'plans' | 'contacts' | 'soumissions' | 'budget' | 'photos';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'apercu', label: "Vue d'ensemble" },
   { id: 'jalons', label: 'Jalons' },
+  { id: 'plans', label: 'Plans & devis' },
   { id: 'contacts', label: 'Contacts' },
   { id: 'soumissions', label: 'Soumissions' },
   { id: 'budget', label: 'Budget' },
@@ -85,12 +98,13 @@ export default function ChantierPage() {
   const [soumissions, setSoumissions] = useState<Soumission[]>([]);
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [photos, setPhotos] = useState<Doc[]>([]);
+  const [plans, setPlans] = useState<PlansPayload | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
 
   // modales
   const [detailJalonId, setDetailJalonId] = useState<number | null>(null);
-  const [modal, setModal] = useState<null | 'jalon' | 'contact' | 'soumission' | 'depense' | 'photo' | 'budget'>(null);
-  const [modalCtx, setModalCtx] = useState<{ jalonId?: number; jalon?: JalonLite | null; contact?: Contact | null }>({});
+  const [modal, setModal] = useState<null | 'jalon' | 'contact' | 'soumission' | 'depense' | 'photo' | 'budget' | 'serie' | 'version' | 'classer'>(null);
+  const [modalCtx, setModalCtx] = useState<{ jalonId?: number; jalon?: JalonLite | null; contact?: Contact | null; serie?: PlanSerie | null; doc?: Doc | null }>({});
 
   const flash = useCallback((m: string) => { setToast(m); window.setTimeout(() => setToast(null), 2600); }, []);
 
@@ -127,6 +141,7 @@ export default function ChantierPage() {
         else if (tab === 'soumissions') setSoumissions((await ChantierAPI.soumissions()).soumissions);
         else if (tab === 'budget') setDepenses((await ChantierAPI.depenses()).depenses);
         else if (tab === 'photos') setPhotos((await ChantierAPI.docs({ kind: 'PHOTO' })).docs);
+        else if (tab === 'plans') setPlans(await ChantierAPI.plans());
       } catch (e: any) {
         flash(e?.message || 'Erreur.');
       }
@@ -140,6 +155,7 @@ export default function ChantierPage() {
     else if (tab === 'soumissions') setSoumissions((await ChantierAPI.soumissions()).soumissions);
     else if (tab === 'budget') setDepenses((await ChantierAPI.depenses()).depenses);
     else if (tab === 'photos') setPhotos((await ChantierAPI.docs({ kind: 'PHOTO' })).docs);
+    else if (tab === 'plans') setPlans(await ChantierAPI.plans());
     await loadTrades();
   }, [tab, loadOverview, loadTrades]);
 
@@ -242,6 +258,18 @@ export default function ChantierPage() {
           />
         )}
 
+        {tab === 'plans' && (
+          <PlansView
+            plans={plans}
+            onAddSerie={() => { setModalCtx({}); setModal('serie'); }}
+            onEditSerie={(serie) => { setModalCtx({ serie }); setModal('serie'); }}
+            onAddVersion={(serie) => { setModalCtx({ serie }); setModal('version'); }}
+            onClassify={(doc) => { setModalCtx({ doc }); setModal('classer'); }}
+            onDeleteDoc={async (d) => { if (!confirm(`Supprimer « ${d.title} » ? Cette version sera perdue.`)) return; await ChantierAPI.deleteDoc(d.id); flash('Version supprimée'); await refreshTab(); }}
+            onDeleteSerie={async (sr) => { if (!confirm(`Supprimer la série « ${sr.name} » ?`)) return; try { await ChantierAPI.deleteSerie(sr.id); flash('Série supprimée'); await refreshTab(); } catch (e: any) { alert(e?.message || 'Erreur'); } }}
+          />
+        )}
+
         {tab === 'photos' && (
           <PhotosView
             photos={photos}
@@ -305,6 +333,28 @@ export default function ChantierPage() {
           ensureJalons={async () => { const { jalons } = await ChantierAPI.jalons(); setJalons(jalons); return jalons; }}
           onClose={() => setModal(null)}
           onSaved={async () => { setModal(null); flash('Photo ajoutée ✓'); await refreshTab(); }}
+        />
+      )}
+      {modal === 'serie' && (
+        <SerieFormModal
+          serie={modalCtx.serie ?? null}
+          onClose={() => setModal(null)}
+          onSaved={async () => { setModal(null); flash('Série enregistrée ✓'); await refreshTab(); }}
+        />
+      )}
+      {modal === 'version' && modalCtx.serie && (
+        <VersionFormModal
+          serie={modalCtx.serie}
+          onClose={() => setModal(null)}
+          onSaved={async () => { setModal(null); flash('Version ajoutée ✓'); await refreshTab(); }}
+        />
+      )}
+      {modal === 'classer' && modalCtx.doc && plans && (
+        <ClasserDocModal
+          doc={modalCtx.doc}
+          series={plans.series}
+          onClose={() => setModal(null)}
+          onSaved={async () => { setModal(null); flash('Document classé ✓'); await refreshTab(); }}
         />
       )}
       {modal === 'budget' && overview && (
@@ -863,6 +913,251 @@ function PhotosView({ photos, onAdd, onDelete }: { photos: Doc[]; onAdd: () => v
         </div>
       )}
     </div>
+  );
+}
+
+// ===================== PLANS & DEVIS =====================
+
+function catInfo(c: PlanCategorie) { return PLAN_CATS.find((x) => x.value === c) || PLAN_CATS[PLAN_CATS.length - 1]; }
+
+function PlansView({ plans, onAddSerie, onEditSerie, onAddVersion, onClassify, onDeleteDoc, onDeleteSerie }: {
+  plans: PlansPayload | null;
+  onAddSerie: () => void; onEditSerie: (s: PlanSerie) => void; onAddVersion: (s: PlanSerie) => void;
+  onClassify: (d: Doc) => void; onDeleteDoc: (d: Doc) => void; onDeleteSerie: (s: PlanSerie) => void;
+}) {
+  const [open, setOpen] = useState<Record<number, boolean>>({});
+  const [filter, setFilter] = useState<PlanCategorie | 'ALL'>('ALL');
+  if (!plans) return <div style={card}><Empty text="Chargement des plans…" /></div>;
+  const cats = PLAN_CATS.filter((c) => plans.series.some((s) => s.category === c.value));
+  const visible = plans.series.filter((s) => filter === 'ALL' || s.category === filter);
+  const total = plans.series.reduce((n, s) => n + s.docs.length, 0);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <button onClick={onAddSerie} style={primaryBtnStyle}><FontAwesomeIcon icon={UI.upload} /> Nouvelle série de plans / devis</button>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+        {plans.series.length} série{plans.series.length > 1 ? 's' : ''} · {total} version{total > 1 ? 's' : ''} · la version la plus récente est en tête, les anciennes restent téléchargeables.
+      </div>
+      {cats.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+          <button onClick={() => setFilter('ALL')} style={{ ...tinyBtn, borderColor: filter === 'ALL' ? ACCENT : undefined, color: filter === 'ALL' ? '#fbbf24' : undefined, whiteSpace: 'nowrap' }}>Tout</button>
+          {cats.map((c) => (
+            <button key={c.value} onClick={() => setFilter(c.value)} style={{ ...tinyBtn, borderColor: filter === c.value ? ACCENT : undefined, color: filter === c.value ? '#fbbf24' : undefined, whiteSpace: 'nowrap' }}>{c.icon} {c.label}</button>
+          ))}
+        </div>
+      )}
+      {PLAN_CATS.filter((c) => visible.some((s) => s.category === c.value)).map((c) => (
+        <div key={c.value}>
+          <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(255,255,255,0.45)', margin: '6px 2px 8px' }}>{c.icon} {c.label}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {visible.filter((s) => s.category === c.value).map((sr) => {
+              const [latest, ...older] = sr.docs;
+              const showOld = !!open[sr.id];
+              return (
+                <div key={sr.id} style={card}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{sr.name}</div>
+                      {sr.description && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{sr.description}</div>}
+                    </div>
+                    <button onClick={() => onEditSerie(sr)} style={ghostIconBtn} aria-label="Modifier la série"><FontAwesomeIcon icon={UI.key} style={{ fontSize: 12 }} /></button>
+                  </div>
+                  {latest ? (
+                    <VersionRow doc={latest} latest onDelete={() => onDeleteDoc(latest)} />
+                  ) : (
+                    <div style={{ marginTop: 10 }}><Empty text="Aucune version pour l'instant — ajoute le premier fichier." /></div>
+                  )}
+                  {older.length > 0 && (
+                    <>
+                      <button onClick={() => setOpen((o) => ({ ...o, [sr.id]: !showOld }))} style={{ ...linkBtnStyle, padding: '8px 0' }}>
+                        {showOld ? '▾' : '▸'} {older.length} version{older.length > 1 ? 's' : ''} précédente{older.length > 1 ? 's' : ''}
+                      </button>
+                      {showOld && older.map((d) => <VersionRow key={d.id} doc={d} onDelete={() => onDeleteDoc(d)} />)}
+                    </>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <button onClick={() => onAddVersion(sr)} style={{ ...secondaryBtnStyle, minHeight: 40 }}><FontAwesomeIcon icon={UI.upload} /> Nouvelle version</button>
+                    {sr.docs.length === 0 && <button onClick={() => onDeleteSerie(sr)} style={{ ...tinyBtn, color: '#f87171' }}>Supprimer</button>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {plans.series.length === 0 && <div style={card}><Empty text="Aucune série. Crée une série (ex. « Plans d'architecture ») puis dépose-y les versions." /></div>}
+      {plans.orphans.length > 0 && (
+        <div>
+          <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(255,255,255,0.45)', margin: '6px 2px 8px' }}>📥 Documents à classer</div>
+          <div style={card}>
+            {plans.orphans.map((d) => (
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{fmtDate(d.createdAt)} {fmtSize(d.fileSize) && `· ${fmtSize(d.fileSize)}`}</div>
+                </div>
+                <a href={docFileUrl(d)} target="_blank" rel="noreferrer" style={pillLink}>Ouvrir</a>
+                <button onClick={() => onClassify(d)} style={tinyBtn}>Classer</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VersionRow({ doc, latest, onDelete }: { doc: Doc; latest?: boolean; onDelete: () => void }) {
+  const isLink = !!doc.fileUrl && !/\.(pdf|jpe?g|png|webp|skp|glb|dwg)(\?|$)/i.test(doc.fileUrl);
+  return (
+    <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 12, background: latest ? 'rgba(217,119,6,0.10)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (latest ? 'rgba(217,119,6,0.35)' : 'rgba(255,255,255,0.07)') }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {latest && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', background: ACCENT, color: '#fff', padding: '2px 8px', borderRadius: 10 }}>VERSION COURANTE</span>}
+        {doc.version && <span style={{ fontSize: 13, fontWeight: 600 }}>{doc.version}</span>}
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{fmtDate(doc.versionDate || doc.createdAt)}{doc.author ? ` · ${doc.author}` : ''}{fmtSize(doc.fileSize) ? ` · ${fmtSize(doc.fileSize)}` : ''}</span>
+      </div>
+      <div style={{ fontSize: 13, marginTop: 4 }}>{doc.title}</div>
+      {doc.notes && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4, whiteSpace: 'pre-wrap' }}>{doc.notes}</div>}
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+        <a href={docFileUrl(doc)} target="_blank" rel="noreferrer" style={pillLink}>{isLink ? 'Ouvrir le lien' : 'Ouvrir'}</a>
+        {!isLink && <a href={docDownloadUrl(doc)} download={doc.fileName || undefined} style={{ ...pillLink, color: '#fbbf24', background: 'rgba(217,119,6,0.14)' }}>⬇ Télécharger</a>}
+        <span style={{ flex: 1 }} />
+        <button onClick={onDelete} style={{ ...ghostIconBtn, width: 30, height: 30, color: '#f87171' }} aria-label="Supprimer"><FontAwesomeIcon icon={UI.trash} style={{ fontSize: 11 }} /></button>
+      </div>
+    </div>
+  );
+}
+
+function SerieFormModal({ serie, onClose, onSaved }: { serie: PlanSerie | null; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(serie?.name || '');
+  const [category, setCategory] = useState<PlanCategorie>(serie?.category || 'ARCHITECTURE');
+  const [description, setDescription] = useState(serie?.description || '');
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    if (!name.trim()) { alert('Donne un nom à la série.'); return; }
+    setBusy(true);
+    try {
+      if (serie) await ChantierAPI.updateSerie(serie.id, { name: name.trim(), category, description: description.trim() || null });
+      else await ChantierAPI.createSerie({ name: name.trim(), category, description: description.trim() || undefined });
+      onSaved();
+    } catch (e: any) { alert(e?.message || 'Erreur'); setBusy(false); }
+  }
+  return (
+    <ModalShell onClose={onClose}>
+      <FormTitle title={serie ? 'Modifier la série' : 'Nouvelle série de plans / devis'} onClose={onClose} />
+      <Field label="Nom (ex. Plans d'architecture TALO, Plan électrique, Devis cuisine)"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} /></Field>
+      <Field label="Catégorie">
+        <select style={inputStyle} value={category} onChange={(e) => setCategory(e.target.value as PlanCategorie)}>
+          {PLAN_CATS.map((c) => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Description (optionnel)"><textarea style={{ ...inputStyle, minHeight: 70 }} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+      <button disabled={busy} onClick={save} style={primaryBtnStyle}>{busy ? 'Enregistrement…' : (serie ? 'Enregistrer' : 'Créer la série')}</button>
+    </ModalShell>
+  );
+}
+
+function VersionFormModal({ serie, onClose, onSaved }: { serie: PlanSerie; onClose: () => void; onSaved: () => void }) {
+  const n = serie.docs.length + 1;
+  const [title, setTitle] = useState('');
+  const [version, setVersion] = useState(`v${n}`);
+  const [versionDate, setVersionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [author, setAuthor] = useState(serie.docs[0]?.author || '');
+  const [notes, setNotes] = useState('');
+  const [link, setLink] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const MAX_FILE_MB = 40;
+  function handleFile(f: File) {
+    if (f.size > MAX_FILE_MB * 1024 * 1024) { alert(`Fichier trop gros (${Math.round(f.size / 1024 / 1024)} Mo). Maximum : ${MAX_FILE_MB} Mo.`); return; }
+    setFile(f);
+    if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
+  }
+  async function save() {
+    if (!file && !link.trim()) { alert('Dépose un fichier ou colle un lien.'); return; }
+    if (!title.trim()) { alert('Donne un titre.'); return; }
+    setBusy(true);
+    try {
+      let fileData: string | undefined; let mimeType: string | undefined; let width: number | undefined; let height: number | undefined;
+      if (file) {
+        mimeType = file.type || 'application/octet-stream';
+        if (file.type.startsWith('image/')) {
+          const c = await compressImage(file, 2400, 0.85); fileData = c.dataUrl; width = c.width; height = c.height; mimeType = 'image/webp';
+        } else {
+          fileData = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file); });
+          if (!fileData.startsWith('data:') || fileData.startsWith('data:;')) fileData = fileData.replace(/^data:[^;]*;/, `data:${mimeType};`);
+        }
+      }
+      const kind: DocKind = serie.category === 'PERMIS' ? 'PERMIS' : serie.category === 'DEVIS' ? 'CONTRAT' : 'PLAN';
+      await ChantierAPI.createDoc({
+        kind, title: title.trim(), fileData, fileUrl: file ? undefined : link.trim(), mimeType, width, height,
+        serieId: serie.id, version: version.trim() || undefined, versionDate: versionDate || undefined,
+        author: author.trim() || undefined, notes: notes.trim() || undefined, fileName: file?.name, fileSize: file?.size,
+      });
+      onSaved();
+    } catch (e: any) { alert(e?.message || 'Erreur'); setBusy(false); }
+  }
+  return (
+    <ModalShell onClose={onClose}>
+      <FormTitle title={`Nouvelle version — ${serie.name}`} onClose={onClose} />
+      <div
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
+        style={{ border: `2px dashed ${dragOver ? ACCENT : 'rgba(255,255,255,0.2)'}`, background: dragOver ? 'rgba(217,119,6,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '18px 12px', textAlign: 'center', marginBottom: 10 }}
+      >
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 10 }}>
+          {dragOver ? 'Dépose le fichier ici 👇' : `Glisse-dépose le PDF / image / fichier (max ${MAX_FILE_MB} Mo)`}
+        </div>
+        <label style={{ ...secondaryBtnStyle, cursor: 'pointer', display: 'inline-flex' }}>
+          <FontAwesomeIcon icon={UI.upload} /> Choisir un fichier
+          <input type="file" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} style={{ display: 'none' }} />
+        </label>
+        {file && <div style={{ fontSize: 13, color: '#fbbf24', marginTop: 10 }}>{file.name} · {fmtSize(file.size)}</div>}
+      </div>
+      {!file && <Field label="…ou lien externe (Drive, site, galerie)"><input style={inputStyle} placeholder="https://…" value={link} onChange={(e) => setLink(e.target.value)} /></Field>}
+      <Field label="Titre"><input style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <Field label="Version" flex><input style={inputStyle} value={version} onChange={(e) => setVersion(e.target.value)} placeholder="v2 – révisé" /></Field>
+        <Field label="Date d'émission" flex><input type="date" style={inputStyle} value={versionDate} onChange={(e) => setVersionDate(e.target.value)} /></Field>
+      </div>
+      <Field label="Auteur / émetteur (TALO, SGDA, arpenteur, électricien…)"><input style={inputStyle} value={author} onChange={(e) => setAuthor(e.target.value)} /></Field>
+      <Field label="Notes (ce qui a changé dans cette version)"><textarea style={{ ...inputStyle, minHeight: 70 }} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+      <button disabled={busy} onClick={save} style={primaryBtnStyle}>{busy ? 'Téléversement…' : 'Ajouter la version'}</button>
+    </ModalShell>
+  );
+}
+
+function ClasserDocModal({ doc, series, onClose, onSaved }: { doc: Doc; series: PlanSerie[]; onClose: () => void; onSaved: () => void }) {
+  const [serieId, setSerieId] = useState(series[0] ? String(series[0].id) : '');
+  const [version, setVersion] = useState(doc.version || '');
+  const [versionDate, setVersionDate] = useState((doc.versionDate || doc.createdAt).slice(0, 10));
+  const [author, setAuthor] = useState(doc.author || '');
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    if (!serieId) { alert('Choisis une série.'); return; }
+    setBusy(true);
+    try {
+      await ChantierAPI.updateDoc(doc.id, { serieId: Number(serieId), version: version.trim() || null, versionDate: versionDate || null, author: author.trim() || null });
+      onSaved();
+    } catch (e: any) { alert(e?.message || 'Erreur'); setBusy(false); }
+  }
+  return (
+    <ModalShell onClose={onClose}>
+      <FormTitle title="Classer le document" onClose={onClose} />
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>{doc.title}</div>
+      <Field label="Série">
+        <select style={inputStyle} value={serieId} onChange={(e) => setSerieId(e.target.value)}>
+          {series.map((s) => <option key={s.id} value={s.id}>{catInfo(s.category).icon} {s.name}</option>)}
+        </select>
+      </Field>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <Field label="Version" flex><input style={inputStyle} value={version} onChange={(e) => setVersion(e.target.value)} /></Field>
+        <Field label="Date d'émission" flex><input type="date" style={inputStyle} value={versionDate} onChange={(e) => setVersionDate(e.target.value)} /></Field>
+      </div>
+      <Field label="Auteur / émetteur"><input style={inputStyle} value={author} onChange={(e) => setAuthor(e.target.value)} /></Field>
+      <button disabled={busy} onClick={save} style={primaryBtnStyle}>{busy ? 'Enregistrement…' : 'Classer'}</button>
+    </ModalShell>
   );
 }
 
