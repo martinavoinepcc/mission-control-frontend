@@ -918,6 +918,12 @@ function PhotosView({ photos, onAdd, onDelete }: { photos: Doc[]; onAdd: () => v
 
 // ===================== PLANS & DEVIS =====================
 
+// Date d'emission stockee a minuit UTC : afficher en UTC pour ne pas reculer d'un jour.
+function fmtDateUTC(d: string | null | undefined): string {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); } catch { return '—'; }
+}
+
 function catInfo(c: PlanCategorie) { return PLAN_CATS.find((x) => x.value === c) || PLAN_CATS[PLAN_CATS.length - 1]; }
 
 function PlansView({ plans, onAddSerie, onEditSerie, onAddVersion, onClassify, onDeleteDoc, onDeleteSerie }: {
@@ -1013,7 +1019,7 @@ function VersionRow({ doc, latest, onDelete }: { doc: Doc; latest?: boolean; onD
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         {latest && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', background: ACCENT, color: '#fff', padding: '2px 8px', borderRadius: 10 }}>VERSION COURANTE</span>}
         {doc.version && <span style={{ fontSize: 13, fontWeight: 600 }}>{doc.version}</span>}
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{fmtDate(doc.versionDate || doc.createdAt)}{doc.author ? ` · ${doc.author}` : ''}{fmtSize(doc.fileSize) ? ` · ${fmtSize(doc.fileSize)}` : ''}</span>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{doc.versionDate ? fmtDateUTC(doc.versionDate) : fmtDate(doc.createdAt)}{doc.author ? ` · ${doc.author}` : ''}{fmtSize(doc.fileSize) ? ` · ${fmtSize(doc.fileSize)}` : ''}</span>
       </div>
       <div style={{ fontSize: 13, marginTop: 4 }}>{doc.title}</div>
       {doc.notes && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4, whiteSpace: 'pre-wrap' }}>{doc.notes}</div>}
