@@ -153,7 +153,32 @@ export type Doc = {
   createdAt: string;
   jalonId: number | null;
   tradeId?: number | null;
+  // Plans & devis (versions)
+  serieId?: number | null;
+  version?: string | null;
+  versionDate?: string | null;
+  author?: string | null;
+  notes?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
 };
+
+export type PlanCategorie =
+  | 'ARCHITECTURE' | 'IMPLANTATION' | 'DESIGN_INTERIEUR' | 'STRUCTURE' | 'ELECTRIQUE'
+  | 'MECANIQUE' | 'PERMIS' | 'DEVIS' | 'RENDUS_3D' | 'AUTRE';
+
+export type PlanSerie = {
+  id: number;
+  name: string;
+  category: PlanCategorie;
+  description: string | null;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+  docs: Doc[];
+};
+
+export type PlansPayload = { series: PlanSerie[]; orphans: Doc[]; categories: PlanCategorie[] };
 
 export type Overview = {
   project: Project;
@@ -249,9 +274,33 @@ export const ChantierAPI = {
   createDoc: (body: {
     kind: DocKind; title: string; fileData?: string; fileUrl?: string; mimeType?: string;
     width?: number; height?: number; takenAt?: string; jalonId?: number; tradeId?: number; soumissionId?: number;
+    serieId?: number; version?: string; versionDate?: string; author?: string; notes?: string; fileName?: string; fileSize?: number;
   }) => req<{ doc: Doc }>('/chantier/docs', { method: 'POST', body: JSON.stringify(body) }),
+  updateDoc: (id: number, body: Partial<Pick<Doc, 'title' | 'kind' | 'serieId' | 'version' | 'versionDate' | 'author' | 'notes' | 'jalonId' | 'fileName'>>) =>
+    req<{ doc: Doc }>(`/chantier/docs/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteDoc: (id: number) => req<{ ok: true }>(`/chantier/docs/${id}`, { method: 'DELETE' }),
+
+  // Plans & devis
+  plans: () => req<PlansPayload>('/chantier/plans'),
+  createSerie: (body: { name: string; category: PlanCategorie; description?: string; order?: number }) =>
+    req<{ serie: PlanSerie }>('/chantier/plans/series', { method: 'POST', body: JSON.stringify(body) }),
+  updateSerie: (id: number, body: Partial<Pick<PlanSerie, 'name' | 'category' | 'description' | 'order'>>) =>
+    req<{ serie: PlanSerie }>(`/chantier/plans/series/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteSerie: (id: number) => req<{ ok: true }>(`/chantier/plans/series/${id}`, { method: 'DELETE' }),
 };
+
+// URL de telechargement (piece jointe) d'un document.
+export function docDownloadUrl(doc: { id: number; fileUrl?: string | null }): string {
+  if (doc.fileUrl) return doc.fileUrl;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('mc_token') : null;
+  return `${API_URL}/chantier/docs/${doc.id}/raw?download=1${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+}
+
+export function fmtSize(n: number | null | undefined): string {
+  if (!n) return '';
+  if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} Ko`;
+  return `${(n / 1024 / 1024).toFixed(n > 10 * 1024 * 1024 ? 0 : 1)} Mo`;
+}
 
 // URL pour afficher un fichier (photo/plan). Prefere fileUrl (photos seedees),
 // sinon l'endpoint /raw avec ?token= (les <img> ne peuvent pas envoyer de header).
