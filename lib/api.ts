@@ -50,7 +50,7 @@ export type User = {
   username: string | null;
   firstName: string;
   role: 'ADMIN' | 'MEMBER';
-  profile: 'ADULT' | 'CHILD';
+  profile: 'ADULT' | 'CHILD' | 'GUEST'; // GUEST = invité externe du Projet chalet
   mustChangePassword: boolean;
   avatarData?: string | null;        // data URL base64 (inline)
   avatarUpdatedAt?: string | null;

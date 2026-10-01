@@ -1,5 +1,5 @@
 // Client API — module Chantier Chalet (gestion de construction).
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.my-mission-control.com';
+import { apiBase, apiFetch } from './api-base'; // bascule auto vers l'adresse Render si le domaine est bloqué
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -13,7 +13,7 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   };
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}${path}`, { ...opts, headers });
+  const res = await apiFetch(path, { ...opts, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as any)?.erreur || `Erreur ${res.status}`);
   return data as T;
@@ -293,7 +293,7 @@ export const ChantierAPI = {
 export function docDownloadUrl(doc: { id: number; fileUrl?: string | null }): string {
   if (doc.fileUrl) return doc.fileUrl;
   const token = typeof window !== 'undefined' ? localStorage.getItem('mc_token') : null;
-  return `${API_URL}/chantier/docs/${doc.id}/raw?download=1${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+  return `${apiBase()}/chantier/docs/${doc.id}/raw?download=1${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 }
 
 export function fmtSize(n: number | null | undefined): string {
@@ -307,7 +307,9 @@ export function fmtSize(n: number | null | undefined): string {
 export function docFileUrl(doc: { id: number; fileUrl?: string | null }): string {
   if (doc.fileUrl) return doc.fileUrl;
   const token = typeof window !== 'undefined' ? localStorage.getItem('mc_token') : null;
-  return `${API_URL}/chantier/docs/${doc.id}/raw${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  // « v=2 » : nouvelle adresse depuis que les fichiers peuvent s'afficher dans un cadre (2026-10-01) —
+  // évite qu'un navigateur réutilise une ancienne copie en cache (24 h) qui interdisait le cadre.
+  return `${apiBase()}/chantier/docs/${doc.id}/raw?v=2${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 }
 
 // Compression image cote client -> data URL webp (limite la taille en DB).

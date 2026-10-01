@@ -92,6 +92,8 @@ export default function LoginPage() {
       await new Promise((r) => setTimeout(r, 500));
       if (user.mustChangePassword) {
         router.push('/change-password');
+      } else if (user.profile === 'GUEST') {
+        router.push('/apps/projet-chalet/'); // invité externe : directement au Projet chalet
       } else if (user.role === 'ADMIN') {
         router.push('/realms');
       } else {

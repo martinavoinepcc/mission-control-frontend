@@ -20,6 +20,7 @@ import Avatar from '@/components/Avatar';
 
 // Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
 const APP_PRIORITY: Record<string, number> = {
+  'projet-chalet': -20, // 2026-10-01 : app unifiée (remplace Notre Chalet + Chantier Chalet) tout en haut
   pieces: -20, // demande Martin 2026-08-14 : Notre Chalet (pièce par pièce) tout en haut
   budget: -10, // demande Martin 2026-07-14 : Budget en premier (seuls les parents l'ont)
   messagerie: 0,
@@ -69,6 +70,8 @@ function DashboardInner() {
       try {
 
         const data = await getMe();
+        // Invité externe (entrepreneur, designer…) : il n'a que le Projet chalet → on l'y envoie.
+        if (data.user.profile === 'GUEST') { window.location.href = '/apps/projet-chalet/'; return; }
 
         setUser(data.user);
 
@@ -666,8 +669,9 @@ function AppCard({ app, delay, realm }: { app: App; delay: number; realm: Realm 
     </>
   );
 
-  // Launcher externe : vrai <a target="_blank"> — plus fiable que window.open sur mobile
-  if (!app.isMockup && app.url) {
+  // Launcher externe : vrai <a target="_blank"> — plus fiable que window.open sur mobile.
+  // Seulement pour les adresses d'un autre site (http…) ; une adresse interne (/apps/...) s'ouvre ici.
+  if (!app.isMockup && app.url && /^https?:\/\//.test(app.url)) {
     return (
       <a
         href={app.url}
@@ -699,6 +703,8 @@ Bientôt disponible.`);
         else if (app.slug === 'pieces') window.location.href = '/chalet-pieces.html';
         else if (app.slug === 'messagerie') window.location.href = '/apps/messagerie/';
         else if (app.slug === 'assistant') window.location.href = '/apps/heimdall/';
+        else if (app.slug === 'projet-chalet') window.location.href = '/apps/projet-chalet/';
+        else if (app.url) window.location.href = app.url; // toute autre app interne déclarée en BD
       }}
       className={cardClass}
       style={cardStyle}
