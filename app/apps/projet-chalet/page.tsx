@@ -68,6 +68,32 @@ const ONGLETS: Array<{ ecran: string; icone: string; libelle: string }> = [
   { ecran: 'moi', icone: 'user', libelle: 'Moi' },
 ];
 
+// Écran parent de chaque écran (bouton « retour » de l'en-tête). Absent = Accueil.
+const PARENT: Record<string, string> = {
+  piece: 'pieces', jalon: 'jalons', planCat: 'plans', serie: 'plans', lecteur: 'plans',
+};
+// Pile des écrans visités DANS l'app (sessionStorage). On ne touche pas à history.state :
+// Next.js recharge la page s'il y trouve une entrée qu'il ne connaît pas.
+// À chaque changement d'écran : si c'est l'avant-dernier de la pile → c'était un retour (on dépile),
+// sinon on empile. « Retour » ne revient donc en arrière que s'il existe un écran précédent dans l'app.
+const CLE_PILE = 'pc_pile';
+function lirePile(): string[] {
+  try { return JSON.parse(sessionStorage.getItem(CLE_PILE) || '[]'); } catch { return []; }
+}
+function ecrirePile(p: string[]) {
+  try { sessionStorage.setItem(CLE_PILE, JSON.stringify(p.slice(-50))); } catch { /* stockage indisponible */ }
+}
+function hashCourant(): string {
+  return window.location.hash.replace(/^#/, '') || 'accueil';
+}
+function noterEcran() {
+  const h = hashCourant();
+  const pile = lirePile();
+  if (pile.length >= 2 && pile[pile.length - 2] === h) pile.pop();
+  else if (pile[pile.length - 1] !== h) pile.push(h);
+  ecrirePile(pile);
+}
+
 function lireNav(): Nav {
   if (typeof window === 'undefined') return { ecran: 'accueil', params: [] };
   const [ecran, ...params] = decodeURIComponent(window.location.hash.replace(/^#/, '')).split('/').filter(Boolean);
@@ -95,7 +121,8 @@ export default function ProjetChaletPage() {
   useEffect(() => {
     if (!localStorage.getItem('mc_token')) { router.push('/'); return; }
     setNav(lireNav());
-    const surHash = () => { setNav(lireNav()); window.scrollTo(0, 0); };
+    ecrirePile([hashCourant()]); // ouverture de l'app : pas encore d'écran précédent
+    const surHash = () => { noterEcran(); setNav(lireNav()); window.scrollTo(0, 0); };
     window.addEventListener('hashchange', surHash);
     recharger();
     return () => window.removeEventListener('hashchange', surHash);
@@ -115,11 +142,23 @@ export default function ProjetChaletPage() {
       proprio: !!accueil?.moi.proprio,
       peutVoir: (slug: string) => visibles.has(slug),
       aller: (ecran: string, ...params: Array<string | number>) => {
-        window.location.hash = [ecran, ...params.map((p) => encodeURIComponent(String(p)))].join('/');
+        const cible = [ecran, ...params.map((p) => encodeURIComponent(String(p)))].join('/');
+        if (hashCourant() === cible) return;
+        // Si on retourne vers l'écran précédent (ex. bouton « retour » qui vise le parent),
+        // on recule vraiment dans l'historique au lieu d'empiler : l'historique reste propre.
+        const pile = lirePile();
+        if (pile.length >= 2 && pile[pile.length - 2] === cible) { window.history.back(); return; }
+        window.location.hash = cible; // déclenche hashchange → noterEcran + affichage
       },
+      // Bouton « retour » de l'en-tête = remonter d'un niveau (écran parent), toujours prévisible :
+      // pièce → Pièces, jalon → Jalons, tuile → Accueil. Les écrans Plans passent leur parent exact
+      // (catégorie, série) eux-mêmes. Le bouton retour du TÉLÉPHONE, lui, suit l'historique.
       retour: () => {
-        if (window.history.length > 1) window.history.back();
-        else window.location.hash = 'accueil';
+        const parent = PARENT[lireNav().ecran] || 'accueil';
+        const pile = lirePile();
+        if (pile.length >= 2 && pile[pile.length - 2] === parent) { window.history.back(); return; }
+        ecrirePile([...pile.slice(0, -1), parent]);
+        window.location.replace('#' + parent); // remplace l'entrée : pas de boucle ni de sortie de l'app
       },
     };
   }, [accueil, recharger, toast]);

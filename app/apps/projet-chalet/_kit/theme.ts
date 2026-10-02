@@ -34,12 +34,12 @@ export const THEME_CSS = `
 .pc img { max-width: 100%; }
 
 /* Colonne centrale : pleine largeur sur téléphone, 560 px max sur ordi */
-.pc-vue { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px calc(env(safe-area-inset-bottom, 0px) + 96px); }
+.pc-vue { max-width: 760px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px calc(env(safe-area-inset-bottom, 0px) + 96px); }
 
 /* Barre d'onglets du bas */
 .pc-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--pc-carte); border-top: 1px solid var(--pc-ligne);
   padding: 6px 6px calc(env(safe-area-inset-bottom, 0px) + 8px); }
-.pc-tabbar-in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+.pc-tabbar-in { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
 .pc-tab { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--pc-gris); padding: 4px 0; }
 .pc-tab svg { font-size: 19px; }
 .pc-tab.on { color: var(--pc-sapin); font-weight: 700; }
@@ -65,12 +65,13 @@ export const THEME_CSS = `
 .pc-barre i { display: block; height: 100%; background: var(--pc-sapin); border-radius: 4px; }
 
 /* Tuiles */
-.pc-tuiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
-.pc-tuile { background: var(--pc-carte); border: 1px solid var(--pc-ligne); border-radius: 18px; padding: 12px 10px 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; min-height: 104px; position: relative; }
+/* Tuiles : grandes et adaptées à l'écran — 2 colonnes sur téléphone, 3 ou 4 sur tablette/ordi (demande Martin 2026-10-02) */
+.pc-tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 14px; }
+.pc-tuile { background: var(--pc-carte); border: 1px solid var(--pc-ligne); border-radius: 18px; padding: 16px 14px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left; min-height: 140px; position: relative; }
 .pc-tuile:active { transform: scale(.97); }
-.pc-tuile .pc-ico { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 16px; color: #fff; }
-.pc-tuile b { font-size: 13.5px; line-height: 1.15; overflow-wrap: anywhere; }
-.pc-tuile small { font-size: 11px; color: var(--pc-gris); line-height: 1.2; }
+.pc-tuile .pc-ico { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 21px; color: #fff; }
+.pc-tuile b { font-size: 16.5px; line-height: 1.2; overflow-wrap: anywhere; }
+.pc-tuile small { font-size: 12.5px; color: var(--pc-gris); line-height: 1.3; }
 .pc-pastille { position: absolute; top: 9px; right: 9px; background: var(--pc-bois); color: #fff; font-size: 10.5px; font-weight: 700; border-radius: 9px; padding: 1px 6px; }
 
 .pc-section-titre { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 20px 0 8px; }
@@ -133,11 +134,11 @@ export const THEME_CSS = `
 
 /* Feuille du bas (modale) */
 .pc-voile { position: fixed; inset: 0; background: var(--pc-voile); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
-.pc-feuille { background: var(--pc-papier); width: 100%; max-width: 560px; border-radius: 24px 24px 0 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 24px); max-height: 90dvh; overflow-y: auto; }
+.pc-feuille { background: var(--pc-papier); width: 100%; max-width: 640px; border-radius: 24px 24px 0 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 24px); max-height: 90dvh; overflow-y: auto; }
 .pc-poignee { width: 40px; height: 5px; border-radius: 3px; background: var(--pc-ligne); margin: 0 auto 12px; }
 .pc-feuille h3 { font-size: 19px; margin-bottom: 10px; }
 
-.pc-toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); max-width: 528px; margin: 0 auto; background: var(--pc-encre); color: var(--pc-papier); border-radius: 14px; padding: 11px 14px; font-size: 13.5px; z-index: 60; display: flex; gap: 8px; align-items: center; }
+.pc-toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); max-width: 728px; margin: 0 auto; background: var(--pc-encre); color: var(--pc-papier); border-radius: 14px; padding: 11px 14px; font-size: 13.5px; z-index: 60; display: flex; gap: 8px; align-items: center; }
 
 /* Lecteur de documents */
 .pc-lecteur { border-radius: 14px; border: 1px solid var(--pc-ligne); background: var(--pc-carte); overflow: hidden; }
@@ -153,6 +154,11 @@ export const THEME_CSS = `
 
 .pc-chargement { display: grid; place-items: center; min-height: 40vh; color: var(--pc-gris); }
 
-@media (max-width: 360px) { .pc-tuiles { grid-template-columns: repeat(2, 1fr); } }
+/* Téléphone : 2 tuiles par rangée ; une tuile seule en fin de liste prend toute la largeur */
+@media (max-width: 520px) {
+  .pc-tuiles { grid-template-columns: 1fr 1fr; }
+  .pc-tuiles > .pc-tuile:last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 0; flex-direction: row; align-items: center; gap: 14px; }
+}
+@media (max-width: 340px) { .pc-tuiles { grid-template-columns: 1fr 1fr; gap: 8px; } .pc-tuile { padding: 12px 10px; min-height: 120px; } }
 @media (prefers-reduced-motion: reduce) { .pc * { transition: none !important; animation: none !important; } }
 `;
