@@ -25,9 +25,10 @@
 //      API : GET /chantier/plans, GET /projet-chalet/plans/categories,
 //            POST /chantier/plans/series (proprio)
 //  #serie/<serieId>          → Serie
-//      Version courante en tête + historique complet. Consulter, Télécharger,
-//      Partager (proprio), supprimer une version (proprio), ajouter une version
-//      (proprio), modifier / supprimer la série (proprio, suppression si vide).
+//      Grande carte « version courante » : un toucher ouvre le plan dans le
+//      lecteur du téléphone. Anciennes versions en liste (un toucher = ouvrir).
+//      Menu « ⋯ » : télécharger, comparer, partager (proprio), supprimer (proprio).
+//      « ⋯ » de l'en-tête (proprio) : ajouter une version, renommer, supprimer si vide.
 //      API : GET /chantier/plans, GET /projet-chalet/plans/categories,
 //            POST /chantier/docs, DELETE /chantier/docs/:id,
 //            PATCH|DELETE /chantier/plans/series/:id, POST /projet-chalet/partages
@@ -192,7 +193,7 @@ export function PlansCategories(_props: EcranProps) {
             >
               <span className="pc-ico" style={{ background: 'var(--pc-sapin)' }}><Icone nom={c.icone} /></span>
               <b>{c.nom}</b>
-              <small>{nbS} document{nbS > 1 ? 's' : ''} · {nbV} version{nbV > 1 ? 's' : ''}</small>
+              <small>{nbS} document{nbS > 1 ? 's' : ''} · {nbV === 0 ? 'vide' : `${nbV} version${nbV > 1 ? 's' : ''}`}</small>
             </button>
           ))}
         </div>
@@ -269,22 +270,28 @@ export function PlanCategorie({ params }: EcranProps) {
             const triees = trierVersions(s.docs);
             const courante = triees[0];
             return (
-              <button key={s.id} className="pc-ligne" onClick={() => aller('serie', s.id)}>
-                <span className="pc-pt pc-c-info"><Icone nom={cat.icone} /></span>
-                <span className="pc-txt">
-                  <b>{s.name}</b>
-                  <small>
-                    {courante ? (
-                      <>
-                        <span className="pc-cote">{dateVersion(courante)}</span>
-                        {triees.length > 1 ? ` · ${triees.length} versions` : ''}
-                      </>
-                    ) : 'Vide — dépose le premier fichier'}
-                  </small>
-                </span>
-                {courante && <Chip v="ok"><span className="pc-cote">{etiquette(courante, triees)}</span></Chip>}
-                <Icone nom="chevron-right" />
-              </button>
+              <div key={s.id} className="pc-ligne">
+                {/* Toucher le nom = voir toutes les versions ; bouton rond = ouvrir la version courante tout de suite */}
+                <button className="pc-ligne-lien" onClick={() => aller('serie', s.id)}>
+                  <span className="pc-pt pc-c-info"><Icone nom={cat.icone} /></span>
+                  <span className="pc-txt">
+                    <b>{s.name}</b>
+                    <small>
+                      {courante ? (
+                        <>
+                          <span className="pc-cote">{etiquette(courante, triees)} · {dateVersion(courante)}</span>
+                          {triees.length > 1 ? ` · ${triees.length} versions` : ''}
+                        </>
+                      ) : 'Vide — dépose le premier fichier'}
+                    </small>
+                  </span>
+                </button>
+                {courante ? (
+                  <a className="pc-ouvrir" href={urlOuvrir(courante)} target="_blank" rel="noreferrer" aria-label={`Ouvrir ${s.name} (${etiquette(courante, triees)})`}>
+                    <Icone nom="eye" />
+                  </a>
+                ) : <Icone nom="chevron-right" />}
+              </div>
             );
           })}
         </div>
@@ -313,14 +320,48 @@ export function PlanCategorie({ params }: EcranProps) {
 
 // =====================================================================
 // 3. Serie — #serie/<serieId>
+// ---------------------------------------------------------------------
+// Refait le 2026-10-02 (demande Martin : « la visualisation doit être simple »).
+// - La VERSION COURANTE est une grande carte : la toucher ouvre le plan directement
+//   dans le lecteur du téléphone (plein écran, zoom, toutes les pages). Gros bouton
+//   « Ouvrir » en dessous (même effet).
+// - Les ANCIENNES VERSIONS sont une liste simple : toucher une ligne = l'ouvrir.
+// - Les actions secondaires (télécharger, partager, supprimer) sont dans le menu « ⋯ »
+//   de chaque version ; la gestion du document (modifier, ajouter une version,
+//   supprimer s'il est vide) dans le « ⋯ » de l'en-tête. Fini la ligne du temps à gauche.
+// L'écran Lecteur (#lecteur/...) existe toujours pour les anciens liens.
 // =====================================================================
 type FeuilleSerie =
+  | { t: 'gerer' }
   | { t: 'modifier' }
   | { t: 'version' }
   | { t: 'supprimerSerie' }
+  | { t: 'actions'; doc: Doc }
   | { t: 'supprimerVersion'; doc: Doc }
   | { t: 'partager'; doc: Doc }
   | null;
+
+// Adresse qui OUVRE la version (fichier affiché par le navigateur, ou lien externe).
+function urlOuvrir(d: Doc): string {
+  return estLien(d) ? d.fileUrl || '#' : docFileUrl(d);
+}
+
+// Icône selon le type de fichier.
+function iconeGenre(d: Doc): string {
+  const g = genre(d);
+  if (g === 'pdf') return 'file-pdf';
+  if (g === 'image') return 'file-image';
+  if (g === 'lien') return 'link';
+  return 'file';
+}
+
+// Libellé du bouton d'ouverture selon le type.
+function libelleOuvrir(d: Doc): string {
+  const g = genre(d);
+  if (g === 'lien') return 'Ouvrir le lien';
+  if (g === 'autre') return 'Télécharger';
+  return 'Ouvrir';
+}
 
 export function Serie({ params }: EcranProps) {
   const { aller, toast, proprio } = useChalet();
@@ -338,6 +379,8 @@ export function Serie({ params }: EcranProps) {
   if (!serie) return (<><Entete titre="Plans & devis" retour={() => aller('plans')} /><Vide>Ce document n&apos;existe plus.</Vide></>);
 
   const cat = infoCategorie(donnees.cats, serie.category);
+  const courante = triees[0];
+  const anciennes = triees.slice(1);
 
   async function supprimerVersion(doc: Doc) {
     try {
@@ -364,93 +407,139 @@ export function Serie({ params }: EcranProps) {
     }
   }
 
+  // Ligne d'infos d'une version : date · auteur · taille.
+  const infos = (d: Doc) => (
+    <>
+      <span className="pc-cote">{dateVersion(d)}</span>
+      {d.author ? ` · ${d.author}` : ''}
+      {fmtSize(d.fileSize) ? ` · ${fmtSize(d.fileSize)}` : ''}
+    </>
+  );
+
   return (
     <>
       <Entete
         titre={serie.name}
         retour={() => aller('planCat', serie.category)}
         actions={proprio ? (
-          <button className="pc-icobtn" aria-label="Modifier le document" onClick={() => setFeuille({ t: 'modifier' })}>
-            <Icone nom="pen" />
+          <button className="pc-icobtn" aria-label="Gérer ce document" onClick={() => setFeuille({ t: 'gerer' })}>
+            <Icone nom="ellipsis" />
           </button>
         ) : undefined}
       />
-      <div className="pc-rangee" style={{ marginTop: -8, marginBottom: 10 }}>
+      <div className="pc-rangee" style={{ marginTop: -8, marginBottom: 12 }}>
         <Chip v="info"><Icone nom={cat.icone} /> {cat.nom}</Chip>
         <span className="pc-muted pc-petit">{triees.length} version{triees.length > 1 ? 's' : ''}</span>
       </div>
       {serie.description && <p className="pc-muted pc-petit" style={{ marginTop: 0, whiteSpace: 'pre-wrap' }}>{serie.description}</p>}
       <Erreur message={erreur || erreurAction} />
 
-      {triees.length === 0 ? (
+      {!courante ? (
         <Vide>Aucune version encore.<br />Dépose le fichier : il sera rangé ici comme première version.</Vide>
       ) : (
-        <div className="pc-histo">
-          {triees.map((d, i) => {
-            const lien = estLien(d);
-            return (
-              <div key={d.id} className={`pc-carte${i === 0 ? ' courante' : ''}`} style={{ position: 'relative' }}>
-                <span className="pc-pt-h" />
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
-                  <b className="pc-cote" style={{ fontSize: 14 }}>{etiquette(d, triees)}</b>
-                  {i === 0 ? <Chip v="ok">Courante</Chip> : <Chip v="neutre">Ancienne</Chip>}
-                </div>
-                <div style={{ fontSize: 13, marginTop: 2, overflowWrap: 'anywhere' }}>{d.fileName || d.title}</div>
-                {d.fileName && d.title && d.fileName.replace(/\.[^.]+$/, '') !== d.title && (
-                  <div className="pc-petit" style={{ overflowWrap: 'anywhere' }}>{d.title}</div>
-                )}
-                <div className="pc-muted pc-petit">
-                  <span className="pc-cote">{dateVersion(d)}</span>
-                  {d.author ? ` · ${d.author}` : ''}
-                  {fmtSize(d.fileSize) ? ` · ${fmtSize(d.fileSize)}` : ''}
-                  {lien ? ' · lien externe' : ''}
-                </div>
-                {d.notes && <div className="pc-muted pc-petit" style={{ marginTop: 2, whiteSpace: 'pre-wrap' }}>{d.notes}</div>}
-                <div className="pc-rangee" style={{ marginTop: 8 }}>
-                  <button className={`pc-btn petit${i ? ' second' : ''}`} onClick={() => aller('lecteur', serie.id, d.id)}>
-                    <Icone nom="eye" /> Consulter
-                  </button>
-                  {lien ? (
-                    <a className="pc-btn petit second" href={d.fileUrl || '#'} target="_blank" rel="noreferrer" aria-label="Ouvrir le lien externe">
-                      <Icone nom="up-right-from-square" />
+        <>
+          {/* Version courante : toute la carte ouvre le document */}
+          <div className="pc-courante">
+            <a className="pc-courante-lien" href={urlOuvrir(courante)} target="_blank" rel="noreferrer" download={genre(courante) === 'autre' ? courante.fileName || undefined : undefined}>
+              <span className="pc-gros-ico"><Icone nom={iconeGenre(courante)} /></span>
+              <span className="pc-txt">
+                <span className="pc-surtitre" style={{ color: 'var(--pc-sapin)' }}>Version courante · {etiquette(courante, triees)}</span>
+                <b>{courante.fileName || courante.title}</b>
+                <small>{infos(courante)}</small>
+              </span>
+            </a>
+            {courante.notes && <p className="pc-muted pc-petit pc-2l" style={{ margin: '8px 0 0' }}>{courante.notes}</p>}
+            <div className="pc-rangee" style={{ marginTop: 12, flexWrap: 'nowrap' }}>
+              <a className="pc-btn grand" style={{ flex: 1 }} href={urlOuvrir(courante)} target="_blank" rel="noreferrer" download={genre(courante) === 'autre' ? courante.fileName || undefined : undefined}>
+                <Icone nom={genre(courante) === 'autre' ? 'download' : 'eye'} /> {libelleOuvrir(courante)}
+              </a>
+              <button className="pc-btn second grand" style={{ width: 56, flex: '0 0 auto' }} aria-label="Autres actions pour cette version" onClick={() => setFeuille({ t: 'actions', doc: courante })}>
+                <Icone nom="ellipsis" />
+              </button>
+            </div>
+          </div>
+
+          {/* Anciennes versions : une ligne = un toucher pour ouvrir */}
+          {anciennes.length > 0 && (
+            <>
+              <div className="pc-section-titre"><h3>Anciennes versions</h3><span className="pc-muted pc-petit">{anciennes.length}</span></div>
+              <div className="pc-liste">
+                {anciennes.map((d) => (
+                  <div key={d.id} className="pc-ligne">
+                    <a className="pc-ligne-lien" href={urlOuvrir(d)} target="_blank" rel="noreferrer" download={genre(d) === 'autre' ? d.fileName || undefined : undefined}>
+                      <span className="pc-pt pc-c-neutre"><Icone nom={iconeGenre(d)} /></span>
+                      <span className="pc-txt">
+                        <b><span className="pc-cote">{etiquette(d, triees)}</span> · {d.fileName || d.title}</b>
+                        <small>{infos(d)}</small>
+                      </span>
                     </a>
-                  ) : (
-                    <a className="pc-btn petit second" href={docDownloadUrl(d)} download={d.fileName || undefined} aria-label="Télécharger">
-                      <Icone nom="download" />
-                    </a>
-                  )}
-                  {proprio && (
-                    <button className="pc-btn petit second" aria-label="Partager par lien" onClick={() => setFeuille({ t: 'partager', doc: d })}>
-                      <Icone nom="share-nodes" />
+                    <button className="pc-icobtn" aria-label={`Autres actions pour ${etiquette(d, triees)}`} onClick={() => setFeuille({ t: 'actions', doc: d })}>
+                      <Icone nom="ellipsis-vertical" />
                     </button>
-                  )}
-                  {proprio && (
-                    <button className="pc-btn petit danger" aria-label="Supprimer cette version" onClick={() => setFeuille({ t: 'supprimerVersion', doc: d })}>
-                      <Icone nom="trash-can" />
-                    </button>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </>
+          )}
+        </>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-        {proprio && (
-          <button className="pc-btn" onClick={() => setFeuille({ t: 'version' })}>
-            <Icone nom="upload" /> Ajouter une version
-          </button>
-        )}
+      <div style={{ marginTop: 16 }}>
         <button className="pc-btn second" onClick={() => aller('depot')}>
           <Icone nom="inbox" /> Déposer une nouvelle version
         </button>
-        {proprio && triees.length === 0 && (
-          <button className="pc-btn danger" onClick={() => setFeuille({ t: 'supprimerSerie' })}>
-            <Icone nom="trash-can" /> Supprimer ce document
-          </button>
-        )}
       </div>
+
+      {/* Menu « ⋯ » d'une version */}
+      {feuille?.t === 'actions' && (
+        <Feuille titre={`${etiquette(feuille.doc, triees)} · ${feuille.doc.fileName || feuille.doc.title}`} onFermer={fermer}>
+          <div className="pc-liste">
+            <a className="pc-ligne" href={urlOuvrir(feuille.doc)} target="_blank" rel="noreferrer">
+              <span className="pc-pt pc-c-ok"><Icone nom="eye" /></span><span className="pc-txt"><b>Ouvrir</b></span>
+            </a>
+            {!estLien(feuille.doc) && (
+              <a className="pc-ligne" href={docDownloadUrl(feuille.doc)} download={feuille.doc.fileName || undefined}>
+                <span className="pc-pt pc-c-info"><Icone nom="download" /></span><span className="pc-txt"><b>Télécharger</b></span>
+              </a>
+            )}
+            {triees.length > 1 && (
+              <button className="pc-ligne" onClick={() => { const d = feuille.doc; fermer(); aller('lecteur', serie.id, d.id); }}>
+                <span className="pc-pt pc-c-info"><Icone nom="code-compare" /></span>
+                <span className="pc-txt"><b>Comparer les versions</b><small>Passer d&apos;une version à l&apos;autre dans l&apos;app</small></span>
+              </button>
+            )}
+            {proprio && (
+              <button className="pc-ligne" onClick={() => setFeuille({ t: 'partager', doc: feuille.doc })}>
+                <span className="pc-pt pc-c-info"><Icone nom="share-nodes" /></span><span className="pc-txt"><b>Partager par lien</b><small>Lien qui expire</small></span>
+              </button>
+            )}
+            {proprio && (
+              <button className="pc-ligne" onClick={() => setFeuille({ t: 'supprimerVersion', doc: feuille.doc })}>
+                <span className="pc-pt pc-c-bad"><Icone nom="trash-can" /></span><span className="pc-txt"><b style={{ color: 'var(--pc-bad)' }}>Supprimer cette version</b></span>
+              </button>
+            )}
+          </div>
+        </Feuille>
+      )}
+
+      {/* Menu « ⋯ » du document (propriétaires) */}
+      {feuille?.t === 'gerer' && (
+        <Feuille titre={serie.name} onFermer={fermer}>
+          <div className="pc-liste">
+            <button className="pc-ligne" onClick={() => setFeuille({ t: 'version' })}>
+              <span className="pc-pt pc-c-ok"><Icone nom="upload" /></span><span className="pc-txt"><b>Ajouter une version</b><small>Fichier ou lien</small></span>
+            </button>
+            <button className="pc-ligne" onClick={() => setFeuille({ t: 'modifier' })}>
+              <span className="pc-pt pc-c-info"><Icone nom="pen" /></span><span className="pc-txt"><b>Renommer / changer de catégorie</b></span>
+            </button>
+            {triees.length === 0 && (
+              <button className="pc-ligne" onClick={() => setFeuille({ t: 'supprimerSerie' })}>
+                <span className="pc-pt pc-c-bad"><Icone nom="trash-can" /></span><span className="pc-txt"><b style={{ color: 'var(--pc-bad)' }}>Supprimer ce document</b><small>Possible seulement s&apos;il est vide</small></span>
+              </button>
+            )}
+          </div>
+        </Feuille>
+      )}
 
       {feuille?.t === 'modifier' && (
         <SerieForm

@@ -29,7 +29,8 @@ export const THEME_CSS = `
 .pc *, .pc *::before, .pc *::after { box-sizing: border-box; }
 .pc h1, .pc h2, .pc h3 { font-family: var(--pc-f-titre); margin: 0; text-wrap: balance; }
 .pc button { font: inherit; color: inherit; cursor: pointer; }
-.pc a { color: var(--pc-lac); }
+/* Seuls les liens « texte » (sans classe) sont bleus ; un lien stylé en bouton/ligne garde sa couleur */
+.pc a:not([class]), .pc a.pc-lien { color: var(--pc-lac); }
 .pc :focus-visible { outline: 2px solid var(--pc-lac); outline-offset: 2px; }
 .pc img { max-width: 100%; }
 
@@ -147,10 +148,21 @@ export const THEME_CSS = `
 .pc-vchips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin: 0 0 10px; scrollbar-width: none; }
 .pc-vchips button { flex: 0 0 auto; border: 1px solid var(--pc-ligne); background: var(--pc-carte); border-radius: 999px; padding: 6px 12px; font-family: var(--pc-f-cote); font-size: 12px; }
 .pc-vchips button.on { background: var(--pc-sapin); border-color: var(--pc-sapin); color: var(--pc-sur-sapin); }
-.pc-histo { position: relative; padding-left: 20px; }
-.pc-histo::before { content: ""; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 2px; background: var(--pc-ligne); }
-.pc-histo .pc-pt-h { position: absolute; left: -20px; top: 14px; width: 12px; height: 12px; border-radius: 50%; background: var(--pc-ligne); border: 2px solid var(--pc-papier); }
-.pc-histo .courante .pc-pt-h { background: var(--pc-sapin); }
+/* Plans & devis — écran d'un document (2026-10-02) : carte « version courante » qui ouvre le plan,
+   lignes à 2 zones (zone principale cliquable + bouton à droite) */
+.pc-courante { background: var(--pc-carte); border: 1.5px solid var(--pc-sapin); border-radius: 18px; padding: 14px; }
+.pc-courante-lien { display: flex; gap: 14px; align-items: center; color: inherit; text-decoration: none; }
+.pc-courante-lien .pc-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pc-courante-lien b { font-size: 16px; overflow-wrap: anywhere; }
+.pc-courante-lien small { color: var(--pc-gris); font-size: 12.5px; }
+.pc-gros-ico { width: 52px; height: 52px; border-radius: 14px; background: color-mix(in srgb, var(--pc-sapin) 16%, transparent); color: var(--pc-sapin); display: grid; place-items: center; font-size: 24px; flex: 0 0 auto; }
+.pc-btn.grand { padding: 15px; font-size: 16.5px; border-radius: 16px; }
+.pc-2l { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pc-ligne-lien { display: flex; gap: 12px; align-items: center; flex: 1; min-width: 0; background: none; border: 0; padding: 0; text-align: left; color: inherit; text-decoration: none; font: inherit; cursor: pointer; }
+.pc-ligne-lien .pc-txt { flex: 1; min-width: 0; }
+.pc-ligne-lien .pc-txt b { display: block; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+.pc-ligne-lien .pc-txt small { display: block; color: var(--pc-gris); font-size: 12.5px; overflow-wrap: anywhere; }
+.pc-ouvrir { width: 44px; height: 44px; border-radius: 50%; background: var(--pc-sapin); color: var(--pc-sur-sapin); display: grid; place-items: center; flex: 0 0 auto; font-size: 17px; text-decoration: none; }
 
 .pc-chargement { display: grid; place-items: center; min-height: 40vh; color: var(--pc-gris); }
 
