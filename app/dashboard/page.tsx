@@ -20,6 +20,7 @@ import Avatar from '@/components/Avatar';
 
 // Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
 const APP_PRIORITY: Record<string, number> = {
+  carriere: -30, // 2026-10-07 : Carrière (privée Martin) tout en haut de son tableau de bord
   'projet-chalet': -20, // 2026-10-01 : app unifiée (remplace Notre Chalet + Chantier Chalet) tout en haut
   pieces: -20, // demande Martin 2026-08-14 : Notre Chalet (pièce par pièce) tout en haut
   budget: -10, // demande Martin 2026-07-14 : Budget en premier (seuls les parents l'ont)
