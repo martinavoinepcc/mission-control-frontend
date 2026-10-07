@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Carrière — Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F2EE; --surface:#FFFFFF; --surface-2:#FAF8F5; --ink:#1E2A33; --muted:#5E6A72; --faint:#8A949B;
+    --line:#E2DED7; --accent:#B4643C; --accent-ink:#8E4A28; --accent-soft:#F6E8DF;
+    --ok:#2F7A5B; --ok-soft:#E3F1EA; --warn:#A87515; --warn-soft:#FBF0D9; --bad:#A63D32; --bad-soft:#F7E4E1;
+    --info:#2F5F86; --info-soft:#E3EDF6;
+    --radius:12px; --shadow:0 1px 2px rgba(30,42,51,.06),0 4px 14px rgba(30,42,51,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14191D; --surface:#1C2328; --surface-2:#20282E; --ink:#E8E4DE; --muted:#A3ACB2; --faint:#7D878D;
+      --line:#2E383F; --accent:#D98A5F; --accent-ink:#F0B08B; --accent-soft:#3A2A21;
+      --ok:#6CC49C; --ok-soft:#1F3229; --warn:#E0B157; --warn-soft:#352C1A; --bad:#E58377; --bad-soft:#3A2321;
+      --info:#8DB8DE; --info-soft:#1E2C39; --shadow:none;
+    }
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  [hidden]{display:none !important;}
+  html{font-size:16px; overflow-x:clip;}
+  body{background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',system-ui,sans-serif; line-height:1.45;
+       padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right);}
+  .wrap{max-width:1200px; margin:0 auto; padding:16px 16px 90px;}
+  h1,h2,h3,.cond{font-family:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;}
+  a{color:var(--accent-ink);}
+  .num{font-variant-numeric:tabular-nums;}
+  .backlink{display:inline-flex; align-items:center; gap:6px; font-size:.88rem; font-weight:600; color:var(--muted); text-decoration:none; min-height:40px;}
+  header.top{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
+  header.top h1{font-size:1.9rem; font-weight:700; letter-spacing:-.01em;}
+  header.top p{color:var(--muted); font-size:.9rem;}
+  .actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .btn{border:1px solid transparent; cursor:pointer; font:inherit; font-weight:600; font-size:.92rem; border-radius:9px; padding:10px 16px; min-height:44px; background:var(--surface); color:var(--ink);}
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-ghost{background:transparent; border-color:var(--line); color:var(--ink);}
+  .btn-sm{min-height:36px; padding:6px 12px; font-size:.85rem;}
+  .btn-danger{color:var(--bad); border-color:var(--bad-soft); background:transparent;}
+  .btn:disabled{opacity:.5; cursor:default;}
+
+  nav.tabs{position:sticky; top:0; z-index:5; background:var(--bg); display:flex; gap:4px; overflow-x:auto; padding:8px 0; margin-bottom:12px; border-bottom:1px solid var(--line); scrollbar-width:none;}
+  nav.tabs button{flex:0 0 auto; border:none; background:transparent; font:inherit; font-weight:600; color:var(--muted); padding:10px 14px; border-radius:8px; min-height:44px; cursor:pointer;}
+  nav.tabs button[aria-selected="true"]{background:var(--surface); color:var(--ink); box-shadow:var(--shadow);}
+  nav.tabs .count{display:inline-block; min-width:22px; padding:0 6px; margin-left:6px; border-radius:11px; background:var(--accent); color:#fff; font-size:.75rem; line-height:20px; text-align:center;}
+
+  .panel{display:none;} .panel.on{display:block;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px;}
+  .grid{display:grid; gap:12px;}
+  @media (min-width:760px){ .g2{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:repeat(3,1fr);} .g5{grid-template-columns:repeat(5,1fr);} }
+  .g5{grid-template-columns:repeat(2,1fr);}
+  h2.sec{font-size:1.15rem; font-weight:700; margin:18px 0 8px; display:flex; align-items:center; gap:8px;}
+  h2.sec small{font-family:'IBM Plex Sans',sans-serif; font-weight:500; color:var(--muted); font-size:.85rem;}
+  .empty{color:var(--muted); font-size:.92rem; padding:12px; border:1px dashed var(--line); border-radius:10px; text-align:center;}
+
+  .pill{display:inline-flex; align-items:center; gap:4px; font-size:.75rem; font-weight:600; padding:2px 8px; border-radius:999px; background:var(--surface-2); color:var(--muted); border:1px solid var(--line); white-space:nowrap;}
+  .p-ok{background:var(--ok-soft); color:var(--ok); border-color:transparent;}
+  .p-warn{background:var(--warn-soft); color:var(--warn); border-color:transparent;}
+  .p-bad{background:var(--bad-soft); color:var(--bad); border-color:transparent;}
+  .p-info{background:var(--info-soft); color:var(--info); border-color:transparent;}
+  .p-acc{background:var(--accent-soft); color:var(--accent-ink); border-color:transparent;}
+
+  .item{display:flex; flex-direction:column; gap:4px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--surface); cursor:pointer; text-align:left; width:100%; font:inherit; color:inherit;}
+  .item:hover{border-color:var(--accent);}
+  .item .t{font-weight:600;}
+  .item .e{color:var(--muted); font-size:.88rem;}
+  .item .meta{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .item .why{font-size:.85rem; color:var(--ink);}
+  .stack{display:flex; flex-direction:column; gap:8px;}
+
+  .kpi{padding:14px; border-radius:var(--radius); background:var(--surface); border:1px solid var(--line);}
+  .kpi b{display:block; font-family:'IBM Plex Sans Condensed',sans-serif; font-size:2rem; line-height:1.1;}
+  .kpi span{color:var(--muted); font-size:.85rem;}
+
+  /* Tableau par étapes */
+  .board{display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; align-items:flex-start;}
+  .col{flex:0 0 250px; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:8px; min-height:120px;}
+  .col.drop{outline:2px dashed var(--accent); outline-offset:-4px;}
+  .col h3{font-size:.92rem; font-weight:700; padding:4px 6px 8px; display:flex; justify-content:space-between;}
+  .col .item{margin-bottom:8px; padding:10px;}
+  .col .item[draggable="true"]{cursor:grab;}
+
+  /* Liste */
+  .filters{display:grid; gap:8px; grid-template-columns:1fr 1fr; margin-bottom:10px;}
+  @media (min-width:900px){ .filters{grid-template-columns:2fr repeat(6,1fr);} }
+  .filters .wide{grid-column:1/-1;}
+  @media (min-width:900px){ .filters .wide{grid-column:auto;} }
+  label.f{display:flex; flex-direction:column; gap:4px; font-size:.82rem; font-weight:600; color:var(--muted);}
+  input,select,textarea{font:inherit; font-size:16px; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:9px 10px; min-height:44px; width:100%;}
+  textarea{min-height:90px; resize:vertical;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); outline-offset:0; border-color:transparent;}
+
+  /* Calendrier */
+  .cal-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .cal{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .cal .dow{font-size:.75rem; font-weight:600; color:var(--muted); text-align:center; padding:4px 0;}
+  .cal .day{min-height:58px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:4px; font-size:.8rem; cursor:pointer;}
+  .cal .day.out{opacity:.4;}
+  .cal .day.today{border-color:var(--accent); border-width:2px;}
+  .cal .day.sel{background:var(--accent-soft);}
+  .dots{display:flex; flex-wrap:wrap; gap:3px; margin-top:4px;}
+  .dot{width:8px; height:8px; border-radius:50%;}
+  .d-ent{background:var(--info);} .d-ech{background:var(--bad);} .d-act{background:var(--accent);} .d-rel{background:var(--warn);}
+  .legend{display:flex; gap:12px; flex-wrap:wrap; font-size:.8rem; color:var(--muted); margin:8px 0;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+
+  /* Fiche */
+  dialog{border:none; padding:0; background:transparent; max-width:none; max-height:none; width:100%; height:100%;}
+  dialog::backdrop{background:rgba(10,14,18,.55);}
+  .sheet{background:var(--bg); width:100%; height:100%; overflow-y:auto; display:flex; flex-direction:column;}
+  @media (min-width:860px){ dialog.fiche{width:min(920px,94vw); height:92vh; margin:auto;} .sheet{border-radius:14px;} }
+  .sheet-head{position:sticky; top:0; z-index:2; background:var(--surface); border-bottom:1px solid var(--line); padding:12px 16px; display:flex; flex-direction:column; gap:8px;}
+  .sheet-head .row{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+  .sheet-head h2{font-size:1.3rem; font-weight:700; line-height:1.2;}
+  .sheet-head .emp{color:var(--muted); font-weight:600;}
+  .sheet-body{padding:14px 16px 40px;}
+  .subtabs{display:flex; gap:4px; overflow-x:auto; scrollbar-width:none;}
+  .subtabs button{flex:0 0 auto; border:none; background:transparent; font:inherit; font-size:.88rem; font-weight:600; color:var(--muted); padding:8px 12px; min-height:40px; border-radius:8px; cursor:pointer;}
+  .subtabs button[aria-selected="true"]{background:var(--accent-soft); color:var(--accent-ink);}
+  .fgrid{display:grid; gap:10px; grid-template-columns:1fr;}
+  @media (min-width:640px){ .fgrid{grid-template-columns:1fr 1fr;} .fgrid .full{grid-column:1/-1;} }
+  .savebar{display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; align-items:center;}
+  .savebar .msg{color:var(--muted); font-size:.85rem; margin-right:auto;}
+  .note{font-size:.85rem; color:var(--muted); background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:8px 10px;}
+  .note.warn{background:var(--warn-soft); color:var(--warn); border-color:transparent;}
+  .hist{display:flex; flex-direction:column; gap:8px;}
+  .ev{border-left:3px solid var(--line); padding:6px 10px; background:var(--surface); border-radius:0 8px 8px 0;}
+  .ev.ETAPE{border-color:var(--accent);} .ev.DISPO{border-color:var(--info);} .ev.VEILLE_MODIF{border-color:var(--warn);} .ev.annule{opacity:.5; text-decoration:line-through;}
+  .ev .h{display:flex; justify-content:space-between; gap:8px; font-size:.82rem; color:var(--muted); flex-wrap:wrap;}
+  .ev .b{font-size:.92rem;}
+  .ev .tools{display:flex; gap:6px; margin-top:4px;}
+  .sub{border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--surface); margin-bottom:8px;}
+  .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:10px; font-weight:600; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; z-index:50; max-width:90vw;}
+  .toast.on{opacity:1;}
+  .mini{width:min(460px,92vw); margin:auto; height:auto;}
+  .mini .sheet{height:auto; border-radius:14px; padding:16px; gap:10px;}
+  .mini h3{font-size:1.1rem;}
+  .src{font-size:.82rem; color:var(--muted); word-break:break-all;}
+  .stat-bar{display:flex; align-items:center; gap:8px; font-size:.88rem; margin:4px 0;}
+  .stat-bar .bar{flex:1; height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; border:1px solid var(--line);}
+  .stat-bar .bar i{display:block; height:100%; background:var(--accent);}
+  .stat-bar .lbl{width:170px; flex:0 0 170px;}
+  @media (max-width:520px){ .stat-bar .lbl{width:120px; flex-basis:120px;} }
+  .loading{padding:40px; text-align:center; color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="/dashboard?realm=work">← Mission Control</a>
+  <header class="top">
+    <div>
+      <h1>Carrière</h1>
+      <p>Veille emploi et candidatures · privé</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="btnNew">+ Opportunité</button>
+      <button class="btn btn-ghost" id="btnExportJson">Exporter JSON</button>
+      <button class="btn btn-ghost" id="btnExportCsv">Exporter CSV</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-tab="today" aria-selected="true">Aujourd'hui<span class="count" id="cToday" hidden></span></button>
+    <button role="tab" data-tab="board" aria-selected="false">Tableau</button>
+    <button role="tab" data-tab="list" aria-selected="false">Liste</button>
+    <button role="tab" data-tab="cal" aria-selected="false">Calendrier</button>
+    <button role="tab" data-tab="overview" aria-selected="false">Vue d'ensemble</button>
+  </nav>
+
+  <div id="loading" class="loading">Chargement du dossier…</div>
+  <section class="panel" id="p-today"></section>
+  <section class="panel" id="p-board"></section>
+  <section class="panel" id="p-list"></section>
+  <section class="panel" id="p-cal"></section>
+  <section class="panel" id="p-overview"></section>
+</div>
+
+<dialog class="fiche" id="fiche"><div class="sheet" id="ficheSheet"></div></dialog>
+<dialog class="mini" id="mini"><form class="sheet" id="miniForm" method="dialog"></form></dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ═══════════════ API Mission Control ═══════════════
+   Les données vivent dans le backend (route /carriere, privée à Martin).
+   Ce fichier ne contient AUCUNE donnée de candidature. ?api=http://localhost:PORT
+   permet un test local. */
+const API_URL = new URLSearchParams(location.search).get('api') || 'https://api.my-mission-control.com';
+const TZ = 'America/Toronto';
+function mcToken(){ return localStorage.getItem('mc_token'); }
+
+async function api(path, opts){
+  const res = await fetch(API_URL + path, Object.assign({}, opts, {
+    headers: Object.assign({ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (mcToken() || '') }, (opts && opts.headers) || {})
+  }));
+  if(res.status === 401){ window.location.href = '/'; throw new Error('auth'); }
+  const data = await res.json().catch(() => ({}));
+  if(res.status === 403) throw new Error(data.erreur || 'Accès réservé.');
+  if(!res.ok){ const e = new Error(data.erreur || ('Erreur ' + res.status)); e.data = data; e.status = res.status; throw e; }
+  return data;
+}
+
+/* ═══════════════ Référentiels ═══════════════ */
+const ETAPES = [
+  ['REPEREE','Repérée'],['A_ANALYSER','À analyser'],['RETENUE','Retenue'],['EN_PREPARATION','Candidature en préparation'],
+  ['ENVOYEE','Candidature envoyée'],['PRESELECTION','Présélection / appel recruteur'],['ENTREVUE','Entrevue'],
+  ['EVALUATION','Test, évaluation ou références'],['OFFRE','Offre reçue'],['NEGOCIATION','Négociation'],
+  ['ACCEPTEE','Acceptée'],['REFUS_EMPLOYEUR','Refus de l’employeur'],['RETIREE_MOI','Retirée par moi / non retenue'],
+];
+const ETAPE_LBL = Object.fromEntries(ETAPES);
+const ETAPES_PREUVE = new Set(['ENVOYEE','PRESELECTION','ENTREVUE','EVALUATION','OFFRE','NEGOCIATION','ACCEPTEE','REFUS_EMPLOYEUR']);
+const ETAPES_DEMARCHE = new Set(['ENVOYEE','PRESELECTION','ENTREVUE','EVALUATION','OFFRE','NEGOCIATION']);
+const ETAPES_FERMEES = new Set(['ACCEPTEE','REFUS_EMPLOYEUR','RETIREE_MOI']);
+const DISPOS = [['A_VERIFIER','À vérifier','p-warn'],['ACTIVE','Active vérifiée','p-ok'],['EXPIREE','Expirée','p-bad'],['RETIREE','Retirée','p-bad'],['INCONNUE','Statut inconnu','']];
+const DISPO = Object.fromEntries(DISPOS.map(d => [d[0], d]));
+const PERTS = [['PRIORITAIRE','Prioritaire','p-acc'],['A_CLARIFIER','À clarifier','p-info'],['EXPLORATION','Exploration',''],['ECART','Écart important','p-warn'],['HORS_RECO','Hors recommandations','p-bad']];
+const PERT = Object.fromEntries(PERTS.map(p => [p[0], p]));
+const PERT_RANG = {PRIORITAIRE:0, A_CLARIFIER:1, EXPLORATION:2, ECART:3, HORS_RECO:4};
+const DIPLOME_CLASSES = ['', 'Expérience ou combinaison formation-expérience acceptée', 'Diplôme souhaité / atout', 'Diplôme exigé sans équivalence mentionnée — admissibilité à clarifier', 'Qualification obligatoire ou réglementée (vérifiée)', 'Exigence absente ou ambiguë'];
+
+/* ═══════════════ Utilitaires ═══════════════ */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+function esc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function safeUrl(u){ const s = String(u || '').trim(); return /^https?:\/\//i.test(s) ? s : ''; }
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2600); }
+// Jour civil à Toronto, format AAAA-MM-JJ
+function ymd(d){ if(!d) return ''; const x = new Date(d); if(isNaN(x)) return ''; return new Intl.DateTimeFormat('en-CA',{timeZone:TZ, year:'numeric', month:'2-digit', day:'2-digit'}).format(x); }
+function today(){ return ymd(new Date()); }
+function addDays(s, n){ const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
+function addBusinessDays(s, n){ let d = s, k = 0; while(k < n){ d = addDays(d, 1); const w = new Date(d + 'T12:00:00Z').getUTCDay(); if(w !== 0 && w !== 6) k++; } return d; }
+function diffDays(a, b){ return Math.round((new Date(a + 'T12:00:00Z') - new Date(b + 'T12:00:00Z')) / 86400000); }
+function fmtDate(d){ const s = typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : ymd(d); if(!s) return '—'; return new Date(s + 'T12:00:00Z').toLocaleDateString('fr-CA', {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'}); }
+function fmtDateTime(d){ if(!d) return '—'; const x = new Date(d); if(isNaN(x)) return esc(d); return x.toLocaleString('fr-CA', {timeZone:TZ, day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
+function money(n){ return n == null ? '' : Math.round(n).toLocaleString('fr-CA') + ' $'; }
+function arr(v){ return Array.isArray(v) ? v : []; }
+function obj(v){ return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
+function uid(){ return Math.random().toString(36).slice(2, 10); }
+function pill(cls, txt){ return `<span class="pill ${cls || ''}">${esc(txt)}</span>`; }
+function dispoPill(o){ const d = DISPO[o.dispo] || [o.dispo, o.dispo, '']; return pill(d[2], d[1]); }
+function pertPill(o){ const p = PERT[o.pertinence] || [o.pertinence, o.pertinence, '']; return pill(p[2], p[1]); }
+function salaireTxt(o){
+  if(o.salaireMin || o.salaireMax) return [o.salaireMin, o.salaireMax].filter(v => v != null).map(money).join(' – ');
+  return o.salaire || 'non affiché';
+}
+
+/* ═══════════════ État ═══════════════ */
+let OFFRES = [];
+let JOURNAL = [];
+let ficheId = null;
+let ficheTab = 'resume';
+let calMonth = today().slice(0, 7);
+let calSel = today();
+const LIST_PREF_KEY = 'carriere-liste-prefs';
+let listPrefs = { q:'', emp:'', etape:'', dispo:'', pert:'', lieu:'', salMin:'', tri:'action', section:'actives' };
+try { Object.assign(listPrefs, JSON.parse(localStorage.getItem(LIST_PREF_KEY) || '{}')); } catch(e) {}
+
+function nonConfirmee(o){ return !o.archive && ['A_VERIFIER','INCONNUE'].includes(o.dispo) && ['REPEREE','A_ANALYSER'].includes(o.etape); }
+function evs(o){ return arr(o.evenements).filter(e => !e.annule); }
+function dernierEchange(o){
+  const l = evs(o).filter(e => ['ECHANGE','ETAPE','ENTREVUE','CREATION'].includes(e.type)).map(e => ymd(e.date)).sort();
+  const ent = arr(o.entrevues).map(x => (x.date || '').slice(0,10)).filter(d => d && d <= today());
+  return [...l, ...ent].sort().pop() || ymd(o.createdAt);
+}
+
+/* Relance suggérée : jamais mécanique si l'employeur a donné un calendrier. */
+function relance(o){
+  if(o.archive || !ETAPES_DEMARCHE.has(o.etape)) return null;
+  const c = obj(o.candidature);
+  const t = today();
+  const prochaineEnt = arr(o.entrevues).map(x => (x.date || '').slice(0,10)).filter(d => d && d >= t).sort()[0];
+  if(prochaineEnt) return { date:null, raison:`Entrevue prévue le ${fmtDate(prochaineEnt)} — pas de relance d'ici là.` };
+  if(c.calendrierEmployeur){
+    const d = addBusinessDays(c.calendrierEmployeur, 2);
+    return { date:d, raison:`L'employeur a annoncé un retour d'ici le ${fmtDate(c.calendrierEmployeur)} : relancer seulement après, vers le ${fmtDate(d)}.` };
+  }
+  const base = dernierEchange(o);
+  const delais = { ENVOYEE:10, PRESELECTION:5, ENTREVUE:5, EVALUATION:5, OFFRE:3, NEGOCIATION:3 };
+  const n = delais[o.etape] || 7;
+  const d = addBusinessDays(base, n);
+  return { date:d, raison:`${n} jours ouvrables après le dernier échange (${fmtDate(base)}) sans calendrier annoncé.` };
+}
+function stagne(o){
+  if(o.archive || ETAPES_FERMEES.has(o.etape)) return false;
+  const last = evs(o).map(e => ymd(e.date)).sort().pop() || ymd(o.updatedAt);
+  const seuil = ETAPES_DEMARCHE.has(o.etape) ? 14 : 21;
+  return diffDays(today(), last) > seuil;
+}
+function joursDepuis(o){ const last = evs(o).map(e => ymd(e.date)).sort().pop() || ymd(o.updatedAt); return diffDays(today(), last); }
+
+/* ═══════════════ Chargement ═══════════════ */
+async function charger(){
+  try {
+    const d = await api('/carriere/offres');
+    OFFRES = d.offres || [];
+    JOURNAL = d.journal || [];
+    $('#loading').hidden = true;
+    renderAll();
+  } catch(e) {
+    if(e.message === 'auth') return;
+    $('#loading').innerHTML = esc(e.message || 'Impossible de charger le dossier.');
+  }
+}
+function remplacer(o){ const i = OFFRES.findIndex(x => x.id === o.id); if(i >= 0) OFFRES[i] = o; else OFFRES.push(o); renderAll(); if(ficheId === o.id) renderFiche(); }
+
+/* ═══════════════ Onglets ═══════════════ */
+let currentTab = 'today';
+try { const t = localStorage.getItem('carriere-tab'); if(t) currentTab = t; } catch(e) {}
+function setTab(t){
+  currentTab = t;
+  try { localStorage.setItem('carriere-tab', t); } catch(e) {}
+  $$('#tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+  $$('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + t));
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab); });
+
+function renderAll(){
+  renderToday(); renderBoard(); renderList(); renderCal(); renderOverview();
+  setTab(currentTab);
+}
+
+function carte(o, why){
+  const ech = o.echeance ? `<span class="pill ${diffDays(ymd(o.echeance), today()) <= 3 ? 'p-bad' : ''}">Échéance ${fmtDate(o.echeance)}</span>` : '';
+  return `<button class="item" data-open="${o.id}">
+    <span class="t">${esc(o.titre)}</span>
+    <span class="e">${esc(o.employeur)}${o.lieu ? ' · ' + esc(o.lieu) : ''}</span>
+    ${why ? `<span class="why">${why}</span>` : ''}
+    <span class="meta">${pill('', ETAPE_LBL[o.etape] || o.etape)}${dispoPill(o)}${pertPill(o)}${ech}</span>
+  </button>`;
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if(b && !b.closest('dialog')) ouvrirFiche(Number(b.dataset.open)); });
+
+/* ═══════════════ Aujourd'hui ═══════════════ */
+function renderToday(){
+  const t = today();
+  const vivantes = OFFRES.filter(o => !o.archive && !ETAPES_FERMEES.has(o.etape));
+  const dues = vivantes.filter(o => o.actionDate && ymd(o.actionDate) <= t).sort((a,b) => ymd(a.actionDate).localeCompare(ymd(b.actionDate)));
+  const echeances = vivantes.filter(o => o.echeance && !ETAPES_DEMARCHE.has(o.etape) && ymd(o.echeance) >= t && diffDays(ymd(o.echeance), t) <= 7 && o.dispo !== 'EXPIREE' && o.dispo !== 'RETIREE').sort((a,b) => ymd(a.echeance).localeCompare(ymd(b.echeance)));
+  const relances = vivantes.map(o => ({o, r:relance(o)})).filter(x => x.r && x.r.date && x.r.date <= t);
+  const entrevues = [];
+  OFFRES.forEach(o => arr(o.entrevues).forEach(x => { const d = (x.date || '').slice(0,10); if(d && d >= t && diffDays(d, t) <= 7) entrevues.push({o, x, d}); }));
+  entrevues.sort((a,b) => (a.x.date || '').localeCompare(b.x.date || ''));
+  const stag = vivantes.filter(stagne);
+  const changements = [];
+  OFFRES.forEach(o => evs(o).forEach(e => { if((e.type === 'VEILLE_MODIF' || e.type === 'DISPO') && e.details && e.details.important && diffDays(t, ymd(e.date)) <= 7) changements.push({o, e}); }));
+  const nouvelles = OFFRES.filter(o => !o.archive && diffDays(t, ymd(o.decouverteLe)) <= 2 && ['REPEREE','A_ANALYSER'].includes(o.etape) && !nonConfirmee(o));
+
+  const nb = dues.length + relances.length + echeances.filter(o => diffDays(ymd(o.echeance), t) <= 3).length;
+  const c = $('#cToday'); c.hidden = !nb; c.textContent = nb;
+
+  const bloc = (titre, sous, items) => `<h2 class="sec">${titre}${sous ? ` <small>${sous}</small>` : ''}</h2>` + (items.length ? `<div class="stack">${items.join('')}</div>` : `<div class="empty">Rien ici.</div>`);
+  $('#p-today').innerHTML =
+    `<p class="note">Aujourd'hui : ${fmtDate(t)}. Les relances sont <b>préparées</b> ici, jamais envoyées sans ton instruction.</p>` +
+    bloc('Actions dues', 'prochaine action à faire ou en retard', dues.map(o => carte(o, `<b>${diffDays(t, ymd(o.actionDate)) > 0 ? 'En retard de ' + diffDays(t, ymd(o.actionDate)) + ' j' : 'Aujourd’hui'}</b> — ${esc(o.prochaineAction || 'Action sans libellé')}${o.actionResponsable ? ' · ' + esc(o.actionResponsable) : ''}`))) +
+    bloc('Entrevues des 7 prochains jours', '', entrevues.map(({o, x}) => carte(o, `<b>${fmtDateTime(x.date)}</b> — ${esc(x.format || 'format à préciser')}${x.participants ? ' · ' + esc(x.participants) : ''}`))) +
+    bloc('Échéances proches', 'annonces non encore postulées, 7 jours', echeances.map(o => carte(o, `Ferme dans <b>${diffDays(ymd(o.echeance), t)} j</b> — vérifier la disponibilité avant d'agir`))) +
+    bloc('Relances à préparer', '', relances.map(({o, r}) => carte(o, esc(r.raison)))) +
+    bloc('Changements importants (7 j)', 'détectés par la veille', changements.map(({o, e}) => carte(o, `${esc(champLbl(e.details.champ))} : <s>${esc(e.de || '—')}</s> → <b>${esc(e.a || '—')}</b>`))) +
+    bloc('Nouvelles occasions vérifiées', '48 h', nouvelles.map(o => carte(o, esc(obj(o.analyse).correspondances || '')))) +
+    bloc('Dossiers qui stagnent', 'aucun mouvement depuis 14 j (démarche) / 21 j', stag.map(o => carte(o, `${joursDepuis(o)} jours sans mouvement`)));
+}
+
+/* ═══════════════ Tableau par étapes ═══════════════ */
+let showArchBoard = false;
+function renderBoard(){
+  const liste = OFFRES.filter(o => showArchBoard || !o.archive);
+  const cols = ETAPES.map(([k, lbl]) => {
+    const items = liste.filter(o => o.etape === k);
+    return `<div class="col" data-col="${k}"><h3><span>${esc(lbl)}</span><span class="num">${items.length}</span></h3>
+      ${items.map(o => carte(o).replace('<button class="item"', '<button class="item" draggable="true"')).join('')}</div>`;
+  }).join('');
+  $('#p-board').innerHTML = `<div class="savebar" style="justify-content:space-between;margin:0 0 8px">
+      <span class="msg">Glisse une carte vers une autre étape (ordinateur) ou ouvre la fiche → « Déplacer » (téléphone). Chaque déplacement est daté et corrigeable.</span>
+      <label style="display:flex;gap:6px;align-items:center;font-size:.88rem"><input type="checkbox" id="chkArch" style="width:20px;min-height:20px" ${showArchBoard ? 'checked' : ''}> Archives</label>
+    </div><div class="board">${cols}</div>`;
+  $('#chkArch').addEventListener('change', e => { showArchBoard = e.target.checked; renderBoard(); });
+  $$('#p-board .item').forEach(it => it.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', it.dataset.open); }));
+  $$('#p-board .col').forEach(col => {
+    col.addEventListener('dragover', ev => { ev.preventDefault(); col.classList.add('drop'); });
+    col.addEventListener('dragleave', () => col.classList.remove('drop'));
+    col.addEventListener('drop', ev => { ev.preventDefault(); col.classList.remove('drop'); const id = Number(ev.dataTransfer.getData('text/plain')); if(id) deplacer(id, col.dataset.col); });
+  });
+}
+
+async function deplacer(id, etape){
+  const o = OFFRES.find(x => x.id === id);
+  if(!o || o.etape === etape) return;
+  const r = await demander({
+    titre: `Déplacer vers « ${ETAPE_LBL[etape]} »`,
+    texte: ETAPES_PREUVE.has(etape) ? 'Cette étape affirme un fait : indique ce qui le confirme (courriel reçu, invitation, date d’envoi…).' : '',
+    champs: [
+      { k:'date', lbl:'Date de l’étape', type:'date', val: today() },
+      ...(ETAPES_PREUVE.has(etape) ? [{ k:'confirmation', lbl:'Confirmation / preuve', type:'text', req:true }] : []),
+      { k:'note', lbl:'Note (facultatif)', type:'textarea' },
+    ],
+    ok: 'Déplacer',
+  });
+  if(!r) return;
+  try { const d = await api(`/carriere/offres/${id}/etape`, { method:'POST', body: JSON.stringify({ etape, ...r }) }); remplacer(d.offre); toast('Étape enregistrée'); }
+  catch(e){ toast(e.message); }
+}
+
+/* ═══════════════ Liste ═══════════════ */
+function renderList(){
+  const emps = [...new Set(OFFRES.map(o => o.employeur))].sort((a,b) => a.localeCompare(b, 'fr'));
+  const p = listPrefs;
+  const sel = (k, opts) => `<select data-f="${k}"><option value="">Tous</option>${opts.map(([v,l]) => `<option value="${esc(v)}" ${p[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  const counts = { actives: OFFRES.filter(o => !o.archive && !nonConfirmee(o)).length, nonconf: OFFRES.filter(nonConfirmee).length, archives: OFFRES.filter(o => o.archive).length, toutes: OFFRES.length };
+  $('#p-list').innerHTML = `
+    <div class="subtabs" style="margin-bottom:10px" id="listSections">
+      ${[['actives','Actives'],['nonconf','Non confirmées'],['archives','Archives'],['toutes','Toutes']].map(([k,l]) => `<button data-sec="${k}" aria-selected="${p.section === k}">${l} (${counts[k]})</button>`).join('')}
+    </div>
+    ${p.section === 'nonconf' ? '<p class="note warn" style="margin-bottom:10px">Disponibilité non confirmée : hors des recommandations actives tant que la page réelle et le portail de candidature n’ont pas été vérifiés.</p>' : ''}
+    <div class="filters">
+      <label class="f wide">Recherche<input type="search" data-f="q" value="${esc(p.q)}" placeholder="Titre, employeur, mots-clés…"></label>
+      <label class="f">Employeur${sel('emp', emps.map(e => [e, e]))}</label>
+      <label class="f">Étape${sel('etape', ETAPES)}</label>
+      <label class="f">Disponibilité${sel('dispo', DISPOS.map(d => [d[0], d[1]]))}</label>
+      <label class="f">Pertinence${sel('pert', PERTS.map(d => [d[0], d[1]]))}</label>
+      <label class="f">Lieu<input data-f="lieu" value="${esc(p.lieu)}" placeholder="Québec, Lévis…"></label>
+      <label class="f">Salaire max ≥<input data-f="salMin" inputmode="numeric" value="${esc(p.salMin)}" placeholder="110000"></label>
+      <label class="f">Trier par<select data-f="tri">
+        ${[['action','Prochaine action'],['echeance','Échéance'],['salaire','Salaire (haut)'],['pertinence','Pertinence'],['employeur','Employeur'],['decouverte','Découverte récente']].map(([v,l]) => `<option value="${v}" ${p.tri === v ? 'selected' : ''}>${l}</option>`).join('')}
+      </select></label>
+    </div>
+    <div class="stack" id="listItems"></div>`;
+  $$('#p-list [data-f]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { listPrefs[el.dataset.f] = el.value; savePrefs(); renderListItems(); }));
+  $('#listSections').addEventListener('click', e => { const b = e.target.closest('[data-sec]'); if(b){ listPrefs.section = b.dataset.sec; savePrefs(); renderList(); } });
+  renderListItems();
+}
+function savePrefs(){ try { localStorage.setItem(LIST_PREF_KEY, JSON.stringify(listPrefs)); } catch(e) {} }
+function renderListItems(){
+  const p = listPrefs;
+  const q = p.q.trim().toLowerCase();
+  let l = OFFRES.filter(o => {
+    if(p.section === 'actives' && (o.archive || nonConfirmee(o))) return false;
+    if(p.section === 'nonconf' && !nonConfirmee(o)) return false;
+    if(p.section === 'archives' && !o.archive) return false;
+    if(p.emp && o.employeur !== p.emp) return false;
+    if(p.etape && o.etape !== p.etape) return false;
+    if(p.dispo && o.dispo !== p.dispo) return false;
+    if(p.pert && o.pertinence !== p.pert) return false;
+    if(p.lieu && !(o.lieu || '').toLowerCase().includes(p.lieu.toLowerCase())) return false;
+    if(p.salMin && !((o.salaireMax || o.salaireMin || 0) >= Number(p.salMin))) return false;
+    if(q){ const hay = [o.titre, o.employeur, o.lieu, o.description, o.exigences, o.notes, o.prochaineAction, JSON.stringify(o.analyse || {})].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  const far = '9999-12-31';
+  const tri = {
+    action: (a,b) => (ymd(a.actionDate) || far).localeCompare(ymd(b.actionDate) || far),
+    echeance: (a,b) => (ymd(a.echeance) || far).localeCompare(ymd(b.echeance) || far),
+    salaire: (a,b) => (b.salaireMax || b.salaireMin || 0) - (a.salaireMax || a.salaireMin || 0),
+    pertinence: (a,b) => (PERT_RANG[a.pertinence] ?? 9) - (PERT_RANG[b.pertinence] ?? 9),
+    employeur: (a,b) => a.employeur.localeCompare(b.employeur, 'fr'),
+    decouverte: (a,b) => ymd(b.decouverteLe).localeCompare(ymd(a.decouverteLe)),
+  }[p.tri] || (() => 0);
+  l.sort(tri);
+  $('#listItems').innerHTML = l.length ? l.map(o => carte(o, [
+    `Salaire : ${esc(salaireTxt(o))}`,
+    o.prochaineAction ? `Prochaine action : ${esc(o.prochaineAction)}${o.actionDate ? ' (' + fmtDate(o.actionDate) + ')' : ''}` : '',
+    o.derniereVerif ? `Vérifiée le ${fmtDate(o.derniereVerif)}` : 'Jamais vérifiée',
+  ].filter(Boolean).join(' · '))).join('') : '<div class="empty">Aucune opportunité ne correspond.</div>';
+}
+
+/* ═══════════════ Calendrier ═══════════════ */
+function evenementsCal(){
+  const out = [];
+  OFFRES.forEach(o => {
+    arr(o.entrevues).forEach(x => { if(x.date) out.push({ d:x.date.slice(0,10), k:'ent', o, txt:`Entrevue ${x.date.length > 10 ? x.date.slice(11,16) : ''} — ${x.format || ''}` }); });
+    if(o.echeance && !o.archive) out.push({ d:ymd(o.echeance), k:'ech', o, txt:'Échéance de l’annonce' });
+    if(o.actionDate && !o.archive) out.push({ d:ymd(o.actionDate), k:'act', o, txt:o.prochaineAction || 'Prochaine action' });
+    const r = relance(o); if(r && r.date) out.push({ d:r.date, k:'rel', o, txt:'Relance suggérée' });
+  });
+  return out;
+}
+function renderCal(){
+  const evts = evenementsCal();
+  const [y, m] = calMonth.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m - 1, 1));
+  const start = addDays(calMonth + '-01', -((first.getUTCDay() + 6) % 7));
+  const days = [];
+  for(let i = 0; i < 42; i++) days.push(addDays(start, i));
+  const t = today();
+  const label = first.toLocaleDateString('fr-CA', { month:'long', year:'numeric', timeZone:'UTC' });
+  const jour = evts.filter(e => e.d === calSel).sort((a,b) => a.k.localeCompare(b.k));
+  const aVenir = evts.filter(e => e.d >= t).sort((a,b) => a.d.localeCompare(b.d)).slice(0, 15);
+  $('#p-cal').innerHTML = `
+    <div class="cal-head"><button class="btn btn-ghost btn-sm" id="calPrev" aria-label="Mois précédent">←</button><h2 class="cond" style="font-size:1.15rem;text-transform:capitalize">${esc(label)}</h2><button class="btn btn-ghost btn-sm" id="calNext" aria-label="Mois suivant">→</button></div>
+    <div class="legend"><span><i class="dot d-ent"></i>Entrevue</span><span><i class="dot d-ech"></i>Échéance</span><span><i class="dot d-act"></i>Prochaine action</span><span><i class="dot d-rel"></i>Relance suggérée</span></div>
+    <div class="cal">${['lun','mar','mer','jeu','ven','sam','dim'].map(d => `<div class="dow">${d}</div>`).join('')}
+      ${days.map(d => { const e = evts.filter(x => x.d === d); return `<div class="day ${d.slice(0,7) !== calMonth ? 'out' : ''} ${d === t ? 'today' : ''} ${d === calSel ? 'sel' : ''}" data-day="${d}"><span class="num">${Number(d.slice(8))}</span><div class="dots">${e.slice(0,6).map(x => `<i class="dot d-${x.k}"></i>`).join('')}</div></div>`; }).join('')}
+    </div>
+    <h2 class="sec">${fmtDate(calSel)}</h2>
+    ${jour.length ? `<div class="stack">${jour.map(x => carte(x.o, `<i class="dot d-${x.k}" style="display:inline-block"></i> ${esc(x.txt)}`)).join('')}</div>` : '<div class="empty">Rien ce jour-là.</div>'}
+    <h2 class="sec">À venir</h2>
+    ${aVenir.length ? `<div class="stack">${aVenir.map(x => carte(x.o, `<b>${fmtDate(x.d)}</b> — ${esc(x.txt)}`)).join('')}</div>` : '<div class="empty">Rien de planifié.</div>'}`;
+  $('#calPrev').onclick = () => { const d = new Date(Date.UTC(y, m - 2, 1)); calMonth = d.toISOString().slice(0,7); renderCal(); };
+  $('#calNext').onclick = () => { const d = new Date(Date.UTC(y, m, 1)); calMonth = d.toISOString().slice(0,7); renderCal(); };
+  $$('#p-cal .day').forEach(el => el.onclick = () => { calSel = el.dataset.day; renderCal(); });
+}
+
+/* ═══════════════ Vue d'ensemble ═══════════════ */
+function renderOverview(){
+  const t = today();
+  const nouvelles = OFFRES.filter(o => diffDays(t, ymd(o.decouverteLe)) <= 7 && !nonConfirmee(o) && !o.archive).length;
+  const envoyees = OFFRES.filter(o => evs(o).some(e => e.type === 'ETAPE' && e.a === 'ENVOYEE') || ETAPES_DEMARCHE.has(o.etape) || ['ACCEPTEE','REFUS_EMPLOYEUR'].includes(o.etape)).length;
+  const entrevues = OFFRES.filter(o => ['ENTREVUE','EVALUATION'].includes(o.etape) && !o.archive).length;
+  const offres = OFFRES.filter(o => ['OFFRE','NEGOCIATION','ACCEPTEE'].includes(o.etape)).length;
+  const sansRep = OFFRES.filter(o => o.etape === 'ENVOYEE' && !o.archive && diffDays(t, dernierEchange(o)) > 14);
+  const max = Math.max(1, ...ETAPES.map(([k]) => OFFRES.filter(o => o.etape === k && !o.archive).length));
+  $('#p-overview').innerHTML = `
+    <div class="grid g5">
+      <div class="kpi"><b class="num">${nouvelles}</b><span>Nouvelles occasions (7 j)</span></div>
+      <div class="kpi"><b class="num">${envoyees}</b><span>Candidatures envoyées</span></div>
+      <div class="kpi"><b class="num">${entrevues}</b><span>Entrevues en cours</span></div>
+      <div class="kpi"><b class="num">${offres}</b><span>Offres reçues</span></div>
+      <div class="kpi"><b class="num">${sansRep.length}</b><span>Sans réponse (&gt; 14 j)</span></div>
+    </div>
+    <h2 class="sec">Répartition par étape <small>hors archives</small></h2>
+    <div class="card">${ETAPES.map(([k, l]) => { const n = OFFRES.filter(o => o.etape === k && !o.archive).length; return `<div class="stat-bar"><span class="lbl">${esc(l)}</span><span class="bar"><i style="width:${n / max * 100}%"></i></span><span class="num">${n}</span></div>`; }).join('')}</div>
+    <h2 class="sec">Disponibilité des annonces</h2>
+    <div class="card">${DISPOS.map(([k, l]) => `<div class="stat-bar"><span class="lbl">${esc(l)}</span><span class="num">${OFFRES.filter(o => o.dispo === k).length}</span></div>`).join('')}
+      <p class="note" style="margin-top:8px">${OFFRES.filter(nonConfirmee).length} occasion(s) non confirmée(s), gardées hors des recommandations actives.</p></div>
+    ${sansRep.length ? `<h2 class="sec">Dossiers sans réponse</h2><div class="stack">${sansRep.map(o => carte(o, `Dernier échange : ${fmtDate(dernierEchange(o))}`)).join('')}</div>` : ''}
+    <h2 class="sec">Journal de la veille <small>couverture réellement obtenue</small></h2>
+    ${JOURNAL.length ? `<div class="stack">${JOURNAL.slice(0, 10).map(j => `<div class="card"><div class="src">${fmtDateTime(j.createdAt)} · ${esc(j.type)}</div><div style="white-space:pre-wrap;font-size:.92rem;margin-top:4px">${esc(j.texte)}</div></div>`).join('')}</div>` : '<div class="empty">Aucun passage de veille enregistré pour l’instant.</div>'}`;
+}
+
+/* ═══════════════ Fiche ═══════════════ */
+const CHAMP_LBL = { employeur:'Employeur', titre:'Titre', lieu:'Lieu', url:'Lien', annonceId:'Identifiant', description:'Description', exigences:'Exigences', salaire:'Salaire', salaireMin:'Salaire min', salaireMax:'Salaire max', contrat:'Contrat', formule:'Formule de travail', deplacements:'Déplacements', analyse:'Analyse', pertinence:'Pertinence', dispo:'Disponibilité', echeance:'Échéance', derniereVerif:'Dernière vérification', documents:'Documents', candidature:'Candidature', contacts:'Contacts', entrevues:'Entrevues', notes:'Notes', prochaineAction:'Prochaine action', actionResponsable:'Responsable', actionDate:'Date prévue', archive:'Archivée', decouverteLe:'Découverte' };
+function champLbl(c){ return CHAMP_LBL[c] || c; }
+
+function ouvrirFiche(id){ ficheId = id; ficheTab = 'resume'; renderFiche(); const d = $('#fiche'); if(!d.open) d.showModal(); }
+$('#fiche').addEventListener('close', () => { ficheId = null; });
+$('#fiche').addEventListener('click', e => { if(e.target.id === 'fiche') $('#fiche').close(); });
+
+function field(k, lbl, val, type, opts){
+  opts = opts || {};
+  const cls = opts.full ? 'f full' : 'f';
+  if(type === 'textarea') return `<label class="${cls}">${lbl}<textarea data-k="${k}" rows="${opts.rows || 4}">${esc(val)}</textarea></label>`;
+  if(type === 'select') return `<label class="${cls}">${lbl}<select data-k="${k}">${opts.options.map(([v,l]) => `<option value="${esc(v)}" ${String(val ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  return `<label class="${cls}">${lbl}<input data-k="${k}" type="${type || 'text'}" ${type === 'number' ? 'inputmode="numeric"' : ''} value="${esc(val ?? '')}"></label>`;
+}
+function savebar(id, extra){ return `<div class="savebar"><span class="msg">${extra || 'Tes modifications priment : la veille ne les écrasera pas.'}</span><button class="btn btn-primary" data-save="${id}">Enregistrer</button></div>`; }
+
+function renderFiche(){
+  const o = OFFRES.find(x => x.id === ficheId);
+  if(!o){ $('#fiche').close(); return; }
+  const a = obj(o.analyse), c = obj(o.candidature);
+  const url = safeUrl(o.url);
+  const tabs = [['resume','Résumé'],['annonce','Annonce'],['analyse','Analyse'],['candidature','Candidature'],['contacts','Contacts & échanges'],['entrevues','Entrevues (' + arr(o.entrevues).length + ')'],['historique','Historique']];
+  const rel = relance(o);
+  let body = '';
+  if(ficheTab === 'resume'){
+    body = `
+      ${o.archive ? '<p class="note warn">Fiche archivée. Une candidature envoyée reste suivie même si l’annonce expire.</p>' : ''}
+      ${nonConfirmee(o) ? '<p class="note warn">Disponibilité non confirmée : hors des recommandations actives.</p>' : ''}
+      <div class="fgrid" data-form="resume">
+        ${field('employeur','Employeur',o.employeur)}${field('titre','Titre',o.titre)}
+        ${field('lieu','Lieu',o.lieu)}${field('annonceId','Identifiant de l’annonce',o.annonceId)}
+        ${field('url','Lien direct',o.url,'url',{full:true})}
+        ${field('salaire','Salaire affiché (texte)',o.salaire)}${field('contrat','Type de contrat',o.contrat)}
+        ${field('salaireMin','Salaire de base min ($/an)',o.salaireMin,'number')}${field('salaireMax','Salaire de base max ($/an)',o.salaireMax,'number')}
+        ${field('formule','Formule de travail',o.formule)}${field('deplacements','Déplacements',o.deplacements)}
+        ${field('dispo','Disponibilité de l’offre',o.dispo,'select',{options:DISPOS.map(d => [d[0], d[1]])})}
+        ${field('pertinence','Classement',o.pertinence,'select',{options:PERTS.map(d => [d[0], d[1]])})}
+        ${field('echeance','Échéance',ymd(o.echeance),'date')}${field('derniereVerif','Dernière vérification',ymd(o.derniereVerif),'date')}
+        ${field('decouverteLe','Date de découverte',ymd(o.decouverteLe),'date')}
+        <label class="f">Archivée<select data-k="archive"><option value="false" ${!o.archive ? 'selected' : ''}>Non</option><option value="true" ${o.archive ? 'selected' : ''}>Oui</option></select></label>
+      </div>
+      <h3 class="cond" style="margin:16px 0 6px">Prochaine action</h3>
+      <div class="fgrid" data-form="resume">
+        ${field('prochaineAction','Quoi',o.prochaineAction,'text',{full:true})}
+        ${field('actionResponsable','Responsable',o.actionResponsable || 'Martin')}${field('actionDate','Date prévue',ymd(o.actionDate),'date')}
+      </div>
+      ${rel ? `<p class="note" style="margin-top:8px">Relance suggérée : ${rel.date ? '<b>' + fmtDate(rel.date) + '</b> — ' : ''}${esc(rel.raison)} ${rel.date ? `<button class="btn btn-ghost btn-sm" id="useRel" style="margin-left:6px">Planifier</button>` : ''}</p>` : ''}
+      ${o.dispoPreuve ? `<p class="src" style="margin-top:10px">Preuve de disponibilité : ${esc(obj(o.dispoPreuve).signal || '')} · ${esc(obj(o.dispoPreuve).date || '')} · ${esc(obj(o.dispoPreuve).url_finale || obj(o.dispoPreuve).source || '')}</p>` : ''}
+      ${arr(o.sources).length ? `<p class="src">Sources : ${arr(o.sources).map(s => { const u = safeUrl(s.url); return esc(s.source || '?') + (s.id ? ' #' + esc(s.id) : '') + (u ? ` (<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">lien</a>)` : ''); }).join(' · ')}</p>` : ''}
+      ${savebar('resume')}`;
+  } else if(ficheTab === 'annonce'){
+    body = `<p class="note">Copie sauvegardée de l'annonce : le contexte reste même si l'annonce disparaît.</p>
+      <div class="fgrid" data-form="annonce" style="margin-top:10px">
+        ${field('description','Description',o.description,'textarea',{full:true, rows:10})}
+        ${field('exigences','Exigences (diplôme, expérience, qualifications)',o.exigences,'textarea',{full:true, rows:8})}
+      </div>${savebar('annonce')}`;
+  } else if(ficheTab === 'analyse'){
+    body = `<p class="note">Distinguer les faits vérifiés, l'appréciation et les inconnues. Pas de score artificiel.</p>
+      <div class="fgrid" data-form="analyse" style="margin-top:10px">
+        ${field('a.correspondances','Correspondances précises avec le profil',a.correspondances,'textarea',{full:true})}
+        ${field('a.classeDiplome','Exigence de diplôme',a.classeDiplome,'select',{full:true, options:DIPLOME_CLASSES.map(x => [x, x || '—'])})}
+        ${field('a.diplome','Diplôme : détail et réalisations qui soutiennent l’équivalence',a.diplome,'textarea',{full:true})}
+        ${field('a.experience','Expérience et qualifications demandées',a.experience,'textarea',{full:true})}
+        ${field('a.ecarts','Écarts, obstacles et risques',a.ecarts,'textarea',{full:true})}
+        ${field('a.aConfirmer','Points à confirmer',a.aConfirmer,'textarea',{full:true})}
+      </div>${savebar('analyse')}`;
+  } else if(ficheTab === 'candidature'){
+    const docs = arr(o.documents);
+    body = `<h3 class="cond" style="margin-bottom:6px">Documents utilisés</h3>
+      <div id="docs">${docs.map((d, i) => `<div class="sub fgrid" data-doc="${i}">
+          ${field('type','Type',d.type,'select',{options:[['CV','CV'],['Lettre','Lettre'],['Portfolio','Portfolio'],['Autre','Autre']]})}
+          ${field('nom','Nom / fichier',d.nom)}${field('version','Version',d.version)}${field('date','Date',d.date,'date')}
+          <div class="full"><button class="btn btn-danger btn-sm" data-deldoc="${i}">Retirer</button></div></div>`).join('') || '<div class="empty">Aucun document noté.</div>'}</div>
+      <button class="btn btn-ghost btn-sm" id="addDoc" style="margin:8px 0 14px">+ Document</button>
+      <h3 class="cond" style="margin-bottom:6px">Envoi</h3>
+      <p class="note" style="margin-bottom:8px">L'étape « Candidature envoyée » ne se coche qu'avec une confirmation. Ces champs n'envoient rien.</p>
+      <div class="fgrid" data-form="candidature">
+        ${field('c.date','Date de candidature',c.date,'date')}${field('c.canal','Canal utilisé',c.canal)}
+        ${field('c.confirmation','Confirmation de réception',c.confirmation,'text',{full:true})}
+        ${field('c.calendrierEmployeur','Retour annoncé par l’employeur au plus tard le',c.calendrierEmployeur,'date')}
+      </div>${savebar('candidature')}`;
+  } else if(ficheTab === 'contacts'){
+    const cts = arr(o.contacts);
+    const ech = evs(o).filter(e => e.type === 'ECHANGE' || e.type === 'NOTE').slice().reverse();
+    body = `<h3 class="cond" style="margin-bottom:6px">Contacts fournis</h3>
+      <div id="cts">${cts.map((ct, i) => `<div class="sub fgrid" data-ct="${i}">
+          ${field('nom','Nom',ct.nom)}${field('role','Rôle',ct.role)}${field('courriel','Courriel',ct.courriel,'email')}${field('tel','Téléphone',ct.tel,'tel')}
+          ${field('note','Note',ct.note,'text',{full:true})}
+          <div class="full"><button class="btn btn-danger btn-sm" data-delct="${i}">Retirer</button></div></div>`).join('') || '<div class="empty">Aucun contact.</div>'}</div>
+      <div class="savebar"><button class="btn btn-ghost btn-sm" id="addCt">+ Contact</button><button class="btn btn-primary" data-save="contacts">Enregistrer les contacts</button></div>
+      <h3 class="cond" style="margin:16px 0 6px">Notes</h3>
+      <div class="fgrid" data-form="notes">${field('notes','Notes libres',o.notes,'textarea',{full:true, rows:5})}</div>${savebar('notes', ' ')}
+      <h3 class="cond" style="margin:16px 0 6px">Historique des échanges</h3>
+      <button class="btn btn-ghost btn-sm" id="addEch" style="margin-bottom:8px">+ Consigner un échange</button>
+      <div class="hist">${ech.map(e => `<div class="ev ${e.type}"><div class="h"><span>${fmtDate(e.date)} · ${e.type === 'NOTE' ? 'Note' : 'Échange'}${obj(e.details).canal ? ' · ' + esc(obj(e.details).canal) : ''}${obj(e.details).avec ? ' · ' + esc(obj(e.details).avec) : ''}</span><span>${esc(e.auteur)}</span></div><div class="b" style="white-space:pre-wrap">${esc(obj(e.details).texte || '')}</div></div>`).join('') || '<div class="empty">Aucun échange consigné.</div>'}</div>`;
+  } else if(ficheTab === 'entrevues'){
+    const ents = arr(o.entrevues);
+    body = `<p class="note" style="margin-bottom:8px">Plusieurs rencontres possibles. Ajouter une entrevue ne change pas l'étape : déplace la fiche vers « Entrevue » avec la confirmation reçue.</p>
+      <div id="ents">${ents.map((x, i) => `<div class="sub fgrid" data-ent="${i}">
+          ${field('date','Date et heure',x.date,'datetime-local')}${field('format','Format',x.format,'select',{options:[['',''],['Téléphone','Téléphone'],['Visioconférence','Visioconférence'],['En personne','En personne'],['Panel','Panel'],['Test / mise en situation','Test / mise en situation']]})}
+          ${field('tour','Tour / rencontre',x.tour)}${field('participants','Participants (fournis)',x.participants)}
+          ${field('preparation','Notes de préparation',x.preparation,'textarea',{full:true})}
+          ${field('compteRendu','Compte rendu',x.compteRendu,'textarea',{full:true})}
+          <div class="full"><button class="btn btn-danger btn-sm" data-delent="${i}">Retirer</button></div></div>`).join('') || '<div class="empty">Aucune entrevue.</div>'}</div>
+      <div class="savebar"><button class="btn btn-ghost btn-sm" id="addEnt">+ Entrevue</button><button class="btn btn-primary" data-save="entrevues">Enregistrer les entrevues</button></div>`;
+  } else {
+    const h = arr(o.evenements).slice().reverse();
+    body = `<p class="note" style="margin-bottom:8px">Rien n'est effacé : une correction annule l'événement et laisse une trace.</p>
+      <div class="hist">${h.map(e => `<div class="ev ${e.type} ${e.annule ? 'annule' : ''}">
+        <div class="h"><span>${fmtDate(e.date)} · ${esc(evLbl(e))}</span><span>${esc(e.auteur)} · saisi ${fmtDateTime(e.createdAt)}</span></div>
+        <div class="b">${evTxt(e)}</div>
+        ${!e.annule && e.type !== 'CORRECTION' ? `<div class="tools"><button class="btn btn-ghost btn-sm" data-evdate="${e.id}">Corriger la date</button>${e.type === 'ETAPE' ? `<button class="btn btn-danger btn-sm" data-evann="${e.id}">Annuler ce déplacement</button>` : ''}</div>` : ''}
+      </div>`).join('')}</div>`;
+  }
+  $('#ficheSheet').innerHTML = `
+    <div class="sheet-head">
+      <div class="row">
+        <div><div class="emp">${esc(o.employeur)}${o.lieu ? ' · ' + esc(o.lieu) : ''}</div><h2>${esc(o.titre)}</h2></div>
+        <button class="btn btn-ghost btn-sm" id="ficheClose" aria-label="Fermer">✕</button>
+      </div>
+      <div class="meta" style="display:flex;gap:6px;flex-wrap:wrap">${dispoPill(o)}${pertPill(o)}${pill('', 'Salaire : ' + salaireTxt(o))}${o.echeance ? pill('', 'Échéance ' + fmtDate(o.echeance)) : ''}${url ? `<a class="pill p-info" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Ouvrir l'annonce ↗</a>` : ''}</div>
+      <label class="f" style="flex-direction:row;align-items:center;gap:8px">Étape
+        <select id="moveSel" style="flex:1">${ETAPES.map(([k,l]) => `<option value="${k}" ${o.etape === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+      <div class="subtabs">${tabs.map(([k,l]) => `<button data-ft="${k}" aria-selected="${ficheTab === k}">${esc(l)}</button>`).join('')}</div>
+    </div>
+    <div class="sheet-body">${body}</div>`;
+  bindFiche(o);
+}
+
+function evLbl(e){
+  return ({ CREATION:'Création', DECOUVERTE:'Découverte par la veille', ETAPE:'Étape', DISPO:'Disponibilité', MODIF:'Modification', VEILLE_MODIF:'Mise à jour veille', NOTE:'Note', ECHANGE:'Échange', ENTREVUE:'Entrevue', CORRECTION:'Correction' })[e.type] || e.type;
+}
+function evTxt(e){
+  const d = obj(e.details);
+  if(e.type === 'ETAPE') return `${esc(ETAPE_LBL[e.de] || e.de || '—')} → <b>${esc(ETAPE_LBL[e.a] || e.a)}</b>${d.confirmation ? '<br>Confirmation : ' + esc(d.confirmation) : ''}${d.note ? '<br>' + esc(d.note) : ''}`;
+  if(e.type === 'CREATION' || e.type === 'DECOUVERTE') return `Étape initiale : ${esc(ETAPE_LBL[e.a] || e.a || '')}${d.motif ? ' — ' + esc(d.motif) : ''}${d.republicationDe ? ' · republication de la fiche #' + esc(d.republicationDe) : ''}`;
+  if(e.type === 'CORRECTION') return d.action === 'annulation' ? `Annulation de l'événement #${esc(d.evenementId)}${d.raison ? ' — ' + esc(d.raison) : ''}` : `Date de l'événement #${esc(d.evenementId)} corrigée : ${fmtDate(d.de)} → ${fmtDate(d.a)}${d.raison ? ' — ' + esc(d.raison) : ''}`;
+  if(e.type === 'MODIF' || e.type === 'VEILLE_MODIF' || e.type === 'DISPO') return `${esc(champLbl(d.champ))}${d.important ? ' <span class="pill p-warn">important</span>' : ''} : <s>${esc(e.de || '—')}</s> → ${esc(e.a || '—')}`;
+  return esc(d.texte || '');
+}
+
+function lireForm(o, nom){
+  const patch = {};
+  $$(`[data-form="${nom}"] [data-k]`).forEach(el => {
+    const k = el.dataset.k;
+    let v = el.value;
+    if(k === 'archive') v = v === 'true';
+    else if(k === 'salaireMin' || k === 'salaireMax') v = v === '' ? null : Number(String(v).replace(/[^\d]/g, ''));
+    else if(v === '') v = null;
+    if(k.startsWith('a.')){ patch.analyse = patch.analyse || Object.assign({}, obj(o.analyse)); patch.analyse[k.slice(2)] = v; return; }
+    if(k.startsWith('c.')){ patch.candidature = patch.candidature || Object.assign({}, obj(o.candidature)); patch.candidature[k.slice(2)] = v; return; }
+    const cur = ['echeance','derniereVerif','actionDate','decouverteLe'].includes(k) ? (ymd(o[k]) || null) : (o[k] ?? null);
+    if(String(cur ?? '') !== String(v ?? '')) patch[k] = v;
+  });
+  if(patch.analyse && JSON.stringify(patch.analyse) === JSON.stringify(obj(o.analyse))) delete patch.analyse;
+  if(patch.candidature && JSON.stringify(patch.candidature) === JSON.stringify(obj(o.candidature))) delete patch.candidature;
+  return patch;
+}
+function lireListe(sel, champs){
+  return $$(sel).map(box => { const r = {}; champs.forEach(k => { const el = $(`[data-k="${k}"]`, box); r[k] = el ? (el.value || null) : null; }); if(box.dataset.id) r.id = box.dataset.id; return r; });
+}
+async function patcher(o, patch){
+  if(!Object.keys(patch).length){ toast('Aucun changement'); return; }
+  try { const d = await api(`/carriere/offres/${o.id}`, { method:'PATCH', body: JSON.stringify(patch) }); remplacer(d.offre); toast('Enregistré'); }
+  catch(e){ toast(e.message); }
+}
+
+function bindFiche(o){
+  $('#ficheClose').onclick = () => $('#fiche').close();
+  $$('[data-ft]').forEach(b => b.onclick = () => { ficheTab = b.dataset.ft; renderFiche(); });
+  $('#moveSel').onchange = async e => { const v = e.target.value; e.target.value = o.etape; await deplacer(o.id, v); };
+  $$('[data-save]').forEach(b => b.onclick = async () => {
+    const k = b.dataset.save;
+    if(k === 'contacts') return patcher(o, { contacts: lireListe('#cts [data-ct]', ['nom','role','courriel','tel','note']) });
+    if(k === 'entrevues') return patcher(o, { entrevues: lireListe('#ents [data-ent]', ['date','format','tour','participants','preparation','compteRendu']).map((x, i) => Object.assign({ id: arr(o.entrevues)[i] && arr(o.entrevues)[i].id || uid() }, x)) });
+    if(k === 'candidature'){
+      const p = lireForm(o, 'candidature');
+      const docs = lireListe('#docs [data-doc]', ['type','nom','version','date']);
+      if(JSON.stringify(docs) !== JSON.stringify(arr(o.documents).map(d => ({type:d.type ?? null, nom:d.nom ?? null, version:d.version ?? null, date:d.date ?? null})))) p.documents = docs;
+      return patcher(o, p);
+    }
+    patcher(o, lireForm(o, k));
+  });
+  const ajouter = (champ, vide) => { const l = arr(o[champ]).slice(); l.push(vide); o[champ] = l; renderFiche(); toast('Remplis puis enregistre'); };
+  const addDoc = $('#addDoc'); if(addDoc) addDoc.onclick = () => ajouter('documents', { type:'CV', nom:'', version:'', date: today() });
+  const addCt = $('#addCt'); if(addCt) addCt.onclick = () => ajouter('contacts', { nom:'', role:'', courriel:'', tel:'', note:'' });
+  const addEnt = $('#addEnt'); if(addEnt) addEnt.onclick = () => ajouter('entrevues', { id: uid(), date:'', format:'', tour: 'Rencontre ' + (arr(o.entrevues).length + 1), participants:'', preparation:'', compteRendu:'' });
+  $$('[data-deldoc]').forEach(b => b.onclick = () => { if(confirm('Retirer ce document de la fiche ?')){ const l = arr(o.documents).slice(); l.splice(Number(b.dataset.deldoc), 1); patcher(o, { documents: l }); } });
+  $$('[data-delct]').forEach(b => b.onclick = () => { if(confirm('Retirer ce contact ?')){ const l = arr(o.contacts).slice(); l.splice(Number(b.dataset.delct), 1); patcher(o, { contacts: l }); } });
+  $$('[data-delent]').forEach(b => b.onclick = () => { if(confirm('Retirer cette entrevue ?')){ const l = arr(o.entrevues).slice(); l.splice(Number(b.dataset.delent), 1); patcher(o, { entrevues: l }); } });
+  const useRel = $('#useRel'); if(useRel) useRel.onclick = () => { const r = relance(o); patcher(o, { prochaineAction: 'Préparer une relance (à envoyer seulement sur ton go)', actionDate: r.date, actionResponsable: 'Martin' }); };
+  const addEch = $('#addEch'); if(addEch) addEch.onclick = async () => {
+    const r = await demander({ titre:'Consigner un échange', champs:[
+      { k:'type', lbl:'Type', type:'select', options:[['ECHANGE','Échange avec l’employeur'],['NOTE','Note interne']] },
+      { k:'date', lbl:'Date', type:'date', val: today() },
+      { k:'canal', lbl:'Canal (courriel, téléphone, LinkedIn…)', type:'text' },
+      { k:'avec', lbl:'Avec qui', type:'text' },
+      { k:'texte', lbl:'Résumé', type:'textarea', req:true },
+    ], ok:'Ajouter' });
+    if(!r) return;
+    try { const d = await api(`/carriere/offres/${o.id}/evenements`, { method:'POST', body: JSON.stringify({ type:r.type, date:r.date, details:{ canal:r.canal, avec:r.avec, texte:r.texte } }) }); remplacer(d.offre); toast('Échange consigné'); }
+    catch(e){ toast(e.message); }
+  };
+  $$('[data-evdate]').forEach(b => b.onclick = async () => {
+    const ev = arr(o.evenements).find(e => e.id === Number(b.dataset.evdate));
+    const r = await demander({ titre:'Corriger la date', champs:[{ k:'date', lbl:'Bonne date', type:'date', val: ymd(ev.date), req:true }, { k:'raison', lbl:'Raison', type:'text' }], ok:'Corriger' });
+    if(!r) return;
+    try { const d = await api(`/carriere/evenements/${ev.id}`, { method:'PATCH', body: JSON.stringify(r) }); remplacer(d.offre); toast('Date corrigée'); } catch(e){ toast(e.message); }
+  });
+  $$('[data-evann]').forEach(b => b.onclick = async () => {
+    const r = await demander({ titre:'Annuler ce déplacement ?', texte:'La fiche revient à l’étape précédente. L’événement reste visible, barré.', champs:[{ k:'raison', lbl:'Raison', type:'text' }], ok:'Annuler le déplacement' });
+    if(!r) return;
+    try { const d = await api(`/carriere/evenements/${b.dataset.evann}`, { method:'PATCH', body: JSON.stringify({ annule:true, raison:r.raison }) }); remplacer(d.offre); toast('Déplacement annulé'); } catch(e){ toast(e.message); }
+  });
+}
+
+/* ═══════════════ Petit dialogue générique ═══════════════ */
+function demander(cfg){
+  return new Promise(resolve => {
+    const f = $('#miniForm');
+    f.innerHTML = `<h3 class="cond">${esc(cfg.titre)}</h3>${cfg.texte ? `<p class="note">${esc(cfg.texte)}</p>` : ''}
+      ${cfg.champs.map(c => c.type === 'textarea' ? `<label class="f">${esc(c.lbl)}<textarea name="${c.k}" ${c.req ? 'required' : ''}>${esc(c.val || '')}</textarea></label>`
+        : c.type === 'select' ? `<label class="f">${esc(c.lbl)}<select name="${c.k}">${c.options.map(([v,l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select></label>`
+        : `<label class="f">${esc(c.lbl)}<input name="${c.k}" type="${c.type}" value="${esc(c.val || '')}" ${c.req ? 'required' : ''}></label>`).join('')}
+      <div class="savebar"><button type="button" class="btn btn-ghost" value="cancel" id="miniCancel">Annuler</button><button type="submit" class="btn btn-primary" value="ok">${esc(cfg.ok || 'OK')}</button></div>`;
+    const d = $('#mini');
+    let done = false;
+    const fin = v => { if(done) return; done = true; resolve(v); };
+    $('#miniCancel').onclick = () => { d.close(); fin(null); };
+    f.onsubmit = ev => {
+      ev.preventDefault();
+      if(!f.reportValidity()) return;
+      const r = {}; cfg.champs.forEach(c => { const v = f.elements[c.k].value; r[c.k] = v === '' ? null : v; });
+      d.close(); fin(r);
+    };
+    d.onclose = () => fin(null);
+    d.showModal();
+    const first = f.querySelector('input,textarea,select'); if(first) first.focus();
+  });
+}
+
+/* ═══════════════ Création ═══════════════ */
+$('#btnNew').onclick = async () => {
+  const r = await demander({ titre:'Nouvelle opportunité', texte:'Ajout manuel. La veille ne modifiera pas ce que tu saisis.', champs:[
+    { k:'employeur', lbl:'Employeur', type:'text', req:true },
+    { k:'titre', lbl:'Titre du poste', type:'text', req:true },
+    { k:'lieu', lbl:'Lieu', type:'text' },
+    { k:'url', lbl:'Lien direct', type:'url' },
+    { k:'echeance', lbl:'Échéance', type:'date' },
+  ], ok:'Créer' });
+  if(!r) return;
+  try { const d = await api('/carriere/offres', { method:'POST', body: JSON.stringify(Object.assign(r, { dispo:'A_VERIFIER' })) }); remplacer(d.offre); ouvrirFiche(d.offre.id); toast('Opportunité créée'); }
+  catch(e){ if(e.status === 409 && e.data && e.data.id){ toast('Déjà au dossier — ouverture de la fiche'); ouvrirFiche(e.data.id); } else toast(e.message); }
+};
+
+/* ═══════════════ Exports ═══════════════ */
+function telecharger(nom, contenu, type){
+  const b = new Blob([contenu], { type }); const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$('#btnExportJson').onclick = async () => {
+  try { const d = await api('/carriere/export'); telecharger(`carriere-export-${today()}.json`, JSON.stringify(d, null, 2), 'application/json'); }
+  catch(e){ toast(e.message); }
+};
+$('#btnExportCsv').onclick = () => {
+  const cols = [['id','ID'],['employeur','Employeur'],['titre','Titre'],['lieu','Lieu'],['url','Lien'],['annonceId','Identifiant'],['etape','Étape'],['dispo','Disponibilité'],['pertinence','Classement'],['salaire','Salaire (texte)'],['salaireMin','Min'],['salaireMax','Max'],['contrat','Contrat'],['formule','Formule'],['echeance','Échéance'],['derniereVerif','Dernière vérif.'],['decouverteLe','Découverte'],['prochaineAction','Prochaine action'],['actionDate','Date action'],['archive','Archivée'],['notes','Notes']];
+  const cell = v => { const s = v == null ? '' : (v instanceof Object ? JSON.stringify(v) : String(v)); return '"' + s.replace(/"/g, '""') + '"'; };
+  const val = (o, k) => ['echeance','derniereVerif','decouverteLe','actionDate'].includes(k) ? ymd(o[k]) : k === 'etape' ? (ETAPE_LBL[o[k]] || o[k]) : o[k];
+  const csv = '﻿' + [cols.map(c => cell(c[1])).join(';'), ...OFFRES.map(o => cols.map(c => cell(val(o, c[0]))).join(';'))].join('\r\n');
+  telecharger(`carriere-${today()}.csv`, csv, 'text/csv;charset=utf-8');
+};
+
+if(!mcToken()) window.location.href = '/';
+else charger();
+</script>
+</body>
+</html>
