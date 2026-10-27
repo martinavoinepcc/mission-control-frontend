@@ -20,6 +20,9 @@ import Avatar from '@/components/Avatar';
 
 // Ordre de priorité des tuiles dans le dashboard — messagerie d'abord.
 const APP_PRIORITY: Record<string, number> = {
+  // Plus petite valeur = première tuile. « martin » doit rester devant Carrière et devant QScale/Logifox (Travail).
+  // La tuile n'apparaît que si le backend la renvoie dans /users/me — même mécanisme que Carrière (Martin seul).
+  martin: -40, // 2026-10-27 : Martin, en haut de la section Travail
   carriere: -30, // 2026-10-07 : Carrière (privée Martin) tout en haut de son tableau de bord
   'projet-chalet': -20, // 2026-10-01 : app unifiée (remplace Notre Chalet + Chantier Chalet) tout en haut
   pieces: -20, // demande Martin 2026-08-14 : Notre Chalet (pièce par pièce) tout en haut
@@ -705,6 +708,7 @@ Bientôt disponible.`);
         else if (app.slug === 'messagerie') window.location.href = '/apps/messagerie/';
         else if (app.slug === 'assistant') window.location.href = '/apps/heimdall/';
         else if (app.slug === 'projet-chalet') window.location.href = '/apps/projet-chalet/';
+        else if (app.slug === 'martin') window.location.href = '/apps/martin/';
         else if (app.url) window.location.href = app.url; // toute autre app interne déclarée en BD
       }}
       className={cardClass}
