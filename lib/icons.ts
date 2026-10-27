@@ -92,6 +92,7 @@ export const APP_ICONS: Record<string, IconDefinition> = {
   'route': faRoute,
   'door-open': faDoorOpen,
   'house-chimney': faHouseChimney, // Projet chalet
+  'user': faUser,
 };
 
 // Fallback si le slug n'est pas mappé
