@@ -391,7 +391,7 @@ export default function MartinPage() {
               </div>
             ) : (
               <>
-                <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filtrer par état">
+                <div className="mb-3 grid grid-cols-2 gap-2" role="group" aria-label="Filtrer par état">
                   {compteurs.map(({ etat: nom, n }) => {
                     const actif = etat === nom;
                     const ton = TON[tonEtat(nom)];
@@ -401,7 +401,7 @@ export default function MartinPage() {
                         type="button"
                         aria-pressed={actif}
                         onClick={() => setEtat(actif ? null : nom)}
-                        className={`flex min-w-[5.5rem] shrink-0 flex-col items-start rounded-xl border px-3 py-2 text-left ${actif ? ton.pastille : 'border-white/10 bg-white/[0.03] text-white/70'}`}
+                        className={`flex flex-col items-start rounded-xl border px-3 py-2 text-left ${actif ? ton.pastille : 'border-white/10 bg-white/[0.03] text-white/70'}`}
                       >
                         <span className="font-display text-lg font-semibold leading-none tabular-nums">{n}</span>
                         <span className="mt-1 text-[11px] leading-tight">{nom}</span>
