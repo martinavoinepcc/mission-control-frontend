@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Alison — simulateur vocal local v0.1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#f4f6f9;--ink:#1d2733;--mut:#5d6b7a;--acc:#0b5cab;--warn:#b42318}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#18283f;color:#fff;padding:12px 18px}header h1{margin:0;font-size:18px}header p{margin:2px 0 0;color:#b8c7dc;font-size:13px}
+#banner{background:#eaf4ea;border-bottom:1px solid #9ccc9c;padding:8px 18px;font-size:13px}
+main{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px;max-width:1200px;margin:auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid #dde3ea;border-radius:10px;padding:14px}.card h2{margin:0 0 8px;font-size:15px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}label{font-size:13px;color:var(--mut)}
+input,select,textarea{font:inherit;padding:6px 8px;border:1px solid #c5cfda;border-radius:6px}input[type=text]{flex:1;min-width:180px}
+textarea{width:100%;min-height:120px;font:13px/1.35 ui-monospace,Consolas,monospace}
+button{font:inherit;padding:8px 12px;border:1px solid #9fb0c3;background:#fff;border-radius:8px;cursor:pointer}
+button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}button.danger{background:var(--warn);color:#fff;border-color:var(--warn)}button:disabled{opacity:.5;cursor:not-allowed}
+button.chip{padding:4px 9px;font-size:12px;border-radius:14px}
+#status{font-weight:600}.err{color:var(--warn)}#interim{min-height:22px;color:var(--mut);font-style:italic}
+#log{height:340px;overflow:auto;background:#fafbfc;border:1px solid #e3e8ee;border-radius:8px;padding:8px}
+.m{margin:6px 0;padding:6px 10px;border-radius:8px;max-width:92%}.m.a{background:#e5f0fb}.m.p{background:#eef7ee;margin-left:auto}.m .t{font-size:11px;color:var(--mut)}
+.note{font-size:12px;color:var(--mut)}pre{white-space:pre-wrap;background:#fafbfc;border:1px solid #e3e8ee;border-radius:8px;padding:10px;font:13px/1.4 ui-monospace,Consolas,monospace;max-height:420px;overflow:auto}
+table.f{border-collapse:collapse;width:100%;font-size:13px}table.f td{border-bottom:1px solid #eef1f4;padding:3px 6px}table.f td:first-child{color:var(--mut);width:34%}
+</style>
+</head>
+<body>
+<header><h1>Alison — simulateur vocal local, centre dentaire Blanchette et Associés</h1><p>Prototype v0.1 — SIMULATION 100 % locale. Ce fichier: 2026-10-27 13h29</p></header>
+<div id="banner">Aucune API, aucun serveur, aucune connexion à la clinique ni à son logiciel. Tout tourne dans ce navigateur (Chrome ou Edge). Le courriel de fin d'appel est affiché, jamais envoyé. Note: la reconnaissance vocale de Chrome et d'Edge passe par les serveurs de Google ou de Microsoft; utilisez seulement des données fictives.</div>
+<main>
+<section class="card">
+  <h2>1. Appel</h2>
+  <div class="row"><button class="primary" id="btn-start">📞 Lancer l'appel</button><button class="danger" id="btn-end" disabled>Raccrocher et générer le courriel</button></div>
+  <div class="row"><span id="status">Prêt.</span></div>
+  <div id="interim"></div>
+  <div class="row"><input type="text" id="txt" placeholder="Écrire au lieu de parler (repli texte)" disabled><button id="btn-send" disabled>Envoyer</button></div>
+  <div class="row"><label for="clock">Heure simulée</label><select id="clock"><option value="auto">Automatique (heure de l'ordinateur)</option><option value="open">Clinique ouverte</option><option value="closed">Clinique fermée</option></select></div>
+  <div class="row"><label for="voice">Voix</label><select id="voice"></select><label for="rate">Vitesse</label><input type="range" id="rate" min="0.8" max="1.4" step="0.05" value="1.1"></div>
+  <p class="note" id="voice-info"></p>
+  <div class="row"><label><input type="checkbox" id="mute"> Sans voix d'Alison (texte seulement)</label></div>
+  <h2>Phrases de test rapides (cliquez pour les « dire »)</h2>
+  <div class="row" id="chips"></div>
+  <p class="note">Parlez librement: Alison comprend ce que vous dites dans n'importe quel ordre (nom, numéro, motif, questions sur la clinique). Le micro se coupe pendant qu'elle parle.</p>
+</section>
+<section class="card">
+  <h2>2. Conversation</h2>
+  <div id="log" aria-live="polite"></div>
+  <h2 style="margin-top:12px">Ce qu'Alison a retenu</h2>
+  <table class="f" id="slots"></table>
+</section>
+<section class="card" style="grid-column:1/-1">
+  <h2>3. Courriel à la réception (simulé, non envoyé)</h2>
+  <pre id="email">(le courriel apparaît ici à la fin de l'appel)</pre>
+  <div class="row"><button id="btn-copy" disabled>Copier le courriel</button><button id="btn-dl" disabled>Télécharger le transcript (.txt)</button><span class="note" id="msg"></span></div>
+</section>
+<section class="card" style="grid-column:1/-1">
+  <h2>4. Inventaire des services de la clinique (modifiable)</h2>
+  <p class="note">Alison s'en sert pour répondre à « faites-vous… ? ». Je n'ai trouvé aucun inventaire fourni par Martin dans les fichiers du projet: cette liste vient de la fiche du projet (site du centre, à faire valider par la Dre Blanchette). Remplacez-la par votre inventaire, une ligne par service; la prochaine réponse l'utilise tout de suite. Ce qui n'y figure pas est noté comme question pour la réception.</p>
+  <textarea id="services"></textarea>
+</section>
+</main>
+<script>
+/* ===== Moteur d'Alison (pur JS, sans DOM, sans réseau) ===== */
+var CENTRE={nom:"Centre dentaire Blanchette et Associés",courriel:"reception@centredentaireblanchette.ca",heures:{1:[8,17],2:[8,17],3:[8,17],4:[8,17],5:[8,14]}};
+var CLOSED_NOTICE="Bonjour, désolé, présentement la clinique est fermée, cependant je suis là pour répondre à vos questions temporairement et relayer le message au besoin";
+var SERVICES_DEFAUT=["Dentisterie générale et esthétique","Nettoyage et hygiène dentaire","Obturations","Traitements de canal","Couronnes","Facettes","Implants","Chirurgie buccale","Parodontie et greffe gingivale","Orthodontie","Blanchiment","Restauration en céramique CEREC","Plaque occlusale","Radiographie numérique 3D","Laser Solea"];
+var ALIAS={"nettoyage et hygiene dentaire":["nettoyage","hygiene","detartrage"],"obturations":["obturation","plombage","carie"],"traitements de canal":["canal","endodont"],"chirurgie buccale":["chirurgie buccale","chirurgie de la bouche","extraction","dent de sagesse","dents de sagesse","arracher"],"parodontie et greffe gingivale":["parodont","gencive","greffe"],"orthodontie":["orthodont","broche","appareil dentaire"],"dentisterie generale et esthetique":["dentisterie generale","dentisterie esthetique","examen","checkup","soins generaux"],"restauration en ceramique cerec":["cerec","ceramique"],"plaque occlusale":["plaque","grince","grincement","bruxisme"],"radiographie numerique 3d":["radio","rayons x","3d"],"laser solea":["laser","solea"],"blanchiment":["blanchiment","blanchir"],"couronnes":["couronne"],"facettes":["facette"],"implants":["implant"],"laser solea":["laser","solea"]};
+function norm(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[’‘`]/g,"'").replace(/[^a-z0-9' ]+/g," ").replace(/\s+/g," ").trim();}
+function cap(w){return w.split("-").map(function(x){return x.charAt(0).toUpperCase()+x.slice(1).toLowerCase();}).join("-");}
+function isOpenAt(d){var h=CENTRE.heures[d.getDay()];if(!h)return false;var x=d.getHours()+d.getMinutes()/60;return x>=h[0]&&x<h[1];}
+var RE={
+ danger:/(respirer|respire pas|respiration|etouff|inconscien|danger de mort|danger vital|vie en danger|gonfle.*(cou|gorge))/,
+ urgent:[/\burgen/,/(douleur|mal)\s+(tres\s+)?(forte|fort|intense|atroce|insupportable|terrible|horrible|violente|vive)/,/(tres|vraiment|tellement|beaucoup)\s+mal\b/,/insupportable|atroce/,/enfl/,/saign|hemorrag/,/fievre/,/abces/,/trauma|accident|\bcoup\b|je suis tombe|\bchute\b|dent (cassee|casse|brisee|brise|arrachee|delogee|sortie|tombee)|j'ai (casse|brise|perdu) (une|ma) dent/],
+ medical:/((peux|puis) (je )?prendre (du|de la|de l'|des|mes|mon|ma)\b|dois je|devrais je|(c'est|est ce) grave|diagnostic|medicament|antibiotique|ibuprofene|tylenol|advil|anti ?douleur|effets? secondaires?|quoi faire|est ce normal|infection|ordonnance|que me conseillez)/,
+ frustre:/(frustr|fache|enrage|furieu|exaspere|tanne|inacceptable|pas content|mecontent|plainte|j'en ai assez|j'ai deja (appele|explique|dit)|vous ecoutez pas|comprenez pas)/,
+ robot:/(etes vous (un |une )?(robot|machine|vraie|vrai|humain|personne|ia)\b|vous etes (un |une )?(robot|machine|vraie|vrai|humain|ia)\b|c'est (un |une )?(robot|machine|ia)\b|intelligence artificielle|parle a un robot)/,
+ human:/(parler (a|avec) (quelqu'un|une personne|un humain|la reception|la secretaire|la receptionniste|un employe)|vraie personne|un humain|passez moi|passer a la reception|transfer)/,
+ repeat:/(repetez|repeter|pas compris|plus lentement|pardon\b|j'ai pas entendu)/,
+ moreNo:/\b(non|c'est tout|ca va etre tout|rien d'autre|pas d'autre|au revoir|bye|bonne journee|c'est beau|ca va etre tout)\b/,
+ thanks:/\b(merci|parfait|super|correct)\b/,
+ hello:/^(bonjour|allo|salut|bonsoir|hello|bon matin)\b/,
+ hours:/(heure|horaire|ouvert|ferme|ouvre|fermez|jusqu'a quelle)/,email:/(courriel|email|e mail)/,address:/(adresse|ou etes vous|vous etes ou|situe|localise|ou se trouve|ou est (la |le )?(clinique|bureau|centre|cabinet))/,
+ phoneQ:/(numero de telephone|votre numero|telephone de la reception)/,
+ services:/(offrez|faites vous|faites vous|offrent|quels (sont les )?(services|soins|traitements)|vos services|vos soins|specialite|proposez|avez vous|est ce que vous faites|vous faites)/,
+ team:/(qui sont|quels dentistes|combien de dentistes|votre equipe|vos dentistes|la dentiste|le dentiste|dre |docteur)/,
+ area:/(desserv|brigide|brigitte|secteur|quelles villes|quelle ville)/,
+ newPatientsQ:/(acceptez.*patients?|prenez.*(nouveaux|patients)|nouveaux? patients?.*(acce|pren)|accueillez)/,
+ bill:/(factur|paiement|payer|recu|solde)/,
+ rdv:/(rendez|rdv|annul|reporter|deplacer|reprogrammer)/,
+ pain:/(douleur|mal a (la|une|ma|mes) (dent|machoire|gencive)|mal aux dents|mal de dent|sensib)/
+};
+var UNKNOWN_TOPICS=[["les prix",/(prix|cout|combien|tarif|frais|soumission)/],["les assurances",/(assurance|couvert|couverture)/],["le stationnement ou l'accessibilité",/(stationnement|parking|accessib|fauteuil roulant|ascenseur)/],["les jours fériés",/(jour ferie|ferie|noel|paques)/],["les urgences le jour même",/(meme jour|sans rendez vous)/]];
+var MOTIFS=[[/nettoyage|detartrage|hygiene/,"Nettoyage dentaire"],[/examen|check ?up|controle/,"Examen dentaire"],[/blanchiment/,"Blanchiment"],[/implant/,"Implant"],[/couronne/,"Couronne"],[/facette/,"Facettes"],[/canal/,"Traitement de canal"],[/extraction|dent de sagesse|dents de sagesse|arracher/,"Extraction / chirurgie buccale"],[/obturation|plombage|carie/,"Carie / obturation"],[/orthodont|broche/,"Orthodontie"],[/gencive|parodont/,"Gencives"]];
+var NUMW={zero:"0",un:"1",deux:"2",trois:"3",quatre:"4",cinq:"5",six:"6",sept:"7",huit:"8",neuf:"9"};
+function digitRuns(raw){var toks=norm(raw).split(" "),runs=[],cur="";toks.forEach(function(w){var d=/^\d+$/.test(w)?w:(NUMW[w]!==undefined?NUMW[w]:null);if(d!==null)cur+=d;else{if(cur)runs.push(cur);cur="";}});if(cur)runs.push(cur);return runs;}
+function bestRun(raw){var r=digitRuns(raw).sort(function(a,b){return b.length-a.length;});return r[0]||"";}
+function parsePhone(raw){var d=bestRun(raw);if(d.length===11&&d[0]==="1")d=d.slice(1);if(d.length!==10)return null;return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);}
+function digitCount(raw){return bestRun(raw).length;}
+var STOP=/^(pour|un|une|le|la|les|mon|ma|mes|ben|que|qu|trop|urgent|urgence|rendez|rdv|nettoyage|oui|non|ok|euh|merci|bonjour|allo|je|j|vous|de|du|des|et|pis|au|aux|avoir|prendre|voudrais|aimerais|besoin|patient|patiente|nouveau|nouvelle)$/;
+function parseName(raw){
+  var t=(raw||"").replace(/[’‘]/g,"'").trim().replace(/[.,!?]+$/,"");
+  t=t.replace(/^(bonjour|allo|allô|salut|oui|ben|euh)[,\s]+/i,"");
+  t=t.replace(/^(je m'appelle|je me nomme|mon nom est|mon nom c'est|mon nom,? c'est|c'est|ici|moi c'est|je suis)\s+/i,"");
+  t=t.replace(/^(madame|monsieur|mme|m\.)\s+/i,"");
+  t=t.split(/[,;]|\s+(?:et|pis|mon|ma|j'|je|pour|numero|numéro|telephone|téléphone|au numero)\b/i)[0].trim();
+  var w=t.split(/\s+/).filter(Boolean);
+  if(w.length<2||w.length>4||/\d/.test(t))return null;
+  if(w.some(function(x){return STOP.test(norm(x));}))return null;
+  return w.map(cap).join(" ");
+}
+function newSession(open,services){return {open:open,services:services||SERVICES_DEFAUT.slice(),slots:{nom:null,tel:null,motif:null,patient:null,pref:null,douleur:null},urgent:false,questions:[],details:[],lastAsk:null,asked:{},fails:0,closingDone:false,reopened:false,ended:false,lastSay:"",n:{},turns:0,wantsHuman:false};}
+function pick(S,k,a){S.n[k]=S.n[k]||0;var v=a[S.n[k]%a.length];S.n[k]++;return v;}
+function matchService(S,t){
+  for(var i=0;i<S.services.length;i++){var s=S.services[i],ns=norm(s),toks=[];
+    if(ALIAS[ns])ALIAS[ns].forEach(function(a){toks.push(norm(a));});
+    else ns.split(" ").forEach(function(w){if(w.length>=6)toks.push(w.slice(0,6));});
+    for(var j=0;j<toks.length;j++){if(toks[j]&&t.indexOf(toks[j])>=0)return s;}}
+  return null;
+}
+function say(S,txt){S.lastSay=txt;return txt;}
+function wantsRdv(S){return /rendez-vous|Nettoyage|Examen|Traitement|Implant|Couronne|Facettes|Blanchiment|Carie|Orthodontie|Gencives|Extraction|canal/i.test(S.slots.motif||"");}
+function needsPain(S){return wantsRdv(S)||/douleur/i.test(S.slots.motif||"");}
+function nextQuestion(S){
+  var s=S.slots;
+  if(!s.motif){S.lastAsk="motif";return pick(S,"qm",["C'est pour quoi, un nettoyage, un traitement, ou autre chose?","Pis c'est pour quelle sorte de demande, un nettoyage, un traitement, ou autre chose?"]);}
+  if(!s.nom){S.lastAsk="nom";return pick(S,"qn",["C'est quoi votre nom, s'il vous plaît?","Pis votre nom, c'est quoi?"]);}
+  if(!s.tel){S.lastAsk="tel";return pick(S,"qt",["À quel numéro de téléphone on peut vous rejoindre?","Pis votre numéro de téléphone, c'est quoi?"]);}
+  if(!s.patient){S.lastAsk="patient";return "Êtes-vous déjà patient chez nous, ou c'est une première fois?";}
+  if(wantsRdv(S)&&!S.asked.pref){S.asked.pref=1;S.lastAsk="pref";return "Avez-vous des préférences de jours ou de moments dans la journée? Je peux pas vous confirmer de disponibilité, mais j'le note pour la réception.";}
+  if(needsPain(S)&&!S.asked.douleur){S.asked.douleur=1;S.lastAsk="douleur";return "Une dernière petite question: est-ce que vous avez de la douleur importante, de l'enflure, un saignement ou de la fièvre?";}
+  return null;
+}
+function closing(S){
+  S.closingDone=true;S.lastAsk="more";
+  var u=S.urgent?" J'ai marqué votre demande urgente.":"";
+  return "J'ai tout c'qu'il me faut. Je transmets ça à la réception avec tout le détail, vous n'aurez pas à vous répéter."+u+" La réception va en prendre connaissance dès qu'elle se libère. Est-ce que je peux vous aider avec autre chose?";
+}
+function goodbye(S){S.ended=true;return S.urgent?"Prenez soin de vous. Merci d'avoir appelé le Centre dentaire Blanchette et Associés.":"Merci d'avoir appelé le Centre dentaire Blanchette et Associés, bonne journée!";}
+function greeting(open){return open?"Centre dentaire Blanchette et Associés, bonjour, vous parlez à Alison, la réceptionniste virtuelle. Comment est-ce que je peux vous aider?":"Centre dentaire Blanchette et Associés, vous parlez à Alison, la réceptionniste virtuelle. "+CLOSED_NOTICE+". Comment est-ce que je peux vous aider?";}
+function reply(S,raw){
+  S.turns++;var t=norm(raw),parts=[],learned=false,s=S.slots,asked=S.lastAsk;
+  if(!t)return say(S,"Allô? Je vous entends pas bien, pouvez-vous répéter?");
+  if(S.closingDone&&((RE.moreNo.test(t)&&!/\b(oui|mais|aussi|question)\b/.test(t))||/^(merci|merci beaucoup|parfait|super|ok|d'accord|correct)$/.test(t)))return say(S,goodbye(S));
+  if(RE.repeat.test(t)&&S.lastSay)return say(S,"Oui, bien sûr. "+S.lastSay);
+  var isQ=RE.hours.test(t)||RE.address.test(t)||RE.email.test(t)||RE.phoneQ.test(t)||RE.newPatientsQ.test(t)||RE.area.test(t)||RE.services.test(t)||RE.robot.test(t)||RE.human.test(t)||RE.medical.test(t)||RE.frustre.test(t)||RE.bill.test(t)||UNKNOWN_TOPICS.some(function(u){return u[1].test(t);})||!!matchService(S,t)||/\?/.test(raw);
+  /* extraction */
+  if(!s.tel){var ph=parsePhone(raw);if(ph){s.tel=ph;learned=true;}else if(asked==="tel"&&digitCount(raw)>=4&&!isQ){return say(S,"J'ai pas tout saisi le numéro. Pouvez-vous me le redonner au complet, avec l'indicatif régional?");}}
+  if(!s.nom){var m=raw.match(/(?:je m'appelle|je me nomme|mon nom (?:est|c'est)|moi c'est)\s+(.+)/i),nm=m?parseName(m[1]):null;
+    if(!nm&&asked==="nom")nm=parseName(raw);
+    if(!nm){var c=raw.match(/(?:^|[,.\s])c['’]est\s+([A-Za-zÀ-ÿ'\-]+\s+[A-Za-zÀ-ÿ'\-]+)/i);if(c)nm=parseName(c[1]);}
+    if(nm){s.nom=nm;learned=true;}else if(asked==="nom"&&!s.nom&&!isQ&&!RE.hello.test(t)&&t.split(" ").length<=6){return say(S,"Excusez-moi, j'ai pas bien saisi. Pouvez-vous me redonner votre prénom et votre nom de famille?");}}
+  if(!s.patient){if(/(nouveau patient|nouvelle patiente|premiere (fois|visite)|jamais ete (patient|chez vous)|pas (encore )?(patient|client)|pas encore patient|premier rendez)/.test(t)){s.patient="nouveau patient";learned=true;}
+    else if(/(deja patient|patient chez vous|patient depuis|suis (un |une )?patient|je viens deja|je suis deja)/.test(t)||(asked==="patient"&&/\b(oui|ouais|deja)\b/.test(t))){s.patient="patient existant";learned=true;}
+    else if(asked==="patient"&&/\b(non|nope|premiere|nouveau|nouvelle)\b/.test(t)){s.patient="nouveau patient";learned=true;}}
+  if(!s.motif){var lab=null;MOTIFS.forEach(function(x){if(!lab&&x[0].test(t))lab=x[1];});
+    if(RE.rdv.test(t)){var ch=/(annul|reporter|deplacer|reprogrammer|changer|modifier)/.test(t);s.motif=ch?"Changement ou annulation de rendez-vous":(lab?"Rendez-vous: "+lab:"Demande de rendez-vous");learned=true;}
+    else if(lab){s.motif="Rendez-vous: "+lab;learned=true;}
+    else if(RE.bill.test(t)){s.motif="Facturation";learned=true;}
+    else if(RE.pain.test(t)){s.motif="Douleur dentaire";learned=true;}
+    else if(asked==="motif"&&t.split(" ").length>=2&&!RE.hello.test(t)){s.motif="Autre: "+raw.trim();learned=true;}}
+  if(asked==="pref"&&!s.pref){s.pref=raw.trim();S.details.push("Préférences de jours/moments: "+(/^(non|aucune|pas vraiment|peu importe|n'importe)/.test(t)?"aucune préférence":raw.trim()));learned=true;}
+  if(asked==="douleur"&&!s.douleur){var y=/\b(oui|ouais|un peu|beaucoup|j'ai)\b/.test(t)&&!/\b(non|pas de|aucun|rien)\b/.test(t);s.douleur=y?"oui":"non";S.details.push("Douleur, enflure, saignement ou fièvre: "+s.douleur);if(y)S.urgent=true;learned=true;}
+  /* urgence */
+  var dang=RE.danger.test(t),urg=dang||RE.urgent.some(function(r){return r.test(t);});
+  if(urg&&!S.urgent){S.urgent=true;S.details.push("Urgence mentionnée: "+raw.trim());if(!s.motif)s.motif="URGENCE: "+raw.trim();
+    parts.push(dang?"Je comprends, c'est sérieux. S'il y a un danger vital ou de la difficulté à respirer, composez le 911 tout de suite. Sinon, je marque votre demande urgente pour la réception."
+      :pick(S,"urg",["Oh, je comprends, ça a l'air important. Je marque votre demande urgente pour la réception.","Je suis désolée d'apprendre ça. Je marque votre demande urgente, pis la réception va la voir en priorité."]));
+    if(!s.motif)s.motif="URGENCE";}
+  /* questions et intentions */
+  var answered=false;
+  if(RE.robot.test(t)){parts.push("Oui, je suis Alison, la réceptionniste virtuelle du centre. Je prends votre message pis la réception s'en occupe.");answered=true;}
+  if(RE.human.test(t)){S.wantsHuman=true;S.details.push("L'appelant souhaite parler à une personne.");parts.push("Bien sûr. Je passe vos infos à la réception avec un résumé, pour que vous n'ayez pas à vous répéter.");answered=true;}
+  if(RE.frustre.test(t)){parts.push("Je comprends, pis je suis désolée de la situation. Je note tout pour la réception.");answered=true;S.details.push("Appelant frustré: à rappeler en priorité.");}
+  if(RE.medical.test(t)){parts.push("Je peux pas donner d'avis médical, mais une personne de l'équipe va pouvoir vous répondre. Je note votre question.");S.questions.push(raw.trim());answered=true;}
+  else if(RE.hours.test(t)){parts.push("Le bureau est ouvert du lundi au jeudi, de 8 h à 17 h, pis le vendredi, de 8 h à 14 h. On est fermés la fin de semaine. Les heures peuvent varier lors des jours fériés.");answered=true;}
+  else if(RE.address.test(t)){parts.push("On est au 900, boulevard Raymond, bureau 202, à Beauport, au coin de Raymond et Louis-XIV, juste au-dessus du Pharmaprix.");answered=true;}
+  else if(RE.email.test(t)){parts.push("Vous pouvez écrire à la réception: reception arobase centredentaireblanchette point c a.");answered=true;}
+  else if(RE.phoneQ.test(t)){parts.push("Le numéro de la réception, c'est le 418-663-3333.");answered=true;}
+  else if(RE.newPatientsQ.test(t)){parts.push("Oui, on accueille les nouveaux patients, avec plaisir.");answered=true;if(!s.patient){s.patient="nouveau patient";}}
+  else if(RE.area.test(t)){parts.push("Le centre est à Beauport pis dessert aussi Saint-Brigide-de-Laval. Pour les autres secteurs, j'ai pas l'info.");answered=true;}
+  else if(RE.team.test(t)&&!/\b(rendez|rdv)\b/.test(t)){parts.push("La Dre Marie-Josée Blanchette est dentiste propriétaire, pis la Dre Ariane Doré fait aussi partie de l'équipe.");answered=true;}
+  else if(UNKNOWN_TOPICS.some(function(u){return u[1].test(t);})){var ut=UNKNOWN_TOPICS.filter(function(u){return u[1].test(t);})[0];parts.push("Pour "+ut[0]+", j'ai pas l'information, mais la réception va pouvoir vous répondre. Je leur transmets votre question.");S.questions.push(raw.trim());answered=true;}
+  else if(RE.services.test(t)||matchService(S,t)){
+    var ms=matchService(S,t);
+    if(/(quels|vos services|vos soins|quoi comme|specialite|proposez)/.test(t)&&!ms){parts.push("On offre notamment "+S.services.slice(0,-1).join(", ").toLowerCase()+" et "+S.services[S.services.length-1].toLowerCase()+". Tout se fait sur rendez-vous.");answered=true;}
+    else if(ms&&(RE.services.test(t)||/\?|est ce|faites|offrez/.test(raw+" "+t))){parts.push("Oui, on offre ça: "+ms.toLowerCase()+". Ça se fait sur rendez-vous.");answered=true;}
+    else if(RE.services.test(t)&&!ms){parts.push("Ça, j'ai pas l'info, mais j'le note pour que la réception puisse vous répondre.");S.questions.push(raw.trim());answered=true;}}
+  /* accusé de réception si on a appris quelque chose */
+  if(learned&&!answered&&!urg&&S.turns>1)parts.push(pick(S,"ack",["Parfait.","D'accord, merci.","Super, merci.","Très bien."]));
+  if(learned&&!answered&&!urg&&S.turns===1)parts.push(pick(S,"ack1",["Avec plaisir.","Oui, bien sûr.","Pas de problème."]));
+  /* rien compris */
+  if(!learned&&!answered&&!urg){
+    if(RE.hello.test(t)&&S.turns===1)parts.push("Bonjour!");
+    else if(RE.thanks.test(t)&&t.split(" ").length<=3){parts.push("Avec plaisir.");}
+    else{S.fails++;if(S.fails>=2||t.split(" ").length>=5){S.details.push("Message de l'appelant: "+raw.trim());S.fails=0;parts.push("D'accord, j'ai noté ça pour la réception.");}else parts.push("Excusez-moi, j'ai pas bien saisi. Pouvez-vous reformuler?");if(parts[0].indexOf("reformuler")>=0)return say(S,parts[0]);}}
+  var q=nextQuestion(S);
+  if(q)parts.push(q);else if(!S.closingDone)parts.push(closing(S));else{S.lastAsk="more";parts.push(pick(S,"more",["Autre chose que je peux faire pour vous?","Est-ce que je peux vous aider avec autre chose?"]));}
+  return say(S,parts.join(" "));
+}
+function fmtTime(d){var p=function(n){return (n<10?"0":"")+n;};return p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds());}
+function fmtStamp(d){var p=function(n){return (n<10?"0":"")+n;};return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+"h"+p(d.getMinutes());}
+function transcriptText(log){return log.map(function(m){return "["+fmtTime(m.t)+"] "+(m.who==="a"?"Alison":"Appelant")+": "+m.text;}).join("\n");}
+function buildEmail(S,log,start,end){
+  var s=S.slots,nom=s.nom||"non précisé",subj="[SIMULATION] Appel d'Alison — "+fmtStamp(start)+(S.urgent?" — URGENT":"")+(s.nom?" — "+s.nom:"");
+  var L=["À: "+CENTRE.courriel,"De: Alison, réceptionniste virtuelle (simulation, aucun envoi réel)","Objet: "+subj,""];
+  if(S.urgent)L.push("*** URGENT ***","");
+  L.push("Bonjour,","","Voici le compte-rendu d'un appel reçu par Alison"+(S.open?"":" (hors des heures d'ouverture)")+". L'appelant n'a pas à se répéter.","","RÉSUMÉ");
+  L.push("Nom: "+nom,"Téléphone: "+(s.tel||"non précisé"),"Patient: "+(s.patient||"non précisé"),"Motif: "+(s.motif||"non précisé"),"Urgence: "+(S.urgent?"OUI — URGENT":"non signalée"));
+  L.push("Questions pour la réception: "+(S.questions.length?S.questions.join(" | "):"aucune"));
+  if(S.details.length)L.push("Détails: "+S.details.join(" | "));
+  L.push("Début de l'appel: "+fmtStamp(start)+" — Fin: "+fmtStamp(end),"","TRANSCRIPT COMPLET",transcriptText(log),"","— Alison (simulation locale; transcript généré par reconnaissance vocale, des erreurs sont possibles)");
+  return {subject:subj,body:L.join("\n")};
+}
+if(typeof module!=="undefined")module.exports={norm:norm,isOpenAt:isOpenAt,newSession:newSession,reply:reply,greeting:greeting,buildEmail:buildEmail,parsePhone:parsePhone,parseName:parseName,SERVICES_DEFAUT:SERVICES_DEFAUT,CLOSED_NOTICE:CLOSED_NOTICE,transcriptText:transcriptText};
+</script>
+<script id="ui">
+(function(){
+if(typeof document==="undefined")return;
+var $=function(i){return document.getElementById(i);};
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition,synth=window.speechSynthesis;
+var C={active:false,speaking:false,log:[],S:null,start:null,rec:null,ended:false,email:null};
+$("services").value=SERVICES_DEFAUT.join("\n");
+function status(t,err){$("status").textContent=t;$("status").className=err?"err":"";}
+function services(){return $("services").value.split("\n").map(function(x){return x.trim();}).filter(Boolean);}
+function addMsg(who,text){var t=new Date();C.log.push({who:who,text:text,t:t});var d=document.createElement("div");d.className="m "+who;d.innerHTML='<div class="t">'+(who==="a"?"Alison":"Vous")+" · "+fmtTime(t)+"</div>";var s=document.createElement("div");s.textContent=text;d.appendChild(s);$("log").appendChild(d);$("log").scrollTop=1e9;showSlots();}
+function showSlots(){if(!C.S)return;var s=C.S.slots,rows=[["Motif",s.motif],["Nom",s.nom],["Téléphone",s.tel],["Patient",s.patient],["Urgence",C.S.urgent?"OUI":"non"],["Questions pour la réception",C.S.questions.join(" | ")]];$("slots").innerHTML=rows.map(function(r){return "<tr><td>"+r[0]+"</td><td>"+(r[1]?String(r[1]).replace(/</g,"&lt;"):"—")+"</td></tr>";}).join("");}
+function voices(){return synth?synth.getVoices():[];}
+function fillVoices(){var v=voices().filter(function(x){return /^fr/i.test(x.lang);}),sel=$("voice");sel.innerHTML="";
+  v.sort(function(a,b){var f=function(x){return (/fr-CA/i.test(x.lang)?0:1)+(/online|natural/i.test(x.name)?0:.5);};return f(a)-f(b);});
+  v.forEach(function(x){var o=document.createElement("option");o.value=x.name;o.textContent=x.name+" ("+x.lang+")";sel.appendChild(o);});
+  $("voice-info").textContent=v.length?v.length+" voix françaises. Les voix « Online » ou « Natural » d'Edge sont les plus naturelles (fr-CA en premier).":"Aucune voix française dans ce navigateur: Alison écrira sans parler.";}
+if(synth){fillVoices();synth.onvoiceschanged=fillVoices;}
+function speak(text,cb){
+  if($("mute").checked||!synth||!voices().length){setTimeout(cb,250);return;}
+  var u=new SpeechSynthesisUtterance(text),v=voices().filter(function(x){return x.name===$("voice").value;})[0];
+  if(v){u.voice=v;u.lang=v.lang;}else u.lang="fr-CA";u.rate=parseFloat($("rate").value)||1.1;
+  var done=false,fin=function(){if(done)return;done=true;C.speaking=false;cb&&cb();};
+  u.onend=fin;u.onerror=fin;C.speaking=true;stopListen();synth.cancel();synth.speak(u);
+}
+function startListen(){
+  if(!C.active||C.speaking||!SR||C.rec)return;
+  var r=new SR();r.lang="fr-CA";r.interimResults=true;r.continuous=false;C.rec=r;
+  r.onstart=function(){status("Alison vous écoute… parlez.");};
+  r.onresult=function(e){var fin="",it="";for(var i=e.resultIndex;i<e.results.length;i++){var tr=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=tr;else it+=tr;}
+    $("interim").textContent=it?"… "+it:"";if(fin.trim()){$("interim").textContent="";userSays(fin.trim());}};
+  r.onerror=function(e){if(e.error==="not-allowed"||e.error==="service-not-allowed"){status("Micro refusé: écrivez dans la boîte de texte ou cliquez une phrase de test.",true);C.rec=null;SR=null;}};
+  r.onend=function(){C.rec=null;if(C.active&&!C.speaking&&SR)setTimeout(startListen,250);};
+  try{r.start();}catch(e){C.rec=null;}
+}
+function stopListen(){if(C.rec){try{C.rec.onend=null;C.rec.abort();}catch(e){}C.rec=null;}$("interim").textContent="";}
+function userSays(text){
+  if(!C.active||C.speaking)return;
+  stopListen();C.S.services=services();addMsg("p",text);
+  var out=reply(C.S,text);addMsg("a",out);status("Alison parle…");
+  speak(out,function(){if(C.S.ended)hangup(true);else{status("Alison vous écoute…");startListen();}});
+}
+$("btn-send").onclick=function(){var v=$("txt").value.trim();if(v){$("txt").value="";userSays(v);}};
+$("txt").onkeydown=function(e){if(e.key==="Enter")$("btn-send").onclick();};
+["Bonjour, je voudrais prendre un rendez-vous pour un nettoyage","Je m'appelle Jean Testeur","Mon numéro est le quatre un huit cinq cinq cinq zéro un quatre deux","Faites-vous les implants dentaires?","Quelles sont vos heures d'ouverture?","Acceptez-vous de nouveaux patients?","J'ai très mal à une dent, ça enfle","Combien ça coûte un nettoyage?","Non, c'est tout, merci"].forEach(function(p){var b=document.createElement("button");b.className="chip";b.textContent=p;b.onclick=function(){if(C.active&&!C.speaking)userSays(p);};$("chips").appendChild(b);});
+$("btn-start").onclick=function(){
+  if(C.active)return;$("log").innerHTML="";C.log=[];C.ended=false;C.start=new Date();$("email").textContent="(le courriel apparaît ici à la fin de l'appel)";$("btn-copy").disabled=true;$("btn-dl").disabled=true;
+  var c=$("clock").value,open=c==="auto"?isOpenAt(new Date()):c==="open";C.S=newSession(open,services());
+  C.active=true;$("btn-start").disabled=true;$("btn-end").disabled=false;$("txt").disabled=false;$("btn-send").disabled=false;showSlots();
+  var g=greeting(open);addMsg("a",g);status("Alison parle…");speak(g,function(){status("Alison vous écoute…");startListen();});
+};
+function hangup(auto){
+  if(!C.active||C.ended)return;C.ended=true;C.active=false;stopListen();if(synth)synth.cancel();
+  $("btn-end").disabled=true;$("txt").disabled=true;$("btn-send").disabled=true;
+  var m=buildEmail(C.S,C.log,C.start,new Date());C.email=m;$("email").textContent=m.body;$("btn-copy").disabled=false;$("btn-dl").disabled=false;$("btn-start").disabled=false;
+  status("Appel terminé"+(auto?" (Alison a clos l'appel)":"")+". Courriel simulé prêt, rien n'a été envoyé.");
+}
+$("btn-end").onclick=function(){hangup(false);};
+$("btn-copy").onclick=function(){try{navigator.clipboard.writeText("Objet: "+C.email.subject+"\n\n"+C.email.body).then(function(){$("msg").textContent="Copié.";});}catch(e){$("msg").textContent="Copie impossible: sélectionnez le texte.";}};
+$("btn-dl").onclick=function(){var b=new Blob([C.email.body],{type:"text/plain;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="Transcript appel Alison "+fmtStamp(C.start)+".txt";document.body.appendChild(a);a.click();a.remove();};
+if(!SR)status("Reconnaissance vocale indisponible ici: utilisez Chrome ou Edge, ou les phrases de test et la boîte de texte.",true);
+})();
+</script>
+</body>
+</html>
