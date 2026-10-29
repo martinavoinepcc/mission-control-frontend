@@ -71,6 +71,12 @@
   .item .e{color:var(--muted); font-size:.88rem;}
   .item .meta{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
   .item .why{font-size:.85rem; color:var(--ink);}
+  .itemwrap{position:relative;}
+  .itemwrap .item{padding-right:48px;}
+  .star{position:absolute; top:4px; right:4px; width:40px; height:40px; border:none; background:transparent; cursor:pointer; font-size:1.3rem; line-height:1; color:var(--faint); border-radius:8px;}
+  .star:hover{color:var(--warn); background:var(--warn-soft);}
+  .star.on{color:var(--warn);}
+  .btn.fav-on{color:var(--warn); border-color:var(--warn);}
   .stack{display:flex; flex-direction:column; gap:8px;}
 
   .kpi{padding:14px; border-radius:var(--radius); background:var(--surface); border:1px solid var(--line);}
@@ -326,14 +332,22 @@ function renderAll(){
 
 function carte(o, why){
   const ech = o.echeance ? `<span class="pill ${diffDays(ymd(o.echeance), today()) <= 3 ? 'p-bad' : ''}">Échéance ${fmtDate(o.echeance)}</span>` : '';
-  return `<button class="item" data-open="${o.id}">
+  return `<div class="itemwrap"><button class="item" data-open="${o.id}">
     <span class="t">${esc(o.titre)}</span>
     <span class="e">${esc(o.employeur)}${o.lieu ? ' · ' + esc(o.lieu) : ''}</span>
     ${why ? `<span class="why">${why}</span>` : ''}
     <span class="meta">${pill('', ETAPE_LBL[o.etape] || o.etape)}${dispoPill(o)}${pertPill(o)}${ech}</span>
-  </button>`;
+  </button><button class="star ${o.favori ? 'on' : ''}" data-fav="${o.id}" aria-pressed="${o.favori ? 'true' : 'false'}" aria-label="${o.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'}" title="${o.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${o.favori ? '★' : '☆'}</button></div>`;
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if(b && !b.closest('dialog')) ouvrirFiche(Number(b.dataset.open)); });
+document.addEventListener('click', e => { const s = e.target.closest('[data-fav]'); if(s) basculerFavori(Number(s.dataset.fav)); });
+async function basculerFavori(id){
+  const o = OFFRES.find(x => x.id === id);
+  if(!o) return;
+  const v = !o.favori;
+  try { const d = await api(`/carriere/offres/${id}/favori`, { method:'POST', body: JSON.stringify({ favori: v }) }); remplacer(d.offre); toast(v ? 'Ajoutée aux favoris ★' : 'Retirée des favoris'); }
+  catch(e){ if(e.message !== 'auth') toast(e.message); }
+}
 
 /* ═══════════════ Aujourd'hui ═══════════════ */
 function renderToday(){
@@ -410,10 +424,10 @@ function renderList(){
   const emps = [...new Set(OFFRES.map(o => o.employeur))].sort((a,b) => a.localeCompare(b, 'fr'));
   const p = listPrefs;
   const sel = (k, opts) => `<select data-f="${k}"><option value="">Tous</option>${opts.map(([v,l]) => `<option value="${esc(v)}" ${p[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
-  const counts = { actives: OFFRES.filter(o => !o.archive && !nonConfirmee(o)).length, nonconf: OFFRES.filter(nonConfirmee).length, archives: OFFRES.filter(o => o.archive).length, toutes: OFFRES.length };
+  const counts = { actives: OFFRES.filter(o => !o.archive && !nonConfirmee(o)).length, nonconf: OFFRES.filter(nonConfirmee).length, archives: OFFRES.filter(o => o.archive).length, favoris: OFFRES.filter(o => o.favori).length, toutes: OFFRES.length };
   $('#p-list').innerHTML = `
     <div class="subtabs" style="margin-bottom:10px" id="listSections">
-      ${[['actives','Actives'],['nonconf','Non confirmées'],['archives','Archives'],['toutes','Toutes']].map(([k,l]) => `<button data-sec="${k}" aria-selected="${p.section === k}">${l} (${counts[k]})</button>`).join('')}
+      ${[['favoris','★ Favoris'],['actives','Actives'],['nonconf','Non confirmées'],['archives','Archives'],['toutes','Toutes']].map(([k,l]) => `<button data-sec="${k}" aria-selected="${p.section === k}">${l} (${counts[k]})</button>`).join('')}
     </div>
     ${p.section === 'nonconf' ? '<p class="note warn" style="margin-bottom:10px">Disponibilité non confirmée : hors des recommandations actives tant que la page réelle et le portail de candidature n’ont pas été vérifiés.</p>' : ''}
     <div class="filters">
@@ -441,6 +455,7 @@ function renderListItems(){
     if(p.section === 'actives' && (o.archive || nonConfirmee(o))) return false;
     if(p.section === 'nonconf' && !nonConfirmee(o)) return false;
     if(p.section === 'archives' && !o.archive) return false;
+    if(p.section === 'favoris' && !o.favori) return false;
     if(p.emp && o.employeur !== p.emp) return false;
     if(p.etape && o.etape !== p.etape) return false;
     if(p.dispo && o.dispo !== p.dispo) return false;
@@ -616,7 +631,18 @@ function renderFiche(){
   } else if(ficheTab === 'contacts'){
     const cts = arr(o.contacts);
     const ech = evs(o).filter(e => e.type === 'ECHANGE' || e.type === 'NOTE').slice().reverse();
-    body = `<h3 class="cond" style="margin-bottom:6px">Contacts fournis</h3>
+    const qEmp = encodeURIComponent(o.employeur || '');
+    const lienRH = [
+      ['LinkedIn : recruteurs et RH', `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent((o.employeur || '') + ' recrutement ressources humaines')}`],
+      ['LinkedIn : page de l’entreprise', `https://www.linkedin.com/search/results/companies/?keywords=${qEmp}`],
+      ['Site de l’entreprise : carrières et contact', `https://www.google.com/search?q=${encodeURIComponent((o.employeur || '') + ' carrières contact ressources humaines')}`],
+    ];
+    body = `<h3 class="cond" style="margin-bottom:6px">Trouver le bon contact RH</h3>
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${lienRH.map(([l, u]) => `<a class="pill p-info" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l)} ↗</a>`).join('')}</div>
+        <p class="note" style="margin-top:8px">Les recherches s’ouvrent déjà préparées pour ${esc(o.employeur)}. Repère la bonne personne, puis « + Contact » ci-dessous : un contact que tu saisis prime et n’est jamais écrasé par la veille.</p>
+      </div>
+      <h3 class="cond" style="margin-bottom:6px">Contacts fournis</h3>
       <div id="cts">${cts.map((ct, i) => `<div class="sub fgrid" data-ct="${i}">
           ${field('nom','Nom',ct.nom)}${field('role','Rôle',ct.role)}${field('courriel','Courriel',ct.courriel,'email')}${field('tel','Téléphone',ct.tel,'tel')}
           ${field('note','Note',ct.note,'text',{full:true})}
@@ -650,7 +676,10 @@ function renderFiche(){
     <div class="sheet-head">
       <div class="row">
         <div><div class="emp">${esc(o.employeur)}${o.lieu ? ' · ' + esc(o.lieu) : ''}</div><h2>${esc(o.titre)}</h2></div>
-        <button class="btn btn-ghost btn-sm" id="ficheClose" aria-label="Fermer">✕</button>
+        <div style="display:flex;gap:6px;flex:none">
+          <button class="btn btn-ghost btn-sm ${o.favori ? 'fav-on' : ''}" id="ficheFav" aria-pressed="${o.favori ? 'true' : 'false'}">${o.favori ? '★ Favori' : '☆ Favori'}</button>
+          <button class="btn btn-ghost btn-sm" id="ficheClose" aria-label="Fermer">✕</button>
+        </div>
       </div>
       <div class="meta" style="display:flex;gap:6px;flex-wrap:wrap">${dispoPill(o)}${pertPill(o)}${pill('', 'Salaire : ' + salaireTxt(o))}${o.echeance ? pill('', 'Échéance ' + fmtDate(o.echeance)) : ''}${url ? `<a class="pill p-info" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Ouvrir l'annonce ↗</a>` : ''}</div>
       <label class="f" style="flex-direction:row;align-items:center;gap:8px">Étape
@@ -701,6 +730,7 @@ async function patcher(o, patch){
 
 function bindFiche(o){
   $('#ficheClose').onclick = () => $('#fiche').close();
+  $('#ficheFav').onclick = () => basculerFavori(o.id);
   $$('[data-ft]').forEach(b => b.onclick = () => { ficheTab = b.dataset.ft; renderFiche(); });
   $('#moveSel').onchange = async e => { const v = e.target.value; e.target.value = o.etape; await deplacer(o.id, v); };
   $$('[data-save]').forEach(b => b.onclick = async () => {
