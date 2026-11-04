@@ -92,7 +92,7 @@ const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
 const cams = {}; const lights = []; const roofParts = []; const floors = [];
 const bar = document.querySelector('#bar i'), pct = document.getElementById('pct');
 const FLOOR_RX = /^(FL_|SLAB|TERRAIN|TERR_DECK|TERR_RDJ_SLAB|PERRON|ST_LANDING|ST1_|ST2_|TSTEP|LSTEP|DOCK|SHORE_DECK|ROAD|RUG|GAR_EPOXY|GAR_STEP)/;
-loader.load('T-1860-full.glb?v=13', gltf => {
+loader.load('T-1860-full.glb?v=14', gltf => {
   const root = gltf.scene; scene.add(root);
   root.traverse(o => {
     if (o.isMesh) {
@@ -126,7 +126,7 @@ loader.load('T-1860-full.glb?v=13', gltf => {
     scene.add(cyl);
   }
   const list = document.getElementById('cams');
-  const order = ['ext_lac', 'ext_lac_est', 'ext_entree', 'ext_ouest', 'aerien', 'terrasse', 'spa', 'salon', 'salon_foyer', 'cuisine', 'cuisine_angle', 'sam', 'hall', 'escalier', 'chambre_principale', 'sdb_maitres', 'walkin', 'mudroom', 'salle_eau', 'familiale', 'gym', 'corridor', 'chambre3', 'sdb3', 'chambre4', 'sdb2', 'chambre2', 'lavage', 'garage', 'garage_porte'];
+  const order = ['entree_allee', 'ext_lac', 'ext_lac_est', 'ext_entree', 'ext_ouest', 'aerien', 'terrasse', 'spa', 'salon', 'salon_foyer', 'cuisine', 'cuisine_angle', 'sam', 'hall', 'escalier', 'chambre_principale', 'sdb_maitres', 'walkin', 'mudroom', 'salle_eau', 'familiale', 'gym', 'corridor', 'chambre3', 'sdb3', 'chambre4', 'sdb2', 'chambre2', 'lavage', 'garage', 'garage_porte'];
   const names = order.filter(n => cams[n]);
   names.forEach(n => { const b = document.createElement('button'); b.dataset.n = n; b.textContent = n.replace(/_/g, ' '); b.onclick = () => goCam(n); list.appendChild(b); });
   document.getElementById('load').remove();
