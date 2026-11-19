@@ -185,7 +185,7 @@ export type Doc = {
 
 export type PlanCategorie =
   | 'ARCHITECTURE' | 'IMPLANTATION' | 'DESIGN_INTERIEUR' | 'STRUCTURE' | 'ELECTRIQUE'
-  | 'MECANIQUE' | 'PERMIS' | 'DEVIS' | 'RENDUS_3D' | 'AUTRE';
+  | 'MECANIQUE' | 'PERMIS' | 'DEVIS' | 'CONTRATS' | 'PAIEMENTS' | 'RENDUS_3D' | 'AUTRE';
 
 export type PlanSerie = {
   id: number;
