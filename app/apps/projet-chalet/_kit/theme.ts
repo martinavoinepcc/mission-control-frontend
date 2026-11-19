@@ -155,6 +155,11 @@ export const THEME_CSS = `
 .pc-courante-lien .pc-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .pc-courante-lien b { font-size: 16px; overflow-wrap: anywhere; }
 .pc-courante-lien small { color: var(--pc-gris); font-size: 12.5px; }
+.pc-resume { background: var(--pc-carte); border: 1px solid var(--pc-ligne); border-radius: 18px; padding: 14px 16px; margin-top: 12px; font-size: 14.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.pc-resume h4 { font-size: 14.5px; font-weight: 700; margin: 14px 0 4px; color: var(--pc-encre); }
+.pc-resume p { margin: 6px 0; }
+.pc-resume ul { margin: 4px 0; padding-left: 18px; }
+.pc-resume li { margin: 3px 0; }
 .pc-gros-ico { width: 52px; height: 52px; border-radius: 14px; background: color-mix(in srgb, var(--pc-sapin) 16%, transparent); color: var(--pc-sapin); display: grid; place-items: center; font-size: 24px; flex: 0 0 auto; }
 .pc-btn.grand { padding: 15px; font-size: 16.5px; border-radius: 16px; }
 .pc-2l { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
