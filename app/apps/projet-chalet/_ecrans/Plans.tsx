@@ -112,6 +112,40 @@ function lireDataUrl(file: File): Promise<string> {
   });
 }
 
+// Résumé exécutif d'un document (description structurée de la série).
+// Convention d'écriture : « ## Titre » = intertitre, « • » ou « - » en début de ligne = puce,
+// ligne vide = séparation, le reste = paragraphe. Une description sans « ## » garde
+// l'affichage simple d'origine (petit texte sous le titre).
+function estResume(description: string | null | undefined): boolean {
+  return !!description && /^## /m.test(description);
+}
+
+function Resume({ texte }: { texte: string }) {
+  const blocs: { t: 'titre' | 'para' | 'puces'; lignes: string[] }[] = [];
+  for (const brute of texte.split(/\r?\n/)) {
+    const l = brute.trim();
+    if (!l) { blocs.push({ t: 'para', lignes: [] }); continue; }
+    if (l.startsWith('## ')) { blocs.push({ t: 'titre', lignes: [l.slice(3)] }); continue; }
+    const puce = /^[•\-] /.test(l);
+    const dernier = blocs[blocs.length - 1];
+    if (puce) {
+      if (dernier && dernier.t === 'puces') dernier.lignes.push(l.slice(2));
+      else blocs.push({ t: 'puces', lignes: [l.slice(2)] });
+    } else if (dernier && dernier.t === 'para' && dernier.lignes.length) dernier.lignes.push(l);
+    else blocs.push({ t: 'para', lignes: [l] });
+  }
+  return (
+    <section className="pc-resume" aria-label="Résumé exécutif">
+      <div className="pc-surtitre" style={{ color: 'var(--pc-sapin)' }}><Icone nom="list-check" /> Résumé exécutif</div>
+      {blocs.filter((b) => b.lignes.length).map((b, i) => (
+        b.t === 'titre' ? <h4 key={i}>{b.lignes[0]}</h4>
+          : b.t === 'puces' ? <ul key={i}>{b.lignes.map((x, j) => <li key={j}>{x}</li>)}</ul>
+            : <p key={i}>{b.lignes.join(' ')}</p>
+      ))}
+    </section>
+  );
+}
+
 // Libellé + icône d'une catégorie (viennent de l'API ; clé inconnue → la clé elle-même).
 function infoCategorie(cats: CategoriePlan[], cle: string): CategoriePlan {
   return cats.find((c) => c.cle === cle) || { cle, nom: cle, icone: 'folder' };
@@ -431,7 +465,7 @@ export function Serie({ params }: EcranProps) {
         <Chip v="info"><Icone nom={cat.icone} /> {cat.nom}</Chip>
         <span className="pc-muted pc-petit">{triees.length} version{triees.length > 1 ? 's' : ''}</span>
       </div>
-      {serie.description && <p className="pc-muted pc-petit" style={{ marginTop: 0, whiteSpace: 'pre-wrap' }}>{serie.description}</p>}
+      {serie.description && !estResume(serie.description) && <p className="pc-muted pc-petit" style={{ marginTop: 0, whiteSpace: 'pre-wrap' }}>{serie.description}</p>}
       <Erreur message={erreur || erreurAction} />
 
       {!courante ? (
@@ -458,6 +492,9 @@ export function Serie({ params }: EcranProps) {
               </button>
             </div>
           </div>
+
+          {/* Résumé exécutif (sous l'original, qui reste à un toucher) */}
+          {serie.description && estResume(serie.description) && <Resume texte={serie.description} />}
 
           {/* Anciennes versions : une ligne = un toucher pour ouvrir */}
           {anciennes.length > 0 && (
