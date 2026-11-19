@@ -28,6 +28,7 @@ import {
   useChalet, Entete, Icone, Chip, Vide, Erreur, Chargement, Feuille, Confirmer, Champ,
   dateCourte, argent, type EcranProps,
 } from '../_kit/ui';
+import { BoutonRequis } from './RequisBanque';
 
 // ---------- Libellés ----------
 const TYPES_PAIEMENT: Array<{ value: DepenseType; label: string }> = [
@@ -241,6 +242,7 @@ export default function Budget(_: EcranProps) {
                 <span className="pc-cote" style={{ display: 'block', color: d.recu ? 'var(--pc-ok)' : undefined }}>{argent(d.amount)}</span>
                 <Chip v={d.recu ? 'ok' : 'neutre'}>{d.recu ? 'Reçu' : 'Prévu'}</Chip>
               </span>
+              <BoutonRequis ordre={d.order} />
               {proprio && (
                 <button className="pc-icobtn" onClick={() => setFeuille({ type: 'debourse', d })} aria-label={`Modifier « ${d.label} »`}>
                   <Icone nom="pen" />

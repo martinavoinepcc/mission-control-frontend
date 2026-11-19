@@ -40,6 +40,7 @@ import {
   useChalet, Entete, Icone, Chip, Vide, Erreur, Chargement, Feuille, Confirmer, Champ,
   argent, dateCourte, type EcranProps,
 } from '../_kit/ui';
+import { CarteRequis } from './RequisBanque';
 import { CarteSoumission, FeuilleSoumission, meilleurPrix, msgErreur, versMontant } from './Soumissions';
 
 type V = 'ok' | 'warn' | 'bad' | 'info' | 'neutre';
@@ -300,6 +301,7 @@ export function Jalons(_: EcranProps) {
       />
 
       <AvancementBanque />
+      <CarteRequis />
       <Erreur message={erreur} />
       {!jalons && !erreur && <Chargement />}
 

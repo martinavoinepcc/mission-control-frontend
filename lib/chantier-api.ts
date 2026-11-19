@@ -97,6 +97,26 @@ export type DebourseBanque = {
   order: number;
 };
 
+export type RequisBanque = {
+  id: number;
+  stade: number;
+  kind: 'DOC' | 'INSPECTION';
+  titre: string;
+  detail: string | null;
+  responsable: string | null;
+  source: 'GRILLE' | 'A_CONFIRMER' | 'MARTIN';
+  fait: boolean;
+  doneDate: string | null;
+  order: number;
+};
+
+export type StadeRequis = {
+  stade: number;
+  debourse: (Omit<DebourseBanque, 'amount'> & { amount?: number }) | null;
+  postes: AvancementItem[];
+  requis: RequisBanque[];
+};
+
 export type JalonLite = {
   id: number;
   name: string;
@@ -251,6 +271,13 @@ export const ChantierAPI = {
   avancement: () => req<{ items: AvancementItem[]; global: number }>('/chantier/avancement'),
   updateAvancement: (id: number, pct: number) =>
     req<{ item: AvancementItem }>(`/chantier/avancement/${id}`, { method: 'PATCH', body: JSON.stringify({ pct }) }),
+
+  requisBanque: () => req<{ stades: StadeRequis[] }>('/chantier/requis'),
+  updateRequis: (id: number, body: Partial<RequisBanque>) =>
+    req<{ requis: RequisBanque }>(`/chantier/requis/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  createRequis: (body: Partial<RequisBanque>) =>
+    req<{ requis: RequisBanque }>('/chantier/requis', { method: 'POST', body: JSON.stringify(body) }),
+  deleteRequis: (id: number) => req<{ ok: true }>(`/chantier/requis/${id}`, { method: 'DELETE' }),
 
   debourses: () => req<{ debourses: DebourseBanque[] }>('/chantier/debourses'),
   createDebourse: (body: Partial<DebourseBanque>) =>
